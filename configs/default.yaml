@@ -1,0 +1,49 @@
+# LongHorizonOS default configuration (spec section 21).
+runtime:
+  worker_count: 1
+  lease_seconds: 600
+  max_reconcile_retries: 1
+  deterministic_reconciliation_first: true
+
+model:
+  planner_model: "MODEL_NAME"
+  worker_model: "MODEL_NAME"
+  reconciler_model: "MODEL_NAME"
+  temperature: 0.0
+
+context:
+  max_tokens: 12000
+  max_dependency_hops: 3
+  include_last_failures: 2
+  include_full_transcript: false
+
+scheduler:
+  type: "cost_aware"
+  weights:
+    criticality: 1.0
+    unlock: 0.7
+    progress: 1.0
+    age: 0.1
+    token_cost: 0.3
+    time_cost: 0.3
+    risk: 0.5
+    context_switch: 0.1
+
+checkpoint:
+  type: "git"
+  before_side_effect_node: true
+  after_verified_node: true
+  restore_on_failure: false
+  restore_on_crash: false
+
+budget:
+  max_total_tokens: 1000000
+  max_wall_time_seconds: 14400
+  max_tool_calls: 500
+
+verification:
+  allow_llm_judge: false
+
+telemetry:
+  jsonl_trace: true
+  trace_directory: "artifacts/traces"

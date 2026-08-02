@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+.venv/
+.venv-audit/
+.env
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+
+# Runtime data is not committed; audit reports are.
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/audit/
+!artifacts/traces/.gitkeep
+!artifacts/checkpoints/.gitkeep
+!artifacts/benchmark_results/.gitkeep
+!artifacts/reports/.gitkeep

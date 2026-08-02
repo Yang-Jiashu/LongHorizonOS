@@ -1,0 +1,17 @@
+# Development overrides: layered on top of configs/default.yaml.
+runtime:
+  worker_count: 1
+  lease_seconds: 120
+
+scheduler:
+  type: "fifo"
+
+checkpoint:
+  type: "filesystem"
+
+verification:
+  allow_llm_judge: false
+
+telemetry:
+  jsonl_trace: true
+  trace_directory: "artifacts/traces"

@@ -1,0 +1,102 @@
+{
+  "goal": "Tiny repository task: inspect, implement parser, test, document",
+  "nodes": [
+    {
+      "temp_id": "inspect",
+      "kind": "subtask",
+      "title": "Inspect repository",
+      "specification": "Inspect the repository and write inventory.json.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "type": "json_schema",
+        "path": "inventory.json",
+        "schema": {
+          "type": "object",
+          "required": ["files"],
+          "properties": {"files": {"type": "array"}}
+        }
+      },
+      "metadata": {
+        "script": {
+          "summary": "Inventory written.",
+          "produced_artifacts": [
+            {"path": "inventory.json", "content": "{\"files\": [\"README.md\"]}"}
+          ]
+        }
+      }
+    },
+    {
+      "temp_id": "parser",
+      "kind": "subtask",
+      "title": "Implement parser",
+      "specification": "Write parser.py with a parse function.",
+      "schedulable": true,
+      "progress_weight": 2.0,
+      "verification_spec": {
+        "type": "composite_and",
+        "children": [
+          {"type": "file_contains", "path": "parser.py", "substring": "def parse"},
+          {"type": "command", "command": "python -m py_compile parser.py"}
+        ]
+      },
+      "metadata": {
+        "script": {
+          "summary": "parser.py implemented.",
+          "produced_artifacts": [
+            {"path": "parser.py", "content": "def parse(text):\n    return dict(line.split('=', 1) for line in text.splitlines() if '=' in line)\n"}
+          ],
+          "attempts": {
+            "1": {
+              "produced_artifacts": [
+                {"path": "parser.py", "content": "# TODO: implement parse\n"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "temp_id": "tests",
+      "kind": "subtask",
+      "title": "Run tests",
+      "specification": "Run the parser smoke test.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "type": "command",
+        "command": "python -c \"from parser import parse; assert parse('a=1') == {'a': '1'}\""
+      },
+      "metadata": {
+        "script": {
+          "summary": "Parser smoke test passed."
+        }
+      }
+    },
+    {
+      "temp_id": "docs",
+      "kind": "subtask",
+      "title": "Update docs",
+      "specification": "Write README section for the parser.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "type": "file_contains",
+        "path": "README.md",
+        "substring": "parser"
+      },
+      "metadata": {
+        "script": {
+          "summary": "README updated.",
+          "produced_artifacts": [
+            {"path": "README.md", "content": "# Tiny repo\n\n## parser\n\nKey=value config parser.\n"}
+          ]
+        }
+      }
+    }
+  ],
+  "edges": [
+    {"source": "parser", "target": "inspect", "kind": "depends_on"},
+    {"source": "tests", "target": "parser", "kind": "depends_on"}
+  ]
+}

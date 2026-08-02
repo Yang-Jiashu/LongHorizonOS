@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lhos"
+version = "0.1.0"
+description = "LongHorizonOS: a Verified Progress Graph runtime for long-horizon agents"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "networkx>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+lhos = "lhos.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"lhos.infrastructure.db" = ["schema.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
