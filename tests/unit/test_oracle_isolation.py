@@ -9,11 +9,7 @@ These tests enforce that:
 
 from __future__ import annotations
 
-import importlib
-import pkgutil
 from pathlib import Path
-
-import pytest
 
 from lhos.benchmarks.controlled.generator import generate
 from lhos.benchmarks.controlled.specs import (
@@ -45,7 +41,7 @@ def test_runtime_package_does_not_import_oracle():
         except Exception:
             continue
         for forbidden in forbidden_imports:
-            if f"from lhos.benchmarks.controlled.specs import" in text and forbidden in text:
+            if "from lhos.benchmarks.controlled.specs import" in text and forbidden in text:
                 violations.append(f"{py_file.name}: imports {forbidden}")
             if f"import {forbidden}" in text and "benchmarks" in text:
                 violations.append(f"{py_file.name}: imports {forbidden}")
