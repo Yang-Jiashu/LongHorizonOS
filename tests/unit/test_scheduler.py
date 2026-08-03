@@ -89,3 +89,46 @@ def test_cost_aware_deprioritizes_high_cost_low_progress_node():
     scheduler = CostAwareScheduler()
     picked = scheduler.select([cheap, expensive], graph, BudgetState(), ResourceState(), now=NOW)
     assert picked is not None and picked.id == "cheap"
+
+
+def test_cost_aware_picks_critical_path_over_earlier_ready():
+    """Cost-aware must pick the critical-path node even when another node has
+    an earlier ready_at (FIFO would pick the other one).
+
+    This test distinguishes cost-aware from FIFO: if the scheduler degrades
+    to FIFO, it would pick 'early' (earlier ready_at), but cost-aware should
+    pick 'critical' (on the longest remaining chain).
+    """
+    # 'early' is ready first, but is an isolated node (no downstream work)
+    early = _ready("early", "2026-01-01T11:00:01+00:00", estimated_token_cost=100)
+    # 'critical' is ready later, but unblocks a chain of 3 more nodes
+    critical = _ready("critical", "2026-01-01T11:00:05+00:00", estimated_token_cost=100)
+    # Downstream nodes (not ready, but contribute to criticality)
+    d1 = make_node("d1", state=NodeState.PENDING)
+    d2 = make_node("d2", state=NodeState.PENDING)
+    d3 = make_node("d3", state=NodeState.PENDING)
+    edges = [
+        GraphEdge(
+            run_id="run-test",
+            source_node_id="d1",
+            target_node_id="critical",
+            kind=EdgeKind.DEPENDS_ON,
+        ),
+        GraphEdge(
+            run_id="run-test", source_node_id="d2", target_node_id="d1", kind=EdgeKind.DEPENDS_ON
+        ),
+        GraphEdge(
+            run_id="run-test", source_node_id="d3", target_node_id="d2", kind=EdgeKind.DEPENDS_ON
+        ),
+    ]
+    nodes = {n.id: n for n in (early, critical, d1, d2, d3)}
+    graph = ProgressGraph(run_id="run-test", nodes=nodes, edges=edges)
+
+    # FIFO would pick 'early' (earlier ready_at)
+    fifo_picked = FifoScheduler().select([early, critical], graph, BudgetState(), ResourceState())
+    assert fifo_picked is not None and fifo_picked.id == "early"
+
+    # Cost-aware should pick 'critical' (higher criticality/unlock score)
+    scheduler = CostAwareScheduler()
+    picked = scheduler.select([early, critical], graph, BudgetState(), ResourceState(), now=NOW)
+    assert picked is not None and picked.id == "critical"
