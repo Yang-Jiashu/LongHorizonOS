@@ -1,13 +1,22 @@
 """Generate coverage summary JSON for core modules."""
+
 import json
 import subprocess
 import sys
 
 # Run coverage and capture JSON
 subprocess.run(
-    [sys.executable, "-m", "pytest", "--cov=src/lhos", "--cov-branch",
-     "--cov-report=json:artifacts/audit/coverage.json", "-q"],
-    capture_output=True, text=True
+    [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--cov=src/lhos",
+        "--cov-branch",
+        "--cov-report=json:artifacts/audit/coverage.json",
+        "-q",
+    ],
+    capture_output=True,
+    text=True,
 )
 
 with open("artifacts/audit/coverage.json") as f:

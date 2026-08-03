@@ -50,9 +50,7 @@ def test_runtime_package_does_not_import_oracle():
             if f"import {forbidden}" in text and "benchmarks" in text:
                 violations.append(f"{py_file.name}: imports {forbidden}")
 
-    assert not violations, (
-        f"Runtime package imports forbidden oracle modules: {violations}"
-    )
+    assert not violations, f"Runtime package imports forbidden oracle modules: {violations}"
 
 
 def test_runtime_modules_do_not_reference_oracle():
@@ -81,9 +79,7 @@ def test_runtime_modules_do_not_reference_oracle():
                 if lines:
                     violations.append(f"{py_file.name}: references '{pattern}'")
 
-    assert not violations, (
-        f"Runtime package references oracle/hidden patterns: {violations}"
-    )
+    assert not violations, f"Runtime package references oracle/hidden patterns: {violations}"
 
 
 # ----------------------------------------------------------- public spec test
@@ -140,19 +136,20 @@ def test_oracle_modes_use_oracle_priorities():
     """Only oracle modes should set use_oracle_priorities=True."""
     from lhos.benchmarks.modes import mode_config
 
-    for mode_name in ["transcript", "static_graph_fifo", "dynamic_graph_fifo",
-                      "dynamic_graph_local_repair", "dynamic_graph_cost_aware",
-                      "full_lhos"]:
+    for mode_name in [
+        "transcript",
+        "static_graph_fifo",
+        "dynamic_graph_fifo",
+        "dynamic_graph_local_repair",
+        "dynamic_graph_cost_aware",
+        "full_lhos",
+    ]:
         mc = mode_config(mode_name)
-        assert not mc.use_oracle_priorities, (
-            f"mode {mode_name} should not use oracle priorities"
-        )
+        assert not mc.use_oracle_priorities, f"mode {mode_name} should not use oracle priorities"
 
     for mode_name in ["oracle_graph_fifo", "oracle_graph_cost_aware"]:
         mc = mode_config(mode_name)
-        assert mc.use_oracle_priorities, (
-            f"mode {mode_name} should use oracle priorities"
-        )
+        assert mc.use_oracle_priorities, f"mode {mode_name} should use oracle priorities"
 
 
 # ----------------------------------------------------------- graph_spec isolation
