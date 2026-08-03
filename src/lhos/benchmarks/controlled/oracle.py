@@ -42,10 +42,7 @@ def compute_oracle(
     environment_events: list[dict[str, Any]],
 ) -> OracleInfo:
     dag = _depends_on_dag(nodes, edges)
-    time_ms = {
-        n["temp_id"]: float(n.get("estimated_time_ms") or _DEFAULT_TIME_MS)
-        for n in nodes
-    }
+    time_ms = {n["temp_id"]: float(n.get("estimated_time_ms") or _DEFAULT_TIME_MS) for n in nodes}
 
     # Time-longest path: longest path weighted by estimated node time.
     dist: dict[str, float] = {}
@@ -96,7 +93,15 @@ def compute_oracle(
 
     priorities = {
         n["temp_id"]: round(
-            min(1.0, (_to(n["temp_id"]) + _from(n["temp_id"]) - time_ms.get(n["temp_id"], _DEFAULT_TIME_MS)) / total),
+            min(
+                1.0,
+                (
+                    _to(n["temp_id"])
+                    + _from(n["temp_id"])
+                    - time_ms.get(n["temp_id"], _DEFAULT_TIME_MS)
+                )
+                / total,
+            ),
             6,
         )
         for n in nodes

@@ -22,25 +22,59 @@ from lhos.benchmarks.runner import run_suite
 
 # Stable column order for CSV export; anything missing is left blank.
 COLUMNS: list[str] = [
-    "task_id", "preset", "size", "seed", "mode",
-    "success", "run_status", "verified_progress", "progress_ratio",
-    "failed_nodes", "invalidated_nodes",
-    "input_tokens", "output_tokens", "total_tokens", "model_calls", "tool_calls",
-    "wall_time_seconds", "simulated_time_seconds", "model_cost_usd",
-    "graph_maintenance_tokens", "verification_tokens", "graph_maintenance_events",
-    "scheduler_time_seconds", "checkpoint_time_seconds",
-    "aupbc_tokens", "aupbc_time", "aupbc_tool_calls",
-    "useful_work_ratio", "replanning_amplification", "invalidated_work_rate",
-    "recovery_overhead", "critical_path_stretch",
-    "oracle_critical_path_seconds", "crashes", "restarts",
-    "replanned_nodes", "re_executed_nodes", "oracle_affected_nodes",
-    "run_id", "db_path",
+    "task_id",
+    "preset",
+    "size",
+    "seed",
+    "mode",
+    "success",
+    "run_status",
+    "verified_progress",
+    "progress_ratio",
+    "failed_nodes",
+    "invalidated_nodes",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "model_calls",
+    "tool_calls",
+    "wall_time_seconds",
+    "simulated_time_seconds",
+    "model_cost_usd",
+    "graph_maintenance_tokens",
+    "verification_tokens",
+    "graph_maintenance_events",
+    "scheduler_time_seconds",
+    "checkpoint_time_seconds",
+    "aupbc_tokens",
+    "aupbc_time",
+    "aupbc_tool_calls",
+    "useful_work_ratio",
+    "replanning_amplification",
+    "invalidated_work_rate",
+    "recovery_overhead",
+    "critical_path_stretch",
+    "oracle_critical_path_seconds",
+    "crashes",
+    "restarts",
+    "replanned_nodes",
+    "re_executed_nodes",
+    "oracle_affected_nodes",
+    "run_id",
+    "db_path",
 ]
 
 _AGGREGATE_METRICS = [
-    "success", "progress_ratio", "total_tokens", "tool_calls",
-    "aupbc_tokens", "useful_work_ratio", "replanning_amplification",
-    "invalidated_work_rate", "recovery_overhead", "critical_path_stretch",
+    "success",
+    "progress_ratio",
+    "total_tokens",
+    "tool_calls",
+    "aupbc_tokens",
+    "useful_work_ratio",
+    "replanning_amplification",
+    "invalidated_work_rate",
+    "recovery_overhead",
+    "critical_path_stretch",
 ]
 
 
@@ -50,7 +84,7 @@ def _parse_csv_list(raw: str | None) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
-def _select_modes(args) -> list[str]:  # noqa: ANN001
+def _select_modes(args) -> list[str]:
     requested = _parse_csv_list(getattr(args, "mode", None) or getattr(args, "modes", None))
     if requested:
         unknown = [m for m in requested if m not in MODES]
@@ -63,7 +97,9 @@ def _select_modes(args) -> list[str]:  # noqa: ANN001
     unknown = scheduler_filter - {"fifo", "cost_aware"}
     if unknown:
         raise ValueError(f"unknown scheduler(s) {sorted(unknown)}; choose fifo,cost_aware")
-    return [m for m in MODES if m == "transcript" or mode_config(m).scheduler_family in scheduler_filter]
+    return [
+        m for m in MODES if m == "transcript" or mode_config(m).scheduler_family in scheduler_filter
+    ]
 
 
 def aggregate(rows: list[dict]) -> list[dict]:
@@ -82,7 +118,19 @@ def aggregate(rows: list[dict]) -> list[dict]:
 
 
 def _print_table(entries: list[dict]) -> None:
-    headers = ["preset", "mode", "runs", "success", "tokens", "aupbc_tok", "useful", "replan", "inval", "recover", "stretch"]
+    headers = [
+        "preset",
+        "mode",
+        "runs",
+        "success",
+        "tokens",
+        "aupbc_tok",
+        "useful",
+        "replan",
+        "inval",
+        "recover",
+        "stretch",
+    ]
     print(" ".join(h.ljust(10) for h in headers))
     for e in entries:
         print(
@@ -104,7 +152,7 @@ def _print_table(entries: list[dict]) -> None:
         )
 
 
-def cmd_benchmark(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_benchmark(args) -> int:
     suite = args.suite
     if suite != "controlled":
         raise ValueError(f"unknown suite {suite!r}; only 'controlled' exists (spec 22)")
@@ -154,7 +202,9 @@ def cmd_benchmark(args) -> int:  # noqa: ANN001 - argparse.Namespace
         for row in rows:
             writer.writerow(row)
 
-    print(f"\n{len(rows)} runs ({len(presets)} presets x {len(modes)} modes x {len(seeds)} seeds), size={size}")
+    print(
+        f"\n{len(rows)} runs ({len(presets)} presets x {len(modes)} modes x {len(seeds)} seeds), size={size}"
+    )
     _print_table(payload["aggregate"])
     print(f"\nwrote {json_path}")
     print(f"wrote {csv_path}")

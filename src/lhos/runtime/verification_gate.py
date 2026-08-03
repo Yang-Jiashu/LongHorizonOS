@@ -23,8 +23,7 @@ from lhos.ports.verifier import VerificationContext
 
 
 class VerificationOutcome:
-    def __init__(self, passed: bool, pending: bool, summary: str,
-                 evidence: list[EvidenceRef]):
+    def __init__(self, passed: bool, pending: bool, summary: str, evidence: list[EvidenceRef]):
         self.passed = passed
         self.pending = pending
         self.summary = summary
@@ -34,9 +33,9 @@ class VerificationOutcome:
 class VerificationGate:
     def __init__(
         self,
-        graph_store,  # noqa: ANN001 - SqliteGraphStore
-        event_store,  # noqa: ANN001 - SqliteEventStore
-        registry,  # noqa: ANN001 - VerifierRegistry
+        graph_store,
+        event_store,
+        registry,
         workspace_dir: str,
     ):
         self._store = graph_store
@@ -53,7 +52,6 @@ class VerificationGate:
 
     def pre_execute_baselines(self, node: GraphNode) -> dict[str, str | None]:
         """Snapshot hashes for file_changed specs before the worker runs."""
-        import json
         from pathlib import Path
 
         baselines: dict[str, str | None] = {}
@@ -68,9 +66,7 @@ class VerificationGate:
                 if rel:
                     path = (Path(self._workspace_dir).resolve() / rel).resolve()
                     baselines[rel] = (
-                        hashlib.sha256(path.read_bytes()).hexdigest()
-                        if path.exists()
-                        else None
+                        hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
                     )
             for child in spec.parameters.get("children", []):
                 specs.append(child)
@@ -84,7 +80,7 @@ class VerificationGate:
     def verify(
         self,
         node: GraphNode,
-        worker_result,  # noqa: ANN001 - WorkerResult
+        worker_result,
         baselines: dict[str, str | None] | None = None,
         causation_id: str | None = None,
     ) -> VerificationOutcome:

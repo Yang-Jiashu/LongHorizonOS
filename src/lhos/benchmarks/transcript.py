@@ -144,7 +144,11 @@ def run_transcript(task: ControlledTask, workspace_dir: str | Path) -> Transcrip
                 status = "failed" if attempt <= fail_times else "claimed_done"
 
             context = (
-                task.spec.goal + "\n" + "\n".join(transcript_lines) + "\n" + node.get("specification", "")
+                task.spec.goal
+                + "\n"
+                + "\n".join(transcript_lines)
+                + "\n"
+                + node.get("specification", "")
             )
             input_tokens = max(1, len(context) // 4)
             output_tokens = int(merged.get("output_tokens", 50))
@@ -161,7 +165,9 @@ def run_transcript(task: ControlledTask, workspace_dir: str | Path) -> Transcrip
                 for artifact in merged.get("produced_artifacts", []):
                     if "path" in artifact and "content" in artifact:
                         (workspace / artifact["path"]).parent.mkdir(parents=True, exist_ok=True)
-                        (workspace / artifact["path"]).write_text(artifact["content"], encoding="utf-8")
+                        (workspace / artifact["path"]).write_text(
+                            artifact["content"], encoding="utf-8"
+                        )
                         tool_calls += 1
 
             cum_tokens += input_tokens + output_tokens
@@ -243,7 +249,7 @@ def run_transcript(task: ControlledTask, workspace_dir: str | Path) -> Transcrip
             # Attempts exhausted: permanent failure ends the transcript run
             # (there is no repair mechanism to route around it).
             result.final_states[temp_id] = "failed"
-            for remaining in order[index + 1:]:
+            for remaining in order[index + 1 :]:
                 result.final_states.setdefault(remaining, "blocked")
             break
         index += 1
@@ -252,7 +258,5 @@ def run_transcript(task: ControlledTask, workspace_dir: str | Path) -> Transcrip
     result.simulated_time_seconds = round(cum_seconds, 6)
     result.verified_progress = round(verified_weight, 6)
     result.progress_ratio = round(verified_weight / total_weight, 6)
-    result.success = bool(order) and all(
-        result.final_states.get(t) == "verified" for t in order
-    )
+    result.success = bool(order) and all(result.final_states.get(t) == "verified" for t in order)
     return result

@@ -36,9 +36,7 @@ class NodeStateMachine:
         if (current, target) in _ALLOWED:
             return True
         # ANY NONTERMINAL -> ABORTED.
-        if target == NodeState.ABORTED and current not in TERMINAL_STATES:
-            return True
-        return False
+        return target == NodeState.ABORTED and current not in TERMINAL_STATES
 
     def transition(
         self,

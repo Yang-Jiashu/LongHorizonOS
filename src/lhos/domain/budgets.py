@@ -40,6 +40,4 @@ def budget_exhausted(limits: BudgetLimits, state: BudgetState) -> bool:
         return True
     if limits.max_model_calls is not None and state.model_calls >= limits.max_model_calls:
         return True
-    if limits.max_cost_usd is not None and state.cost_usd >= limits.max_cost_usd:
-        return True
-    return False
+    return limits.max_cost_usd is not None and state.cost_usd >= limits.max_cost_usd

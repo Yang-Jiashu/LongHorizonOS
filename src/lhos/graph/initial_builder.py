@@ -17,7 +17,7 @@ from lhos.domain.verification import VerificationSpec
 
 
 class InitialGraphBuilder:
-    def __init__(self, graph_store):  # noqa: ANN001 - SqliteGraphStore
+    def __init__(self, graph_store):
         self._store = graph_store
 
     @staticmethod
@@ -48,9 +48,7 @@ class InitialGraphBuilder:
             verification_spec = raw.get("verification_spec")
             if verification_spec is not None:
                 # Normalize the compact planner shape into the 14.3 shape.
-                verification_spec = VerificationSpec.from_raw(
-                    verification_spec
-                ).model_dump()
+                verification_spec = VerificationSpec.from_raw(verification_spec).model_dump()
             nodes.append(
                 GraphNode(
                     id=node_id,
@@ -75,9 +73,7 @@ class InitialGraphBuilder:
             source = id_map.get(raw["source"])
             target = id_map.get(raw["target"])
             if source is None or target is None:
-                raise PatchValidationError(
-                    f"edge references unknown temp_id: {raw!r}"
-                )
+                raise PatchValidationError(f"edge references unknown temp_id: {raw!r}")
             edges.append(
                 GraphEdge(
                     run_id=run_id,
@@ -93,9 +89,7 @@ class InitialGraphBuilder:
 
         from lhos.graph.queries import ProgressGraph
 
-        graph = ProgressGraph(
-            run_id=run_id, nodes={n.id: n for n in nodes}, edges=list(edges)
-        )
+        graph = ProgressGraph(run_id=run_id, nodes={n.id: n for n in nodes}, edges=list(edges))
         if not nx.is_directed_acyclic_graph(graph.depends_on_digraph()):
             raise CycleError("initial DEPENDS_ON subgraph contains a cycle")
 

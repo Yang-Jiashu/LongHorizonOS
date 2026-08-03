@@ -16,6 +16,4 @@ class JsonlTracer:
     def record_event(self, event: RuntimeEvent) -> None:
         path = self._dir / f"{event.run_id}.jsonl"
         with path.open("a", encoding="utf-8") as fh:
-            fh.write(
-                json.dumps(event.model_dump(mode="json"), sort_keys=True) + "\n"
-            )
+            fh.write(json.dumps(event.model_dump(mode="json"), sort_keys=True) + "\n")

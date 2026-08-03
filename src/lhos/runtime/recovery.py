@@ -23,9 +23,9 @@ from lhos.domain.events import ActorType, EventType, RuntimeEvent
 class RecoveryManager:
     def __init__(
         self,
-        graph_store,  # noqa: ANN001 - SqliteGraphStore
-        event_store,  # noqa: ANN001 - SqliteEventStore
-        checkpoint_manager=None,  # noqa: ANN001 - optional CheckpointManager
+        graph_store,
+        event_store,
+        checkpoint_manager=None,
         restore_on_crash: bool = False,
     ):
         self._store = graph_store
@@ -97,12 +97,15 @@ class RecoveryManager:
         for event in self._events.list_events(run_id):
             if event.event_type == EventType.TOOL_CALL_REQUESTED and event.idempotency_key:
                 requested_keys.add(event.idempotency_key)
-            elif event.event_type in {
-                EventType.TOOL_CALL_COMPLETED,
-                EventType.TOOL_CALL_FAILED,
-            }:
-                if event.idempotency_key:
-                    terminal_keys.add(event.idempotency_key.rsplit(":", 1)[0])
+            elif (
+                event.event_type
+                in {
+                    EventType.TOOL_CALL_COMPLETED,
+                    EventType.TOOL_CALL_FAILED,
+                }
+                and event.idempotency_key
+            ):
+                terminal_keys.add(event.idempotency_key.rsplit(":", 1)[0])
         incomplete_tool_calls = len(requested_keys - terminal_keys)
 
         return {

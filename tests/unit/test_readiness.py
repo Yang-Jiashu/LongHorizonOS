@@ -7,7 +7,6 @@ from lhos.domain.enums import EdgeKind, NodeKind, NodeState
 from lhos.domain.models import GraphEdge
 from lhos.graph.queries import ProgressGraph
 from lhos.graph.readiness import EnvironmentSnapshot, ReadinessEvaluator
-
 from tests.conftest import make_node
 
 
@@ -23,8 +22,11 @@ def test_pending_with_unverified_dependency_is_not_ready():
     dep = make_node("dep", state=NodeState.RUNNING)
     node = make_node("n", state=NodeState.PENDING)
     graph = _graph(dep, node)
-    graph.edges.append(GraphEdge(run_id="run-test", source_node_id="n",
-                                 target_node_id="dep", kind=EdgeKind.DEPENDS_ON))
+    graph.edges.append(
+        GraphEdge(
+            run_id="run-test", source_node_id="n", target_node_id="dep", kind=EdgeKind.DEPENDS_ON
+        )
+    )
     assert not _evaluator().evaluate(node, graph, EnvironmentSnapshot(), BudgetState())
 
 
@@ -32,8 +34,11 @@ def test_pending_with_verified_dependencies_is_ready():
     dep = make_node("dep", state=NodeState.VERIFIED)
     node = make_node("n", state=NodeState.PENDING)
     graph = _graph(dep, node)
-    graph.edges.append(GraphEdge(run_id="run-test", source_node_id="n",
-                                 target_node_id="dep", kind=EdgeKind.DEPENDS_ON))
+    graph.edges.append(
+        GraphEdge(
+            run_id="run-test", source_node_id="n", target_node_id="dep", kind=EdgeKind.DEPENDS_ON
+        )
+    )
     assert _evaluator().evaluate(node, graph, EnvironmentSnapshot(), BudgetState())
 
 
@@ -41,8 +46,9 @@ def test_active_blocks_edge_from_unverified_node_blocks_readiness():
     blocker = make_node("b", state=NodeState.PENDING)
     node = make_node("n", state=NodeState.PENDING)
     graph = _graph(blocker, node)
-    graph.edges.append(GraphEdge(run_id="run-test", source_node_id="b",
-                                 target_node_id="n", kind=EdgeKind.BLOCKS))
+    graph.edges.append(
+        GraphEdge(run_id="run-test", source_node_id="b", target_node_id="n", kind=EdgeKind.BLOCKS)
+    )
     assert not _evaluator().evaluate(node, graph, EnvironmentSnapshot(), BudgetState())
 
 
@@ -50,8 +56,9 @@ def test_blocks_edge_from_verified_node_does_not_block():
     blocker = make_node("b", state=NodeState.VERIFIED)
     node = make_node("n", state=NodeState.PENDING)
     graph = _graph(blocker, node)
-    graph.edges.append(GraphEdge(run_id="run-test", source_node_id="b",
-                                 target_node_id="n", kind=EdgeKind.BLOCKS))
+    graph.edges.append(
+        GraphEdge(run_id="run-test", source_node_id="b", target_node_id="n", kind=EdgeKind.BLOCKS)
+    )
     assert _evaluator().evaluate(node, graph, EnvironmentSnapshot(), BudgetState())
 
 

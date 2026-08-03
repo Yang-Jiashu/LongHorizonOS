@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 import networkx as nx
 
-from lhos.domain.enums import NON_REMAINING_STATES, EdgeKind, NodeState
+from lhos.domain.enums import NON_REMAINING_STATES, EdgeKind
 from lhos.domain.errors import NodeNotFoundError
 from lhos.domain.models import GraphEdge, GraphNode
 
@@ -24,13 +24,11 @@ class ProgressGraph:
     def get_node(self, node_id: str) -> GraphNode:
         try:
             return self.nodes[node_id]
-        except KeyError:
-            raise NodeNotFoundError(f"node {node_id} not found in run {self.run_id}")
+        except KeyError as err:
+            raise NodeNotFoundError(f"node {node_id} not found in run {self.run_id}") from err
 
     def active_edges(self, kind: EdgeKind | None = None) -> list[GraphEdge]:
-        return [
-            e for e in self.edges if e.active and (kind is None or e.kind == kind)
-        ]
+        return [e for e in self.edges if e.active and (kind is None or e.kind == kind)]
 
     def out_edges(
         self, node_id: str, kind: EdgeKind | None = None, active_only: bool = True
@@ -103,9 +101,7 @@ class ProgressGraph:
     def remaining_nodes(self) -> list[GraphNode]:
         """Schedulable subtasks that are not yet VERIFIED or ABORTED."""
         return [
-            n
-            for n in self.nodes.values()
-            if n.schedulable and n.state not in NON_REMAINING_STATES
+            n for n in self.nodes.values() if n.schedulable and n.state not in NON_REMAINING_STATES
         ]
 
     def depends_on_digraph(self, remaining_only: bool = False) -> nx.DiGraph:

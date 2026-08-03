@@ -21,9 +21,7 @@ def parse_structured(text: str, model_cls: type[T]) -> T:
     candidate = text.strip()
     if candidate.startswith("```"):
         lines = candidate.splitlines()
-        candidate = "\n".join(
-            line for line in lines if not line.strip().startswith("```")
-        ).strip()
+        candidate = "\n".join(line for line in lines if not line.strip().startswith("```")).strip()
     try:
         data = json.loads(candidate)
     except json.JSONDecodeError as exc:
@@ -37,7 +35,7 @@ def parse_structured(text: str, model_cls: type[T]) -> T:
 
 
 def parse_with_retry(
-    llm,  # noqa: ANN001 - LLM port
+    llm,
     prompt: str,
     model_cls: type[T],
     *,
@@ -50,8 +48,7 @@ def parse_with_retry(
         return parse_structured(response.text, model_cls)
     except StructuredOutputError:
         retry_prompt = (
-            prompt
-            + "\n\nYour previous output failed schema validation. "
+            prompt + "\n\nYour previous output failed schema validation. "
             "Return ONLY valid JSON matching the required schema."
         )
         response = llm.complete(retry_prompt, model=model, temperature=temperature)

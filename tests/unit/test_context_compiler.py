@@ -13,22 +13,47 @@ from lhos.domain.enums import NodeKind, NodeState
 from lhos.domain.events import ActorType, EventType, RuntimeEvent
 from lhos.domain.models import EvidenceRef
 from lhos.runtime.context_compiler import ContextCompiler, ContextRequest
-
 from tests.conftest import make_edge, make_node
 
 
 def _seed(graph_store, run_id):
-    dep = make_node("dep", run_id=run_id, state=NodeState.VERIFIED,
-                    title="Build parser", specification="Build the config parser module")
-    sibling = make_node("sibling", run_id=run_id, state=NodeState.VERIFIED,
-                        title="Paint bikeshed", specification="UNRELATED_SIBLING_MARKER")
-    stale_dep = make_node("stale-dep", run_id=run_id, state=NodeState.VERIFIED,
-                          title="Old survey", specification="STALE_DEP_MARKER")
-    constraint = make_node("constraint", run_id=run_id, kind=NodeKind.CONSTRAINT,
-                           schedulable=False, state=NodeState.VERIFIED,
-                           title="Style rule", specification="CONSTRAINT_MARKER: use snake_case")
-    target = make_node("target", run_id=run_id, state=NodeState.READY,
-                       title="Write tests", specification="Write unit tests for the parser")
+    dep = make_node(
+        "dep",
+        run_id=run_id,
+        state=NodeState.VERIFIED,
+        title="Build parser",
+        specification="Build the config parser module",
+    )
+    sibling = make_node(
+        "sibling",
+        run_id=run_id,
+        state=NodeState.VERIFIED,
+        title="Paint bikeshed",
+        specification="UNRELATED_SIBLING_MARKER",
+    )
+    stale_dep = make_node(
+        "stale-dep",
+        run_id=run_id,
+        state=NodeState.VERIFIED,
+        title="Old survey",
+        specification="STALE_DEP_MARKER",
+    )
+    constraint = make_node(
+        "constraint",
+        run_id=run_id,
+        kind=NodeKind.CONSTRAINT,
+        schedulable=False,
+        state=NodeState.VERIFIED,
+        title="Style rule",
+        specification="CONSTRAINT_MARKER: use snake_case",
+    )
+    target = make_node(
+        "target",
+        run_id=run_id,
+        state=NodeState.READY,
+        title="Write tests",
+        specification="Write unit tests for the parser",
+    )
     for node in (dep, sibling, stale_dep, constraint, target):
         graph_store.add_node(node)
     graph_store.add_edge(make_edge(run_id, "target", "dep"))
@@ -50,7 +75,7 @@ def _request(run_id, node_id="target") -> ContextRequest:
     return ContextRequest(run_id=run_id, node_id=node_id, max_tokens=12000)
 
 
-def _packet_text(packet) -> str:  # noqa: ANN001
+def _packet_text(packet) -> str:
     parts = [packet.global_goal, packet.current_task]
     parts += packet.constraints
     parts += packet.dependency_summaries

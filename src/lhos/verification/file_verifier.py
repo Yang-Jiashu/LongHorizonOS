@@ -23,8 +23,9 @@ def _resolve(workspace_dir: str, rel: str) -> Path:
 class FileExistsVerifier:
     verifier_type = "file_exists"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         rel = spec.parameters.get("path")
         if not rel:
             return VerificationResult(passed=False, summary="file_exists: no path")
@@ -54,8 +55,9 @@ class FileChangedVerifier:
 
     verifier_type = "file_changed"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         rel = spec.parameters.get("path")
         if not rel:
             return VerificationResult(passed=False, summary="file_changed: no path")
@@ -84,8 +86,9 @@ class FileChangedVerifier:
 class FileContainsVerifier:
     verifier_type = "file_contains"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         rel = spec.parameters.get("path")
         if not rel:
             return VerificationResult(passed=False, summary="file_contains: no path")
@@ -129,8 +132,9 @@ class ArtifactExistsVerifier:
 
     verifier_type = "artifact_exists"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         name = spec.parameters.get("artifact_name") or spec.parameters.get("path")
         if not name:
             return VerificationResult(passed=False, summary="artifact_exists: no artifact_name")
@@ -162,6 +166,4 @@ class ArtifactExistsVerifier:
                         }
                     ],
                 )
-        return VerificationResult(
-            passed=False, summary=f"artifact not found: {name}"
-        )
+        return VerificationResult(passed=False, summary=f"artifact not found: {name}")

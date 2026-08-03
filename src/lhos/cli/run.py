@@ -12,14 +12,14 @@ from lhos.domain.errors import SimulatedCrashError
 from lhos.infrastructure.db.connection import Database
 
 
-def cmd_init(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_init(args) -> int:
     db = Database(args.db)
     db.close()
     print(f"initialized database at {args.db}")
     return 0
 
 
-def cmd_run(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_run(args) -> int:
     config = load_config(args.config)
     spec = json.loads(Path(args.graph_file).read_text(encoding="utf-8"))
     goal = args.goal or spec.get("goal") or "complete the task graph"

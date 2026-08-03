@@ -10,14 +10,14 @@ from lhos.infrastructure.db.sqlite_graph_store import SqliteGraphStore
 from lhos.infrastructure.telemetry.metrics_collector import MetricsCollector
 
 
-def _stores(db_path: str):  # noqa: ANN202
+def _stores(db_path: str):
     db = Database(db_path)
     events = SqliteEventStore(db)
     store = SqliteGraphStore(db, events)
     return db, events, store
 
 
-def cmd_inspect(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_inspect(args) -> int:
     db, events, store = _stores(args.db)
     try:
         metrics = MetricsCollector(store, events).collect(args.run_id)
@@ -49,20 +49,16 @@ def cmd_inspect(args) -> int:  # noqa: ANN001 - argparse.Namespace
         db.close()
 
 
-def cmd_graph(args) -> int:  # noqa: ANN001 - argparse.Namespace
-    db, events, store = _stores(args.db)
+def cmd_graph(args) -> int:
+    db, _events, store = _stores(args.db)
     try:
         graph = store.load_graph(args.run_id)
         dump = {
             "run_id": args.run_id,
             "nodes": [
-                n.model_dump(mode="json")
-                for n in sorted(graph.nodes.values(), key=lambda n: n.id)
+                n.model_dump(mode="json") for n in sorted(graph.nodes.values(), key=lambda n: n.id)
             ],
-            "edges": [
-                e.model_dump(mode="json")
-                for e in sorted(graph.edges, key=lambda e: e.id)
-            ],
+            "edges": [e.model_dump(mode="json") for e in sorted(graph.edges, key=lambda e: e.id)],
         }
         print(json.dumps(dump, indent=2, sort_keys=True, default=str))
         return 0

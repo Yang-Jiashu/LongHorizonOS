@@ -12,7 +12,7 @@ from lhos.domain.events import ActorType, EventType, RuntimeEvent
 
 
 class BudgetManager:
-    def __init__(self, event_store, limits: BudgetLimits):  # noqa: ANN001
+    def __init__(self, event_store, limits: BudgetLimits):
         self._events = event_store
         self._limits = limits
         self._states: dict[str, BudgetState] = {}

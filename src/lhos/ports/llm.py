@@ -1,9 +1,8 @@
 """LLM port. Real API calls are out of scope for the MVP; MockLLM implements this."""
 
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel
-from typing import Protocol
 
 
 class LLMResponse(BaseModel):

@@ -20,21 +20,43 @@ METRIC_GLOSSARY: list[tuple[str, str]] = [
     ("success", "run completed with every schedulable node VERIFIED"),
     ("progress_ratio", "verified progress weight / total progress weight"),
     ("total_tokens", "input + output tokens over all executions (modeled; no real LLM)"),
-    ("aupbc_tokens", "area under the Progress-Budget curve, token axis, normalized (higher = progress earned earlier/cheaper)"),
+    (
+        "aupbc_tokens",
+        "area under the Progress-Budget curve, token axis, normalized (higher = progress earned earlier/cheaper)",
+    ),
     ("aupbc_time", "same, wall-clock axis (not reproducible across reruns)"),
     ("aupbc_tool_calls", "same, tool-call axis"),
-    ("useful_work_ratio", "cost of final successful attempts of VERIFIED nodes / total execution cost"),
-    ("replanning_amplification", "nodes actually re-executed after invalidation / oracle true affected nodes (1.0 = perfect local repair)"),
+    (
+        "useful_work_ratio",
+        "cost of final successful attempts of VERIFIED nodes / total execution cost",
+    ),
+    (
+        "replanning_amplification",
+        "nodes actually re-executed after invalidation / oracle true affected nodes (1.0 = perfect local repair)",
+    ),
     ("invalidated_work_rate", "superseded-attempt cost / total execution cost"),
     ("recovery_overhead", "repeated cost after a crash / remaining estimated cost at crash time"),
-    ("critical_path_stretch", "simulated execution time / oracle critical-path time (1.0 = optimal)"),
-    ("graph_maintenance_events", "reconciler/invalidation events processed (token cost is 0: deterministic rules, no LLM)"),
+    (
+        "critical_path_stretch",
+        "simulated execution time / oracle critical-path time (1.0 = optimal)",
+    ),
+    (
+        "graph_maintenance_events",
+        "reconciler/invalidation events processed (token cost is 0: deterministic rules, no LLM)",
+    ),
 ]
 
 KEY_METRICS = [
-    "success", "progress_ratio", "total_tokens", "tool_calls",
-    "aupbc_tokens", "useful_work_ratio", "replanning_amplification",
-    "invalidated_work_rate", "recovery_overhead", "critical_path_stretch",
+    "success",
+    "progress_ratio",
+    "total_tokens",
+    "tool_calls",
+    "aupbc_tokens",
+    "useful_work_ratio",
+    "replanning_amplification",
+    "invalidated_work_rate",
+    "recovery_overhead",
+    "critical_path_stretch",
 ]
 
 
@@ -82,7 +104,24 @@ def build_report(payloads: list[dict]) -> str:
         for key in KEY_METRICS:
             entry[key] = _mean([float(m.get(key, 0.0)) for m in members])
         table_rows.append(entry)
-    lines.append(_table(table_rows, ["preset", "mode", "runs", "success", "total_tokens", "aupbc_tokens", "useful_work_ratio", "replanning_amplification", "invalidated_work_rate", "recovery_overhead", "critical_path_stretch"]))
+    lines.append(
+        _table(
+            table_rows,
+            [
+                "preset",
+                "mode",
+                "runs",
+                "success",
+                "total_tokens",
+                "aupbc_tokens",
+                "useful_work_ratio",
+                "replanning_amplification",
+                "invalidated_work_rate",
+                "recovery_overhead",
+                "critical_path_stretch",
+            ],
+        )
+    )
 
     lines += ["", "## Aggregate by mode (mean over presets)", ""]
     by_mode: dict[str, list[dict]] = {}
@@ -94,7 +133,23 @@ def build_report(payloads: list[dict]) -> str:
         for key in KEY_METRICS:
             entry[key] = _mean([float(m.get(key, 0.0)) for m in members])
         mode_rows.append(entry)
-    lines.append(_table(mode_rows, ["mode", "runs", "success", "total_tokens", "aupbc_tokens", "useful_work_ratio", "replanning_amplification", "invalidated_work_rate", "recovery_overhead", "critical_path_stretch"]))
+    lines.append(
+        _table(
+            mode_rows,
+            [
+                "mode",
+                "runs",
+                "success",
+                "total_tokens",
+                "aupbc_tokens",
+                "useful_work_ratio",
+                "replanning_amplification",
+                "invalidated_work_rate",
+                "recovery_overhead",
+                "critical_path_stretch",
+            ],
+        )
+    )
 
     lines += ["", "## Metric glossary (spec 24)", ""]
     for name, desc in METRIC_GLOSSARY:
@@ -105,7 +160,11 @@ def build_report(payloads: list[dict]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="build a benchmark report from results JSON")
-    parser.add_argument("results", nargs="*", help="results JSON files (default: newest in artifacts/benchmark_results)")
+    parser.add_argument(
+        "results",
+        nargs="*",
+        help="results JSON files (default: newest in artifacts/benchmark_results)",
+    )
     parser.add_argument("--out", default=None, help="output markdown path")
     args = parser.parse_args(argv)
 
@@ -113,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
     if not paths:
         candidates = sorted(Path("artifacts/benchmark_results").glob("controlled_*.json"))
         if not candidates:
-            print("no results found; run `lhos benchmark --suite controlled` first", file=sys.stderr)
+            print(
+                "no results found; run `lhos benchmark --suite controlled` first", file=sys.stderr
+            )
             return 1
         paths = [candidates[-1]]
     payloads = [json.loads(p.read_text(encoding="utf-8")) for p in paths]

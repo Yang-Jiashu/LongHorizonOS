@@ -8,7 +8,6 @@ from lhos.domain.enums import NodeState
 from lhos.domain.events import ActorType
 from lhos.domain.models import EvidenceRef
 from lhos.graph.projection import rebuild_projection
-
 from tests.conftest import make_edge, make_node
 
 
@@ -36,7 +35,9 @@ def _exercise_store(graph_store, run_id):
         )
     )
     graph_store.set_state(
-        "n1", NodeState.VERIFIED, actor=ActorType.VERIFIER,
+        "n1",
+        NodeState.VERIFIED,
+        actor=ActorType.VERIFIER,
         evidence_ids=[evidence.id],
     )
     graph_store.release_lease("n1")

@@ -73,9 +73,7 @@ class RuntimeStack:
         self.tool_registry.register(FakeTool(fake_tool_script), FAKE_METADATA)
 
         budget_cfg = self.config.get("budget", {})
-        self.budget_limits = BudgetLimits(
-            **{k: v for k, v in budget_cfg.items() if v is not None}
-        )
+        self.budget_limits = BudgetLimits(**{k: v for k, v in budget_cfg.items() if v is not None})
         self.budget_manager = BudgetManager(self.event_store, self.budget_limits)
 
         self.tool_runtime = ToolRuntime(

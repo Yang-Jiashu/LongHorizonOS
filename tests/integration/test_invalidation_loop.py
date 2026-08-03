@@ -66,9 +66,7 @@ def _start(stack: RuntimeStack, spec: dict, run_id: str):
 
 
 def _events_by_type(stack: RuntimeStack, run_id: str, event_type: str):
-    return [
-        e for e in stack.event_store.list_events(run_id) if e.event_type == event_type
-    ]
+    return [e for e in stack.event_store.list_events(run_id) if e.event_type == event_type]
 
 
 def _chain_spec(env_event):
@@ -79,14 +77,22 @@ def _chain_spec(env_event):
         "nodes": [
             _artifact("art", "art.txt"),
             _constraint("k"),
-            _subtask("p1", _write("art.txt", "v1-content"),
-                     verification={"type": "file_exists", "path": "art.txt"}),
-            _subtask("c1", _write("c1.txt", "c1"),
-                     verification={"type": "file_exists", "path": "c1.txt"}),
-            _subtask("x", {**_write("x.txt", "x"), "environment_events": [env_event]},
-                     verification={"type": "file_exists", "path": "x.txt"}),
-            _subtask("u1", _write("u1.txt", "u1"),
-                     verification={"type": "file_exists", "path": "u1.txt"}),
+            _subtask(
+                "p1",
+                _write("art.txt", "v1-content"),
+                verification={"type": "file_exists", "path": "art.txt"},
+            ),
+            _subtask(
+                "c1", _write("c1.txt", "c1"), verification={"type": "file_exists", "path": "c1.txt"}
+            ),
+            _subtask(
+                "x",
+                {**_write("x.txt", "x"), "environment_events": [env_event]},
+                verification={"type": "file_exists", "path": "x.txt"},
+            ),
+            _subtask(
+                "u1", _write("u1.txt", "u1"), verification={"type": "file_exists", "path": "u1.txt"}
+            ),
         ],
         "edges": [
             {"source": "p1", "target": "art", "kind": "produces"},
@@ -104,8 +110,12 @@ def test_artifact_change_affects_only_downstream_subgraph(tmp_path):
     stack = RuntimeStack(tmp_path / "lhos.db", tmp_path / "ws", config={})
     try:
         spec = _chain_spec(
-            {"type": "artifact_updated", "node_id": f"{run_id}:art",
-             "new_hash": "external-v2", "reason": "external edit"}
+            {
+                "type": "artifact_updated",
+                "node_id": f"{run_id}:art",
+                "new_hash": "external-v2",
+                "reason": "external edit",
+            }
         )
         run = _start(stack, spec, run_id)
         assert run.status == "completed"
@@ -152,8 +162,12 @@ def test_constraint_change_must_invalidates_and_reverification_updates_artifact(
     stack = RuntimeStack(tmp_path / "lhos.db", tmp_path / "ws", config={})
     try:
         spec = _chain_spec(
-            {"type": "constraint_changed", "node_id": f"{run_id}:k",
-             "invalidates": [f"{run_id}:p1"], "reason": "policy change"}
+            {
+                "type": "constraint_changed",
+                "node_id": f"{run_id}:k",
+                "invalidates": [f"{run_id}:p1"],
+                "reason": "policy change",
+            }
         )
         # p1's second attempt produces different content.
         for node in spec["nodes"]:
@@ -173,7 +187,9 @@ def test_constraint_change_must_invalidates_and_reverification_updates_artifact(
         assert payload["invalidated_node_ids"] == [f"{run_id}:p1"]
         assert payload["replanned_node_ids"] == [f"{run_id}:p1"]
         assert set(payload["affected_node_ids"]) == {
-            f"{run_id}:p1", f"{run_id}:c1", f"{run_id}:x",
+            f"{run_id}:p1",
+            f"{run_id}:c1",
+            f"{run_id}:x",
         }
 
         # p1 re-ran (retry_reason invalidated) and its new artifact version was
@@ -188,7 +204,8 @@ def test_constraint_change_must_invalidates_and_reverification_updates_artifact(
         assert p1.attempt_count == 2
         starts = _events_by_type(stack, run_id, EventType.EXECUTION_STARTED)
         p1_retries = [
-            e for e in starts
+            e
+            for e in starts
             if e.payload.get("node_id") == f"{run_id}:p1"
             and e.payload.get("retry_reason") == "invalidated"
         ]
@@ -214,8 +231,13 @@ def test_removed_artifact_must_invalidates_consumers(tmp_path):
     stack = RuntimeStack(tmp_path / "lhos.db", tmp_path / "ws", config={})
     try:
         spec = _chain_spec(
-            {"type": "artifact_updated", "node_id": f"{run_id}:art",
-             "new_hash": None, "removed": True, "reason": "artifact deleted"}
+            {
+                "type": "artifact_updated",
+                "node_id": f"{run_id}:art",
+                "new_hash": None,
+                "removed": True,
+                "reason": "artifact deleted",
+            }
         )
         run = _start(stack, spec, run_id)
         assert run.status == "completed"

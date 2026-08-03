@@ -16,12 +16,13 @@ from lhos.ports.verifier import VerificationContext
 class LlmJudgeVerifier:
     verifier_type = "llm_judge"
 
-    def __init__(self, allow_llm_judge: bool = False, llm=None):  # noqa: ANN001
+    def __init__(self, allow_llm_judge: bool = False, llm=None):
         self._allowed = allow_llm_judge
         self._llm = llm
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         if not self._allowed:
             raise LlmJudgeDisabledError(
                 "llm_judge is disabled (verification.allow_llm_judge: false)"

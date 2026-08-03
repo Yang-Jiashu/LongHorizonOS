@@ -57,9 +57,15 @@ class TestSchema:
         task = generate("constraint_change", "small", seed=3)
         cv = task.control_variables
         for key in (
-            "node_count", "graph_depth", "graph_width", "critical_path_length",
-            "parallelism", "tool_latency_ms", "failure_probability",
-            "constraint_change_probability", "artifact_invalidation_probability",
+            "node_count",
+            "graph_depth",
+            "graph_width",
+            "critical_path_length",
+            "parallelism",
+            "tool_latency_ms",
+            "failure_probability",
+            "constraint_change_probability",
+            "artifact_invalidation_probability",
             "retryability",
         ):
             assert key in cv
@@ -115,7 +121,10 @@ class TestPresetTwists:
     def test_external_wait_marks_one_waiting_node(self):
         task = generate("external_wait", "small", seed=1)
         scripts = [n["metadata"]["script"] for n in task.spec.oracle_nodes]
-        assert sum(1 for s in scripts if s.get("attempts", {}).get("1", {}).get("status") == "waiting") == 1
+        assert (
+            sum(1 for s in scripts if s.get("attempts", {}).get("1", {}).get("status") == "waiting")
+            == 1
+        )
 
     def test_noop_nodes_have_command_verification(self):
         task = generate("noop_nodes", "small", seed=1)

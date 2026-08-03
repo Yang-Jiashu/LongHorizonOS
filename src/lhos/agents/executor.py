@@ -28,12 +28,12 @@ class ExecutorOutput(BaseModel):
 
 
 class ExecutorAgent:
-    def __init__(self, llm, model: str = "mock-worker"):  # noqa: ANN001
+    def __init__(self, llm, model: str = "mock-worker"):
         self._llm = llm
         self._model = model
         self._template = PROMPT_PATH.read_text(encoding="utf-8")
 
-    def execute(self, node, context) -> WorkerResult:  # noqa: ANN001
+    def execute(self, node, context) -> WorkerResult:
         prompt = (
             f"{self._template}\n\n## Context Packet\n\n"
             f"Global goal: {context.global_goal}\n"

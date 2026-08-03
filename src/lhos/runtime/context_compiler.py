@@ -15,7 +15,7 @@ from collections import deque
 
 from pydantic import BaseModel, Field
 
-from lhos.domain.enums import EdgeKind, NodeKind, NodeState
+from lhos.domain.enums import NodeKind, NodeState
 from lhos.domain.events import EventType
 from lhos.domain.models import EvidenceRef, GraphNode
 from lhos.graph.queries import ProgressGraph
@@ -59,8 +59,8 @@ class ContextPacket(BaseModel):
 class ContextCompiler:
     def __init__(
         self,
-        graph_store,  # noqa: ANN001 - SqliteGraphStore
-        event_store,  # noqa: ANN001 - SqliteEventStore
+        graph_store,
+        event_store,
         prompt_version: str = PROMPT_VERSION,
     ):
         self._store = graph_store
@@ -103,15 +103,14 @@ class ContextCompiler:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        packet = self._build_packet(request, graph, node, run.goal, included,
-                                    artifact_refs, cache_key)
+        packet = self._build_packet(
+            request, graph, node, run.goal, included, artifact_refs, cache_key
+        )
         self._cache[cache_key] = packet
         return packet
 
     # -------------------------------------------------------------- traversal
-    def _traverse(
-        self, graph: ProgressGraph, node: GraphNode, max_hops: int
-    ) -> dict[str, float]:
+    def _traverse(self, graph: ProgressGraph, node: GraphNode, max_hops: int) -> dict[str, float]:
         """node_id -> weight for every node included in the context.
 
         Stale/invalidated nodes get weight 0 and are excluded (spec 10.4).
@@ -194,13 +193,11 @@ class ContextCompiler:
             if event.payload.get("node_id") != request.node_id:
                 continue
             summary = (
-                event.payload.get("summary")
-                or event.payload.get("reason")
-                or event.event_type
+                event.payload.get("summary") or event.payload.get("reason") or event.event_type
             )
             failures.append((event.sequence, f"[{event.event_type}] {summary}"))
         failures.sort(key=lambda t: t[0])
-        return [text for _, text in failures[-request.include_last_failures:]]
+        return [text for _, text in failures[-request.include_last_failures :]]
 
     def _build_packet(
         self,

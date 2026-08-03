@@ -20,7 +20,7 @@ class VerifierRegistry:
         return sorted(self._verifiers)
 
 
-def build_default_registry(allow_llm_judge: bool = False, llm=None) -> VerifierRegistry:  # noqa: ANN001
+def build_default_registry(allow_llm_judge: bool = False, llm=None) -> VerifierRegistry:
     from lhos.verification.command_verifier import CommandVerifier, ExitCodeVerifier
     from lhos.verification.composite_verifier import (
         CompositeAndVerifier,

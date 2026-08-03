@@ -95,9 +95,9 @@ def test_kill_mid_run_then_resume_does_not_reexecute_verified(tmp_path):
         assert len(stack2.graph_store.list_executions(run_id, n2.id)) == 1
 
         started = [
-            e for e in stack2.event_store.list_events(run_id)
-            if e.event_type == EventType.EXECUTION_STARTED
-            and e.payload.get("node_id") == n1.id
+            e
+            for e in stack2.event_store.list_events(run_id)
+            if e.event_type == EventType.EXECUTION_STARTED and e.payload.get("node_id") == n1.id
         ]
         assert len(started) == 1
 
@@ -107,7 +107,8 @@ def test_kill_mid_run_then_resume_does_not_reexecute_verified(tmp_path):
 
         # Recovery was recorded.
         resumed = [
-            e for e in stack2.event_store.list_events(run_id)
+            e
+            for e in stack2.event_store.list_events(run_id)
             if e.event_type == EventType.RUN_RESUMED
         ]
         assert len(resumed) == 1

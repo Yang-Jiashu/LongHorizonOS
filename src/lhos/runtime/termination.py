@@ -17,9 +17,7 @@ class TerminationDecision(BaseModel):
 class TerminationEvaluator:
     def evaluate(self, graph: ProgressGraph) -> TerminationDecision:
         schedulable = [
-            n
-            for n in graph.nodes.values()
-            if n.kind == NodeKind.SUBTASK and n.schedulable
+            n for n in graph.nodes.values() if n.kind == NodeKind.SUBTASK and n.schedulable
         ]
         if not schedulable:
             return TerminationDecision(

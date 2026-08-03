@@ -68,7 +68,8 @@ def test_filesystem_restore_on_verification_failure(tmp_path):
         # The failed node's write was rolled back.
         assert not (workspace / "bad.txt").exists()
         restored = [
-            e for e in stack.event_store.list_events(run_id)
+            e
+            for e in stack.event_store.list_events(run_id)
             if e.event_type == EventType.CHECKPOINT_RESTORED
         ]
         assert len(restored) == 1
@@ -81,7 +82,7 @@ def test_filesystem_restore_on_verification_failure(tmp_path):
 GIT_AVAILABLE = shutil.which("git") is not None
 
 
-def _git(workspace, *args):  # noqa: ANN001
+def _git(workspace, *args):
     return subprocess.run(
         ["git", *args], cwd=workspace, capture_output=True, text=True, check=True
     ).stdout.strip()
@@ -165,7 +166,8 @@ def test_git_checkpoint_commit_per_verified_node_and_reset_on_failure(tmp_path):
         assert any(head == r["location"] or head in r["manifest_json"] for r in rows)
 
         restored = [
-            e for e in stack.event_store.list_events(run_id)
+            e
+            for e in stack.event_store.list_events(run_id)
             if e.event_type == EventType.CHECKPOINT_RESTORED
         ]
         assert len(restored) == 1

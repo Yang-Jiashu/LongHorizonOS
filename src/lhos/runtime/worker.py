@@ -73,7 +73,7 @@ class WorkerResult(BaseModel):
 
 
 class FakeWorker:
-    def __init__(self, tool_runtime=None):  # noqa: ANN001 - optional ToolRuntime
+    def __init__(self, tool_runtime=None):
         self._tool_runtime = tool_runtime
 
     def execute(self, node: GraphNode, context: ContextPacket) -> WorkerResult:
@@ -81,9 +81,7 @@ class FakeWorker:
         attempt = node.attempt_count
 
         if script.get("crash_on_attempt") == attempt:
-            raise SimulatedCrashError(
-                f"simulated crash on node {node.id} attempt {attempt}"
-            )
+            raise SimulatedCrashError(f"simulated crash on node {node.id} attempt {attempt}")
 
         # Per-attempt overrides: "first attempt broken, retry fixes it" (26.3).
         overrides = script.get("attempts", {}).get(str(attempt))

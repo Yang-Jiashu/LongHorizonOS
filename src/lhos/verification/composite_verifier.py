@@ -8,7 +8,7 @@ from lhos.ports.verifier import VerificationContext
 
 
 class _CompositeBase:
-    def __init__(self, registry):  # noqa: ANN001 - VerifierRegistry
+    def __init__(self, registry):
         self._registry = registry
 
     def _run_children(
@@ -36,8 +36,9 @@ class _CompositeBase:
 class CompositeAndVerifier(_CompositeBase):
     verifier_type = "composite_and"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         results = self._run_children(node, spec, context)
         passed = bool(results) and all(r.passed for r in results)
         summary = "; ".join(r.summary for r in results)
@@ -51,8 +52,9 @@ class CompositeAndVerifier(_CompositeBase):
 class CompositeOrVerifier(_CompositeBase):
     verifier_type = "composite_or"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         results = self._run_children(node, spec, context)
         passed = any(r.passed for r in results)
         summary = "; ".join(r.summary for r in results)
@@ -70,8 +72,9 @@ class ManualVerifier:
 
     verifier_type = "manual"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         instructions = spec.parameters.get("instructions", "awaiting human confirmation")
         return VerificationResult(
             passed=False,

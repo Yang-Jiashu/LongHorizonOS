@@ -60,6 +60,4 @@ def make_edge(
     target: str,
     kind: EdgeKind = EdgeKind.DEPENDS_ON,
 ) -> GraphEdge:
-    return GraphEdge(
-        run_id=run_id, source_node_id=source, target_node_id=target, kind=kind
-    )
+    return GraphEdge(run_id=run_id, source_node_id=source, target_node_id=target, kind=kind)

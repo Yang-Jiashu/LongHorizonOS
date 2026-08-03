@@ -1,0 +1,145 @@
+{
+  "state_machine": {
+    "path": "src/lhos/graph/state_machine.py",
+    "line_coverage_pct": 100.0,
+    "num_statements": 18,
+    "missing_lines": 0,
+    "num_branches": 4,
+    "covered_branches": 4,
+    "missing_branches": 0,
+    "branch_coverage_pct": 100.0,
+    "below_80pct_branch": false
+  },
+  "event_store": {
+    "path": "src/lhos/infrastructure/db/sqlite_event_store.py",
+    "line_coverage_pct": 86.67,
+    "num_statements": 37,
+    "missing_lines": 3,
+    "num_branches": 8,
+    "covered_branches": 5,
+    "missing_branches": 3,
+    "branch_coverage_pct": 62.5,
+    "below_80pct_branch": true
+  },
+  "graph_projection": {
+    "path": "src/lhos/graph/projection.py",
+    "line_coverage_pct": 95.92,
+    "num_statements": 37,
+    "missing_lines": 1,
+    "num_branches": 12,
+    "covered_branches": 11,
+    "missing_branches": 1,
+    "branch_coverage_pct": 91.67,
+    "below_80pct_branch": false
+  },
+  "readiness": {
+    "path": "src/lhos/graph/readiness.py",
+    "line_coverage_pct": 97.83,
+    "num_statements": 62,
+    "missing_lines": 1,
+    "num_branches": 30,
+    "covered_branches": 29,
+    "missing_branches": 1,
+    "branch_coverage_pct": 96.67,
+    "below_80pct_branch": false
+  },
+  "invalidation": {
+    "path": "src/lhos/graph/invalidation.py",
+    "line_coverage_pct": 94.87,
+    "num_statements": 56,
+    "missing_lines": 2,
+    "num_branches": 22,
+    "covered_branches": 20,
+    "missing_branches": 2,
+    "branch_coverage_pct": 90.91,
+    "below_80pct_branch": false
+  },
+  "verification_gate": {
+    "path": "src/lhos/runtime/verification_gate.py",
+    "line_coverage_pct": 83.51,
+    "num_statements": 75,
+    "missing_lines": 8,
+    "num_branches": 22,
+    "covered_branches": 14,
+    "missing_branches": 8,
+    "branch_coverage_pct": 63.64,
+    "below_80pct_branch": true
+  },
+  "recovery": {
+    "path": "src/lhos/runtime/recovery.py",
+    "line_coverage_pct": 71.76,
+    "num_statements": 57,
+    "missing_lines": 16,
+    "num_branches": 28,
+    "covered_branches": 20,
+    "missing_branches": 8,
+    "branch_coverage_pct": 71.43,
+    "below_80pct_branch": true
+  },
+  "fifo_scheduler": {
+    "path": "src/lhos/runtime/fifo_scheduler.py",
+    "line_coverage_pct": 100.0,
+    "num_statements": 11,
+    "missing_lines": 0,
+    "num_branches": 2,
+    "covered_branches": 2,
+    "missing_branches": 0,
+    "branch_coverage_pct": 100.0,
+    "below_80pct_branch": false
+  },
+  "cost_aware_scheduler": {
+    "path": "src/lhos/runtime/cost_aware_scheduler.py",
+    "line_coverage_pct": 87.88,
+    "num_statements": 56,
+    "missing_lines": 4,
+    "num_branches": 10,
+    "covered_branches": 6,
+    "missing_branches": 4,
+    "branch_coverage_pct": 60.0,
+    "below_80pct_branch": true
+  },
+  "context_compiler": {
+    "path": "src/lhos/runtime/context_compiler.py",
+    "line_coverage_pct": 84.92,
+    "num_statements": 143,
+    "missing_lines": 15,
+    "num_branches": 56,
+    "covered_branches": 41,
+    "missing_branches": 15,
+    "branch_coverage_pct": 73.21,
+    "below_80pct_branch": true
+  },
+  "budget_manager": {
+    "path": "src/lhos/runtime/budget_manager.py",
+    "line_coverage_pct": 82.5,
+    "num_statements": 38,
+    "missing_lines": 6,
+    "num_branches": 2,
+    "covered_branches": 1,
+    "missing_branches": 1,
+    "branch_coverage_pct": 50.0,
+    "below_80pct_branch": true
+  },
+  "checkpoint": {
+    "path": "src/lhos/infrastructure/checkpoints/filesystem_checkpoint.py",
+    "line_coverage_pct": 86.11,
+    "num_statements": 56,
+    "missing_lines": 4,
+    "num_branches": 16,
+    "covered_branches": 10,
+    "missing_branches": 6,
+    "branch_coverage_pct": 62.5,
+    "below_80pct_branch": true
+  },
+  "tool_idempotency": {
+    "path": "src/lhos/runtime/tool_runtime.py",
+    "line_coverage_pct": 68.52,
+    "num_statements": 40,
+    "missing_lines": 9,
+    "num_branches": 14,
+    "covered_branches": 6,
+    "missing_branches": 8,
+    "branch_coverage_pct": 42.86,
+    "below_80pct_branch": true
+  }
+}

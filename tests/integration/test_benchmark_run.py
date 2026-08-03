@@ -28,15 +28,39 @@ NON_REPRODUCIBLE = {
 }
 
 REQUIRED_KEYS = {
-    "task_id", "preset", "size", "seed", "mode", "success", "run_status",
-    "verified_progress", "progress_ratio", "failed_nodes", "invalidated_nodes",
-    "input_tokens", "output_tokens", "total_tokens", "model_calls", "tool_calls",
-    "wall_time_seconds", "simulated_time_seconds", "model_cost_usd",
-    "graph_maintenance_tokens", "verification_tokens", "graph_maintenance_events",
-    "scheduler_time_seconds", "checkpoint_time_seconds",
-    "aupbc_tokens", "aupbc_time", "aupbc_tool_calls",
-    "useful_work_ratio", "replanning_amplification", "invalidated_work_rate",
-    "recovery_overhead", "critical_path_stretch", "run_id",
+    "task_id",
+    "preset",
+    "size",
+    "seed",
+    "mode",
+    "success",
+    "run_status",
+    "verified_progress",
+    "progress_ratio",
+    "failed_nodes",
+    "invalidated_nodes",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "model_calls",
+    "tool_calls",
+    "wall_time_seconds",
+    "simulated_time_seconds",
+    "model_cost_usd",
+    "graph_maintenance_tokens",
+    "verification_tokens",
+    "graph_maintenance_events",
+    "scheduler_time_seconds",
+    "checkpoint_time_seconds",
+    "aupbc_tokens",
+    "aupbc_time",
+    "aupbc_tool_calls",
+    "useful_work_ratio",
+    "replanning_amplification",
+    "invalidated_work_rate",
+    "recovery_overhead",
+    "critical_path_stretch",
+    "run_id",
 }
 
 
@@ -47,10 +71,7 @@ def rows(tmp_path_factory):
 
 
 def _row(rows, preset, mode, seed):
-    matches = [
-        r for r in rows
-        if r["preset"] == preset and r["mode"] == mode and r["seed"] == seed
-    ]
+    matches = [r for r in rows if r["preset"] == preset and r["mode"] == mode and r["seed"] == seed]
     assert len(matches) == 1, f"missing cell {preset}/{mode}/s{seed}"
     return matches[0]
 
@@ -59,7 +80,7 @@ class TestCompleteness:
     def test_every_cell_has_a_full_row(self, rows):
         assert len(rows) == len(PRESETS) * len(MODES) * 2
         for row in rows:
-            assert REQUIRED_KEYS <= set(row), f"missing keys: {REQUIRED_KEYS - set(row)}"
+            assert set(row) >= REQUIRED_KEYS, f"missing keys: {REQUIRED_KEYS - set(row)}"
             assert 0.0 <= row["progress_ratio"] <= 1.0
             assert row["total_tokens"] > 0
 
@@ -113,11 +134,7 @@ class TestReproducibility:
         first = run_suite(work_root=tmp_path / "a", **kwargs)
         second = run_suite(work_root=tmp_path / "b", **kwargs)
         assert len(first) == len(second)
-        for a, b in zip(first, second):
+        for a, b in zip(first, second, strict=False):
             assert a["run_id"] == b["run_id"]
-            diff = {
-                k: (a[k], b[k])
-                for k in a
-                if k not in NON_REPRODUCIBLE and a[k] != b[k]
-            }
+            diff = {k: (a[k], b[k]) for k in a if k not in NON_REPRODUCIBLE and a[k] != b[k]}
             assert not diff, f"non-reproducible fields: {diff}"

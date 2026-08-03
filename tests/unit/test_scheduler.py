@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from lhos.domain.budgets import BudgetState
 from lhos.domain.enums import EdgeKind, NodeState
@@ -11,10 +11,9 @@ from lhos.graph.queries import ProgressGraph
 from lhos.runtime.cost_aware_scheduler import CostAwareScheduler
 from lhos.runtime.fifo_scheduler import FifoScheduler
 from lhos.runtime.scheduler import ResourceState
-
 from tests.conftest import make_node
 
-NOW = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def _ready(node_id: str, ready_at: str, **kwargs):
@@ -46,10 +45,12 @@ def _chain_graph() -> tuple[ProgressGraph, list]:
     a = make_node("a", state=NodeState.PENDING)
     b = make_node("b", state=NodeState.PENDING)
     edges = [
-        GraphEdge(run_id="run-test", source_node_id="a", target_node_id="r1",
-                  kind=EdgeKind.DEPENDS_ON),
-        GraphEdge(run_id="run-test", source_node_id="b", target_node_id="a",
-                  kind=EdgeKind.DEPENDS_ON),
+        GraphEdge(
+            run_id="run-test", source_node_id="a", target_node_id="r1", kind=EdgeKind.DEPENDS_ON
+        ),
+        GraphEdge(
+            run_id="run-test", source_node_id="b", target_node_id="a", kind=EdgeKind.DEPENDS_ON
+        ),
     ]
     nodes = {n.id: n for n in (r1, r2, a, b)}
     return ProgressGraph(run_id="run-test", nodes=nodes, edges=edges), [r1, r2]
@@ -86,7 +87,5 @@ def test_cost_aware_deprioritizes_high_cost_low_progress_node():
     nodes = {n.id: n for n in (cheap, expensive)}
     graph = ProgressGraph(run_id="run-test", nodes=nodes, edges=[])
     scheduler = CostAwareScheduler()
-    picked = scheduler.select(
-        [cheap, expensive], graph, BudgetState(), ResourceState(), now=NOW
-    )
+    picked = scheduler.select([cheap, expensive], graph, BudgetState(), ResourceState(), now=NOW)
     assert picked is not None and picked.id == "cheap"

@@ -100,9 +100,7 @@ class SqliteGraphStore:
         return node
 
     def get_node(self, node_id: str) -> GraphNode:
-        row = self._db.conn.execute(
-            "SELECT * FROM nodes WHERE id = ?", (node_id,)
-        ).fetchone()
+        row = self._db.conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
         if row is None:
             raise NodeNotFoundError(f"node {node_id} not found")
         return self._row_to_node(row)
@@ -124,9 +122,7 @@ class SqliteGraphStore:
         """
         node = self.get_node(node_id)
         if target == NodeState.VERIFIED and not evidence_ids:
-            raise EvidenceRequiredError(
-                f"node {node_id} cannot become VERIFIED without evidence"
-            )
+            raise EvidenceRequiredError(f"node {node_id} cannot become VERIFIED without evidence")
         event = RuntimeEvent(
             run_id=node.run_id,
             event_type=event_type,
@@ -170,8 +166,7 @@ class SqliteGraphStore:
         current = self.get_node(node.id)
         if expected_version is not None and current.version != expected_version:
             raise VersionConflictError(
-                f"node {node.id}: expected version {expected_version}, "
-                f"found {current.version}"
+                f"node {node.id}: expected version {expected_version}, found {current.version}"
             )
         if bump_version:
             node.version = current.version + 1
@@ -211,9 +206,7 @@ class SqliteGraphStore:
         return edge
 
     def remove_edge(self, edge_id: str, actor: str = ActorType.SYSTEM) -> GraphEdge:
-        row = self._db.conn.execute(
-            "SELECT * FROM edges WHERE id = ?", (edge_id,)
-        ).fetchone()
+        row = self._db.conn.execute("SELECT * FROM edges WHERE id = ?", (edge_id,)).fetchone()
         if row is None:
             raise EdgeNotFoundError(f"edge {edge_id} not found")
         edge = self._row_to_edge(row)
@@ -264,9 +257,7 @@ class SqliteGraphStore:
         event_type: str,
         payload_extra: dict[str, Any] | None = None,
     ) -> list[EvidenceRef]:
-        payload: dict[str, Any] = {
-            "evidence": [e.model_dump(mode="json") for e in evidences]
-        }
+        payload: dict[str, Any] = {"evidence": [e.model_dump(mode="json") for e in evidences]}
         if payload_extra:
             payload.update(payload_extra)
         with self._db.transaction():
@@ -462,9 +453,7 @@ class SqliteGraphStore:
             ),
         )
 
-    def list_executions(
-        self, run_id: str, node_id: str | None = None
-    ) -> list[ExecutionRecord]:
+    def list_executions(self, run_id: str, node_id: str | None = None) -> list[ExecutionRecord]:
         if node_id is None:
             rows = self._db.conn.execute(
                 "SELECT * FROM executions WHERE run_id = ? ORDER BY started_at ASC",
@@ -495,8 +484,7 @@ class SqliteGraphStore:
 
     def _update_run_row(self, run: Run) -> None:
         self._db.conn.execute(
-            "UPDATE runs SET goal = ?, status = ?, config_json = ?, updated_at = ? "
-            "WHERE id = ?",
+            "UPDATE runs SET goal = ?, status = ?, config_json = ?, updated_at = ? WHERE id = ?",
             (
                 run.goal,
                 run.status,
@@ -592,7 +580,7 @@ class SqliteGraphStore:
         )
 
     @staticmethod
-    def _row_to_run(row) -> Run:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_run(row) -> Run:
         return Run(
             id=row["id"],
             goal=row["goal"],
@@ -603,7 +591,7 @@ class SqliteGraphStore:
         )
 
     @staticmethod
-    def _row_to_node(row) -> GraphNode:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_node(row) -> GraphNode:
         return GraphNode(
             id=row["id"],
             run_id=row["run_id"],
@@ -636,7 +624,7 @@ class SqliteGraphStore:
         )
 
     @staticmethod
-    def _row_to_edge(row) -> GraphEdge:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_edge(row) -> GraphEdge:
         return GraphEdge(
             id=row["id"],
             run_id=row["run_id"],
@@ -651,7 +639,7 @@ class SqliteGraphStore:
         )
 
     @staticmethod
-    def _row_to_evidence(row) -> EvidenceRef:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_evidence(row) -> EvidenceRef:
         return EvidenceRef(
             id=row["id"],
             run_id=row["run_id"],
@@ -665,7 +653,7 @@ class SqliteGraphStore:
         )
 
     @staticmethod
-    def _row_to_execution(row) -> ExecutionRecord:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_execution(row) -> ExecutionRecord:
         return ExecutionRecord(
             id=row["id"],
             run_id=row["run_id"],
@@ -679,9 +667,7 @@ class SqliteGraphStore:
             tool_calls=row["tool_calls"],
             cost_usd=row["cost_usd"],
             started_at=datetime.fromisoformat(row["started_at"]),
-            finished_at=datetime.fromisoformat(row["finished_at"])
-            if row["finished_at"]
-            else None,
+            finished_at=datetime.fromisoformat(row["finished_at"]) if row["finished_at"] else None,
             result=json.loads(row["result_json"]) if row["result_json"] else None,
             error=json.loads(row["error_json"]) if row["error_json"] else None,
             checkpoint_before=row["checkpoint_before"],

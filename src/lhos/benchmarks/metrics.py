@@ -8,7 +8,7 @@ is reproducible bit-for-bit across repeated runs of the same cell.
 
 Spec 24.3 definitions implemented:
 
-- Progress–Budget Curve: one sample per verified-progress change carrying
+- Progress-Budget Curve: one sample per verified-progress change carrying
   timestamp, cumulative tokens / tool calls / cost / verified progress.
 - AUPBC-token / AUPBC-time / AUPBC-tool-calls: normalized area under that
   curve (trapezoid), in [0, 1]-ish; 1.0 = all progress earned at zero budget.
@@ -24,6 +24,7 @@ Spec 24.3 definitions implemented:
 
 from __future__ import annotations
 
+from itertools import pairwise as _pairwise
 from typing import Any
 
 
@@ -41,7 +42,7 @@ def aupbc(curve: list[dict[str, Any]], x_key: str) -> float:
     pts = [(float(p.get(x_key, 0.0)), float(p.get("verified_progress", 0.0))) for p in curve]
     pts.sort(key=lambda t: t[0])
     area = 0.0
-    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+    for (x0, y0), (x1, y1) in _pairwise(pts):
         area += (x1 - x0) * (y0 + y1) / 2.0
     max_x, max_y = pts[-1]
     denom = max_x * max_y
@@ -51,9 +52,7 @@ def aupbc(curve: list[dict[str, Any]], x_key: str) -> float:
 
 
 # ------------------------------------------------------------- work quality
-def useful_work_ratio(
-    executions: list[dict[str, Any]], final_verified_node_ids: set[str]
-) -> float:
+def useful_work_ratio(executions: list[dict[str, Any]], final_verified_node_ids: set[str]) -> float:
     """Final-successful-attempt cost of VERIFIED nodes / total cost (24.3)."""
     total = sum(int(e.get("tokens", 0)) for e in executions)
     if total <= 0:

@@ -88,7 +88,7 @@ class SqliteEventStore:
         return int(row["c"])
 
     @staticmethod
-    def _row_to_event(row) -> RuntimeEvent:  # noqa: ANN001 - sqlite3.Row
+    def _row_to_event(row) -> RuntimeEvent:
         from datetime import datetime
 
         return RuntimeEvent(

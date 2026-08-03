@@ -19,7 +19,7 @@ from pathlib import Path
 class GitCheckpointManager:
     checkpoint_type = "git"
 
-    def __init__(self, workspace_dir: str, db=None):  # noqa: ANN001
+    def __init__(self, workspace_dir: str, db=None):
         self._workspace = Path(workspace_dir)
         self._db = db
 

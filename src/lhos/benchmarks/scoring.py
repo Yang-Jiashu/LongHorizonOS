@@ -32,7 +32,9 @@ def _state_name(raw: str) -> str:
 
 
 # ---------------------------------------------------------------- graph runs
-def progress_budget_curve(events: list[Any], weight_by_node: dict[str, float], total_weight: float) -> list[dict[str, Any]]:
+def progress_budget_curve(
+    events: list[Any], weight_by_node: dict[str, float], total_weight: float
+) -> list[dict[str, Any]]:
     """One sample per verified-progress change (spec 24.3), x-axes from the
     BUDGET_UPDATED snapshots and event timestamps."""
     curve: list[dict[str, Any]] = []
@@ -136,9 +138,11 @@ def score_graph_run(
         re_executed += int(report.get("re_executed_count", 0))
         replanned += int(report.get("replanned_count", 0))
     for e in events:
-        if e.event_type == EventType.INVALIDATION_PROPAGATED:
-            maintenance_events += 1
-        elif e.event_type in {EventType.ARTIFACT_UPDATED, EventType.CONSTRAINT_CHANGED, EventType.FACT_OBSERVED}:
+        if e.event_type == EventType.INVALIDATION_PROPAGATED or e.event_type in {
+            EventType.ARTIFACT_UPDATED,
+            EventType.CONSTRAINT_CHANGED,
+            EventType.FACT_OBSERVED,
+        }:
             maintenance_events += 1
     oracle_affected = 0
     for e in events:
@@ -158,9 +162,7 @@ def score_graph_run(
     # that leave no CRASH_INJECTED marker).
     repeated_cost = 0.0
     remaining_cost = 0.0
-    crash_markers = [
-        e for e in events if e.event_type in {"CRASH_INJECTED", EventType.RUN_RESUMED}
-    ]
+    crash_markers = [e for e in events if e.event_type in {"CRASH_INJECTED", EventType.RUN_RESUMED}]
     if crash_markers:
         crash_time = min(e.created_at for e in crash_markers)
         failed_before: set[str] = set()
@@ -179,7 +181,10 @@ def score_graph_run(
         for e in events:
             if e.sequence > crash_seq:
                 break
-            if e.event_type == EventType.NODE_STATE_CHANGED and _state_name(e.payload.get("to_state", "")) == "verified":
+            if (
+                e.event_type == EventType.NODE_STATE_CHANGED
+                and _state_name(e.payload.get("to_state", "")) == "verified"
+            ):
                 verified_at_crash.add(e.payload.get("node_id"))
         remaining_cost = float(
             sum(

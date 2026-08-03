@@ -83,7 +83,8 @@ def _second_process(tmp_path, fake_script=None):
 
 def _starts(stack, node_suffix):
     return [
-        e for e in stack.event_store.list_events(RUN)
+        e
+        for e in stack.event_store.list_events(RUN)
         if e.event_type == EventType.EXECUTION_STARTED
         and e.payload.get("node_id") == f"{RUN}:{node_suffix}"
     ]
@@ -91,8 +92,7 @@ def _starts(stack, node_suffix):
 
 def _resume_payload(stack):
     resumed = [
-        e for e in stack.event_store.list_events(RUN)
-        if e.event_type == EventType.RUN_RESUMED
+        e for e in stack.event_store.list_events(RUN) if e.event_type == EventType.RUN_RESUMED
     ]
     assert len(resumed) == 1
     return resumed[0].payload["recovery"]
@@ -124,17 +124,15 @@ def test_crash_during_tool_execution(tmp_path):
     spec = _chain(
         n2={
             "tool_calls": [{"tool_name": "fake", "arguments": {"simulate_crash": True}}],
-            "attempts": {
-                "2": {"tool_calls": [{"tool_name": "fake", "arguments": {}}]}
-            },
+            "attempts": {"2": {"tool_calls": [{"tool_name": "fake", "arguments": {}}]}},
         }
     )
     stack1 = _first_process(tmp_path, spec, fake_script=[{"stdout": "ok"}])
     # REQUESTED was written, no terminal event for that call.
     requested = [
-        e for e in stack1.event_store.list_events(RUN)
-        if e.event_type == EventType.TOOL_CALL_REQUESTED
-        and e.payload.get("node_id") == f"{RUN}:n2"
+        e
+        for e in stack1.event_store.list_events(RUN)
+        if e.event_type == EventType.TOOL_CALL_REQUESTED and e.payload.get("node_id") == f"{RUN}:n2"
     ]
     assert len(requested) == 1
     key = requested[0].idempotency_key
@@ -165,9 +163,9 @@ def test_crash_after_tool_completion_before_claim_uses_idempotency(tmp_path):
     )
     stack1 = _first_process(tmp_path, spec, fake_script=[{"stdout": "recorded-result"}])
     completed = [
-        e for e in stack1.event_store.list_events(RUN)
-        if e.event_type == EventType.TOOL_CALL_COMPLETED
-        and e.payload.get("node_id") == f"{RUN}:n2"
+        e
+        for e in stack1.event_store.list_events(RUN)
+        if e.event_type == EventType.TOOL_CALL_COMPLETED and e.payload.get("node_id") == f"{RUN}:n2"
     ]
     assert len(completed) == 1
     stack1.close()
@@ -181,7 +179,8 @@ def test_crash_after_tool_completion_before_claim_uses_idempotency(tmp_path):
         assert len(fake2.calls) == 0
         # Still exactly one COMPLETED event for that key in the whole log.
         completed2 = [
-            e for e in stack2.event_store.list_events(RUN)
+            e
+            for e in stack2.event_store.list_events(RUN)
             if e.event_type == EventType.TOOL_CALL_COMPLETED
             and e.payload.get("node_id") == f"{RUN}:n2"
             and e.payload.get("tool_name") == "fake"
@@ -201,9 +200,9 @@ def test_crash_before_verification_recovers_claimed_node(tmp_path):
     # The claim was persisted; verification never ran.
     assert stack1.graph_store.get_node(f"{RUN}:n2").state == NodeState.CLAIMED_DONE
     claims = [
-        e for e in stack1.event_store.list_events(RUN)
-        if e.event_type == EventType.CLAIM_SUBMITTED
-        and e.payload.get("node_id") == f"{RUN}:n2"
+        e
+        for e in stack1.event_store.list_events(RUN)
+        if e.event_type == EventType.CLAIM_SUBMITTED and e.payload.get("node_id") == f"{RUN}:n2"
     ]
     assert len(claims) == 1
     stack1.close()
@@ -218,7 +217,8 @@ def test_crash_before_verification_recovers_claimed_node(tmp_path):
         assert n2.attempt_count == 2
         # And it went through the full claim -> verify flow again.
         passed = [
-            e for e in stack2.event_store.list_events(RUN)
+            e
+            for e in stack2.event_store.list_events(RUN)
             if e.event_type == EventType.VERIFICATION_PASSED
             and e.payload.get("node_id") == f"{RUN}:n2"
         ]

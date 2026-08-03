@@ -21,7 +21,7 @@ def _projection_hash(db: Database, run_id: str) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def cmd_replay(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_replay(args) -> int:
     db = Database(args.db)
     try:
         before = _projection_hash(db, args.run_id)

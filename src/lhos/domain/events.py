@@ -75,6 +75,4 @@ class RuntimeEvent(BaseModel):
     causation_id: str | None = None
     correlation_id: str | None = None
     idempotency_key: str | None = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now().astimezone()
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now().astimezone())

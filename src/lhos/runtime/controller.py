@@ -28,14 +28,14 @@ _MAX_ITERATIONS = 10_000
 class RuntimeController:
     def __init__(
         self,
-        graph_store,  # noqa: ANN001 - SqliteGraphStore
-        event_store,  # noqa: ANN001 - SqliteEventStore
-        scheduler,  # noqa: ANN001 - Scheduler
+        graph_store,
+        event_store,
+        scheduler,
         context_compiler: ContextCompiler,
-        worker,  # noqa: ANN001 - FakeWorker
+        worker,
         verification_gate: VerificationGate,
         budget_manager: BudgetManager,
-        checkpoint_manager,  # noqa: ANN001 - CheckpointManager
+        checkpoint_manager,
         readiness: ReadinessRefresher,
         reconciler: DeterministicReconciler,
         patch_validator: PatchValidator,
@@ -126,7 +126,9 @@ class RuntimeController:
         )
         return checkpoint_id
 
-    def _restore_checkpoint(self, run_id: str, node_id: str, checkpoint_id: str, reason: str) -> None:
+    def _restore_checkpoint(
+        self, run_id: str, node_id: str, checkpoint_id: str, reason: str
+    ) -> None:
         _t = time.perf_counter()
         self._checkpoints.restore(checkpoint_id)
         self._checkpoint_seconds += time.perf_counter() - _t
@@ -148,9 +150,7 @@ class RuntimeController:
         while True:
             iterations += 1
             if iterations > _MAX_ITERATIONS:
-                return self._store.set_run_status(
-                    run_id, "failed", event_type=EventType.RUN_FAILED
-                )
+                return self._store.set_run_status(run_id, "failed", event_type=EventType.RUN_FAILED)
 
             self._reconciler.project_new_events(run_id)
             self._readiness.refresh(run_id, self._budget.get_state(run_id))
@@ -161,9 +161,7 @@ class RuntimeController:
                 return self._finish_run(run_id, decision)
 
             if not self._budget.can_continue(run_id):
-                return self._store.set_run_status(
-                    run_id, "paused", event_type=EventType.RUN_PAUSED
-                )
+                return self._store.set_run_status(run_id, "paused", event_type=EventType.RUN_PAUSED)
 
             ready_nodes = self._store.list_ready_nodes(run_id)
             if not ready_nodes:
@@ -172,9 +170,7 @@ class RuntimeController:
                     return self._store.set_run_status(
                         run_id, "paused", event_type=EventType.RUN_PAUSED
                     )
-                return self._store.set_run_status(
-                    run_id, "failed", event_type=EventType.RUN_FAILED
-                )
+                return self._store.set_run_status(run_id, "failed", event_type=EventType.RUN_FAILED)
 
             _t_sel = time.perf_counter()
             node = self._scheduler.select(
@@ -185,13 +181,9 @@ class RuntimeController:
             )
             self._scheduler_seconds += time.perf_counter() - _t_sel
             if node is None:
-                return self._store.set_run_status(
-                    run_id, "paused", event_type=EventType.RUN_PAUSED
-                )
+                return self._store.set_run_status(run_id, "paused", event_type=EventType.RUN_PAUSED)
 
-            if not self._store.acquire_lease(
-                node.id, self._worker_id, self._lease_seconds
-            ):
+            if not self._store.acquire_lease(node.id, self._worker_id, self._lease_seconds):
                 continue
             try:
                 self.execute_node(run_id, node)
@@ -269,9 +261,7 @@ class RuntimeController:
 
         # Spec 14.1: a worker can never self-verify.
         status = "claimed_done" if result.status == "verified" else result.status
-        self._budget.record_model_usage(
-            run_id, result.input_tokens, result.output_tokens
-        )
+        self._budget.record_model_usage(run_id, result.input_tokens, result.output_tokens)
         execution.input_tokens = result.input_tokens
         execution.output_tokens = result.output_tokens
         execution.tool_calls = result.tool_call_count
@@ -285,15 +275,15 @@ class RuntimeController:
                 payload_extra={"summary": result.summary, "attempt": node.attempt_count},
             )
             self._store.finish_execution(
-                execution.id, status="failed", result=result.model_dump(),
+                execution.id,
+                status="failed",
+                result=result.model_dump(),
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
                 tool_calls=result.tool_call_count,
             )
             if self._checkpoint_config.get("restore_on_failure", False):
-                self._restore_checkpoint(
-                    run_id, node.id, checkpoint_id, reason="execution failed"
-                )
+                self._restore_checkpoint(run_id, node.id, checkpoint_id, reason="execution failed")
             self._ingest_environment_events(run_id, result.environment_events)
             return
 
@@ -314,7 +304,9 @@ class RuntimeController:
                 payload_extra={"reason": "waiting for external/manual event"},
             )
             self._store.finish_execution(
-                execution.id, status="waiting", result=result.model_dump(),
+                execution.id,
+                status="waiting",
+                result=result.model_dump(),
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
                 tool_calls=result.tool_call_count,
@@ -347,13 +339,9 @@ class RuntimeController:
 
         if self._inject_crash_once(run_id, node, "crash_before_verification"):
             # Crash point (26.2): claim persisted, verification not started.
-            raise SimulatedCrashError(
-                f"simulated crash before verification of {node.id}"
-            )
+            raise SimulatedCrashError(f"simulated crash before verification of {node.id}")
 
-        outcome = self._gate.verify(
-            node, result, baselines=baselines, causation_id=claim_event.id
-        )
+        outcome = self._gate.verify(node, result, baselines=baselines, causation_id=claim_event.id)
 
         # Record actual costs on the node regardless of outcome.
         node = self._store.get_node(node.id)
@@ -406,9 +394,7 @@ class RuntimeController:
             self._ingest_environment_events(run_id, result.environment_events)
             if self._inject_crash_once(run_id, node, "crash_after_verified"):
                 # Crash point (26.2): immediately after the verified commit.
-                raise SimulatedCrashError(
-                    f"simulated crash after verified commit of {node.id}"
-                )
+                raise SimulatedCrashError(f"simulated crash after verified commit of {node.id}")
         else:
             self._events.append(
                 RuntimeEvent(
@@ -465,9 +451,7 @@ class RuntimeController:
                 continue
             full_path = (Path(self._workspace_dir).resolve() / rel_path).resolve()
             new_hash = (
-                hashlib.sha256(full_path.read_bytes()).hexdigest()
-                if full_path.exists()
-                else None
+                hashlib.sha256(full_path.read_bytes()).hexdigest() if full_path.exists() else None
             )
             old_hash = artifact.metadata.get("content_hash")
             if new_hash == old_hash:
@@ -512,7 +496,7 @@ class RuntimeController:
             if self._invalidation_enabled:
                 self._reconciler.reconcile_event(run_id, event)
 
-    def _apply_worker_patch(self, run_id: str, result) -> None:  # noqa: ANN001
+    def _apply_worker_patch(self, run_id: str, result) -> None:
         if not result.graph_patch:
             return
         ops = [GraphPatchOperation(**raw) for raw in result.graph_patch]

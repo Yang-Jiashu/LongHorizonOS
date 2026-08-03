@@ -12,13 +12,13 @@ import time
 from pathlib import Path
 from typing import Any
 
-from lhos.bootstrap import RuntimeStack
 from lhos.benchmarks import scoring
 from lhos.benchmarks.controlled.environment import ScriptedEnvironment
 from lhos.benchmarks.controlled.generator import generate
 from lhos.benchmarks.controlled.task_schema import ControlledTask
 from lhos.benchmarks.modes import ModeConfig, make_scheduler, mode_config
 from lhos.benchmarks.transcript import run_transcript
+from lhos.bootstrap import RuntimeStack
 from lhos.domain.errors import SimulatedCrashError
 
 _MAX_CRASHES_PER_RUN = 16
@@ -48,9 +48,7 @@ def _drive(stack: RuntimeStack, run_id: str) -> tuple[Any, int]:
     while True:
         try:
             run = (
-                stack.controller.run(run_id)
-                if action == "run"
-                else stack.controller.resume(run_id)
+                stack.controller.run(run_id) if action == "run" else stack.controller.resume(run_id)
             )
         except SimulatedCrashError:
             crashes += 1
@@ -112,7 +110,7 @@ def run_cell(
         )
         stack.initial_builder.build(run_id, graph_spec)
         started = time.perf_counter()
-        run, crashes = _drive(stack, run_id)
+        _run, crashes = _drive(stack, run_id)
         wall = time.perf_counter() - started
         row = scoring.score_graph_run(stack, run_id, task, mode_name, wall, crashes)
         row["run_id"] = run_id

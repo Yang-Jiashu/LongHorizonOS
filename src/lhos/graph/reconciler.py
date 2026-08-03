@@ -25,7 +25,7 @@ class SemanticReconciler(Protocol):
 class DeterministicReconciler:
     def __init__(
         self,
-        graph_store,  # noqa: ANN001 - SqliteGraphStore
+        graph_store,
         semantic: SemanticReconciler | None = None,
         deterministic_first: bool = True,
         local_repair: bool = True,
@@ -57,7 +57,10 @@ class DeterministicReconciler:
                 run_id,
                 node_id,
                 invalidate_consumers=bool(payload.get("removed")),
-                trigger={"event_type": event.event_type, "reason": payload.get("reason", "artifact updated")},
+                trigger={
+                    "event_type": event.event_type,
+                    "reason": payload.get("reason", "artifact updated"),
+                },
                 local_repair=self._local_repair,
             )
             return True
@@ -73,7 +76,10 @@ class DeterministicReconciler:
                 run_id,
                 node_id,
                 must_invalidate_ids=set(invalidates),
-                trigger={"event_type": event.event_type, "reason": payload.get("reason", "constraint changed")},
+                trigger={
+                    "event_type": event.event_type,
+                    "reason": payload.get("reason", "constraint changed"),
+                },
                 local_repair=self._local_repair,
             )
             return True
@@ -94,9 +100,7 @@ class DeterministicReconciler:
             node.metadata["content_hash"] = payload["new_hash"]
         if payload.get("removed"):
             node.metadata["removed"] = True
-        node.metadata["artifact_version"] = int(
-            node.metadata.get("artifact_version", 0)
-        ) + 1
+        node.metadata["artifact_version"] = int(node.metadata.get("artifact_version", 0)) + 1
         self._store.update_node(node, actor=ActorType.RECONCILER)
 
     def _bump_node(self, node_id: str) -> None:

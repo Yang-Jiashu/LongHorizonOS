@@ -9,7 +9,7 @@ from lhos.domain.events import EventType
 
 
 class MetricsCollector:
-    def __init__(self, graph_store, event_store):  # noqa: ANN001
+    def __init__(self, graph_store, event_store):
         self._store = graph_store
         self._events = event_store
 
@@ -45,24 +45,12 @@ class MetricsCollector:
             "verified_progress": round(verified_weight, 4),
             "total_progress": round(total_weight, 4),
             "progress_ratio": round(verified_weight / total_weight, 4),
-            "ready_nodes": [
-                n.title for n in schedulable if n.state == NodeState.READY
-            ],
-            "running_nodes": [
-                n.title for n in schedulable if n.state == NodeState.RUNNING
-            ],
-            "waiting_nodes": [
-                n.title for n in schedulable if n.state == NodeState.WAITING
-            ],
-            "failed_nodes": [
-                n.title for n in schedulable if n.state == NodeState.FAILED
-            ],
-            "verified_nodes": [
-                n.title for n in schedulable if n.state == NodeState.VERIFIED
-            ],
-            "invalidated_nodes": [
-                n.title for n in schedulable if n.state == NodeState.INVALIDATED
-            ],
+            "ready_nodes": [n.title for n in schedulable if n.state == NodeState.READY],
+            "running_nodes": [n.title for n in schedulable if n.state == NodeState.RUNNING],
+            "waiting_nodes": [n.title for n in schedulable if n.state == NodeState.WAITING],
+            "failed_nodes": [n.title for n in schedulable if n.state == NodeState.FAILED],
+            "verified_nodes": [n.title for n in schedulable if n.state == NodeState.VERIFIED],
+            "invalidated_nodes": [n.title for n in schedulable if n.state == NodeState.INVALIDATED],
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens,

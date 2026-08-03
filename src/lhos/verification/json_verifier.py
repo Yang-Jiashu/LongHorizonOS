@@ -46,14 +46,13 @@ def _validate(value: Any, schema: dict[str, Any], path: str, errors: list[str]) 
 class JsonSchemaVerifier:
     verifier_type = "json_schema"
 
-    def verify(self, node: GraphNode, spec: VerificationSpec,
-               context: VerificationContext) -> VerificationResult:
+    def verify(
+        self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
+    ) -> VerificationResult:
         rel = spec.parameters.get("path")
         schema = spec.parameters.get("schema")
         if not rel or not schema:
-            return VerificationResult(
-                passed=False, summary="json_schema: need path and schema"
-            )
+            return VerificationResult(passed=False, summary="json_schema: need path and schema")
         file_path = (Path(context.workspace_dir).resolve() / rel).resolve()
         if not file_path.exists():
             return VerificationResult(passed=False, summary=f"json file missing: {rel}")

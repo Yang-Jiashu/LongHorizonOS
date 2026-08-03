@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from lhos.ports.llm import LLMResponse
 from lhos.infrastructure.llm.usage_tracking import UsageTracker
+from lhos.ports.llm import LLMResponse
 
 
 class MockLLM:

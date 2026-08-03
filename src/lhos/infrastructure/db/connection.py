@@ -9,9 +9,9 @@ principle (spec section 5.3) and by single-transaction graph patches (8.2).
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
@@ -21,9 +21,7 @@ class Database:
         self.path = str(path)
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(
-            self.path, isolation_level=None, check_same_thread=False
-        )
+        self._conn = sqlite3.connect(self.path, isolation_level=None, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")

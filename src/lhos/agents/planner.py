@@ -10,9 +10,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from lhos.infrastructure.llm.structured_output import parse_structured
-from lhos.domain.errors import StructuredOutputError
 from pydantic import BaseModel
+
+from lhos.domain.errors import StructuredOutputError
+from lhos.infrastructure.llm.structured_output import parse_structured
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "initial_plan.md"
 PROMPT_VERSION = "initial_plan.v1"
@@ -24,7 +25,7 @@ class InitialPlanOutput(BaseModel):
 
 
 class InitialPlanner:
-    def __init__(self, llm, model: str = "mock-planner"):  # noqa: ANN001
+    def __init__(self, llm, model: str = "mock-planner"):
         self._llm = llm
         self._model = model
         self._template = PROMPT_PATH.read_text(encoding="utf-8")

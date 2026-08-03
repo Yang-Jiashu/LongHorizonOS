@@ -108,7 +108,8 @@ def test_worker_claim_of_verified_is_clamped_to_claim_flow(tmp_path):
         assert EventType.VERIFICATION_PASSED in event_types
         # The node passed through CLAIMED_DONE; no direct jump to VERIFIED.
         state_events = [
-            e for e in stack.event_store.list_events("run-v")
+            e
+            for e in stack.event_store.list_events("run-v")
             if e.event_type == EventType.NODE_STATE_CHANGED
             and e.payload.get("node_id") == "run-v:n1"
         ]

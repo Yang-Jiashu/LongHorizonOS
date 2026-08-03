@@ -71,9 +71,7 @@ class ControlledTask(BaseModel):
         for raw in self.spec.oracle_nodes:
             node = copy.deepcopy(raw)
             node["priority"] = (
-                self.oracle.priorities.get(node["temp_id"], 0.0)
-                if use_oracle_priorities
-                else 0.0
+                self.oracle.priorities.get(node["temp_id"], 0.0) if use_oracle_priorities else 0.0
             )
             nodes.append(node)
         return {

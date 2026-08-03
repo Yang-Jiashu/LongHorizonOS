@@ -38,15 +38,15 @@ def rebuild_projection(db: Database, run_id: str) -> dict[str, int]:
                 for raw in evidence:
                     store.insert_evidence(EvidenceRef(**raw))
     return {
-        "nodes": len(db.conn.execute(
-            "SELECT id FROM nodes WHERE run_id = ?", (run_id,)
-        ).fetchall()),
-        "edges": len(db.conn.execute(
-            "SELECT id FROM edges WHERE run_id = ?", (run_id,)
-        ).fetchall()),
-        "evidence": len(db.conn.execute(
-            "SELECT id FROM evidence WHERE run_id = ?", (run_id,)
-        ).fetchall()),
+        "nodes": len(
+            db.conn.execute("SELECT id FROM nodes WHERE run_id = ?", (run_id,)).fetchall()
+        ),
+        "edges": len(
+            db.conn.execute("SELECT id FROM edges WHERE run_id = ?", (run_id,)).fetchall()
+        ),
+        "evidence": len(
+            db.conn.execute("SELECT id FROM evidence WHERE run_id = ?", (run_id,)).fetchall()
+        ),
     }
 
 

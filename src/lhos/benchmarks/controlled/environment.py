@@ -14,7 +14,7 @@ from lhos.domain.events import ActorType
 
 
 class ScriptedEnvironment:
-    def __init__(self, graph_store, run_id: str):  # noqa: ANN001
+    def __init__(self, graph_store, run_id: str):
         self._store = graph_store
         self._run_id = run_id
 

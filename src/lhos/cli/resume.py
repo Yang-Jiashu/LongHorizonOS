@@ -7,7 +7,7 @@ from lhos.config import load_config
 from lhos.domain.errors import SimulatedCrashError
 
 
-def cmd_resume(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_resume(args) -> int:
     from lhos.infrastructure.db.connection import Database
     from lhos.infrastructure.db.sqlite_event_store import SqliteEventStore
     from lhos.infrastructure.db.sqlite_graph_store import SqliteGraphStore

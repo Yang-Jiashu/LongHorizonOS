@@ -26,20 +26,20 @@ SIZES: dict[str, int] = {"small": 20, "medium": 50, "large": 100, "xl": 200}
 
 # Spec 22.3 scenario types.
 PRESETS: list[str] = [
-    "serial_chain",          # 1. 纯串行链
-    "wide_dag",              # 2. 宽 DAG
-    "branch_join",           # 3. 多分支后汇聚
+    "serial_chain",  # 1. 纯串行链
+    "wide_dag",  # 2. 宽 DAG
+    "branch_join",  # 3. 多分支后汇聚
     "costly_critical_path",  # 4. 高成本关键路径
-    "upstream_failure",      # 5. 某个前置节点失败
-    "constraint_change",     # 6. 中途约束改变
-    "artifact_modified",     # 7. 已验证 artifact 被修改
-    "worker_crash",          # 8. Worker crash
-    "runtime_crash",         # 9. Runtime crash
-    "post_tool_crash",       # 10. 工具执行完成后、事件写入前 crash
-    "alternative_paths",     # 11. 多个可选路径，成本不同
-    "external_wait",         # 12. 有等待外部事件的节点
-    "noop_nodes",            # 13. 存在无操作节点
-    "risky_shortcut",        # 14. 存在会失败的高风险捷径
+    "upstream_failure",  # 5. 某个前置节点失败
+    "constraint_change",  # 6. 中途约束改变
+    "artifact_modified",  # 7. 已验证 artifact 被修改
+    "worker_crash",  # 8. Worker crash
+    "runtime_crash",  # 9. Runtime crash
+    "post_tool_crash",  # 10. tool crash after side effect, before event write
+    "alternative_paths",  # 11. multiple optional paths, different costs
+    "external_wait",  # 12. nodes waiting for external events
+    "noop_nodes",  # 13. no-op nodes exist
+    "risky_shortcut",  # 14. risky shortcut that may fail
 ]
 
 _TOOL_COSTS: dict[str, dict[str, float]] = {
@@ -138,7 +138,9 @@ def _chain(count: int) -> tuple[list[str], list[tuple[str, str]]]:
     return ids, [(ids[i], ids[i + 1]) for i in range(count - 1)]
 
 
-def _branches(count: int, n_branches: int, rng: random.Random) -> tuple[list[str], list[tuple[str, str]]]:
+def _branches(
+    count: int, n_branches: int, rng: random.Random
+) -> tuple[list[str], list[tuple[str, str]]]:
     """1 source -> n_branches parallel chains -> 1 join (多分支后汇聚)."""
     if count < 4 or n_branches < 2:
         return _chain(count)
@@ -173,7 +175,7 @@ def _branches(count: int, n_branches: int, rng: random.Random) -> tuple[list[str
 def generate(preset: str, size: str | int = "small", seed: int = 1) -> ControlledTask:
     if preset not in PRESETS:
         raise ValueError(f"unknown preset {preset!r}; choose from {PRESETS}")
-    node_count = SIZES.get(size, None) if isinstance(size, str) else int(size)
+    node_count = SIZES.get(size) if isinstance(size, str) else int(size)
     if node_count is None:
         raise ValueError(f"unknown size {size!r}; choose from {sorted(SIZES)}")
     size_name = size if isinstance(size, str) else f"custom{node_count}"
@@ -235,7 +237,9 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         chain_ids, chain_pairs = _chain(node_count)
         ids, pairs = chain_ids, chain_pairs
         nodes = [
-            _task_node(tid, rng, token_cost=rng.randint(4000, 8000), time_ms=rng.randint(3000, 6000))
+            _task_node(
+                tid, rng, token_cost=rng.randint(4000, 8000), time_ms=rng.randint(3000, 6000)
+            )
             for tid in ids
         ]
         edges = [{"source": t, "target": s, "kind": "depends_on"} for s, t in pairs]
@@ -247,7 +251,12 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         victim = mid_task()
         victim["metadata"]["script"]["fail_times"] = 1  # retryable by default
         failure_injections.append(
-            {"node": victim["temp_id"], "kind": "transient_failure", "fail_times": 1, "retryable": True}
+            {
+                "node": victim["temp_id"],
+                "kind": "transient_failure",
+                "fail_times": 1,
+                "retryable": True,
+            }
         )
         control["failure_probability"] = 1.0
         control["retryability"] = True
@@ -283,7 +292,9 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         extra_nodes.append(injector)
         # The injector runs after the victim (so the victim is VERIFIED when
         # the constraint changes) and is a sink outside the affected scope.
-        extra_edges.append({"source": "env_injector", "target": victim["temp_id"], "kind": "depends_on"})
+        extra_edges.append(
+            {"source": "env_injector", "target": victim["temp_id"], "kind": "depends_on"}
+        )
         environment_events.append(injector["metadata"]["script"]["environment_events"][0])
         control["constraint_change_probability"] = 1.0
 
@@ -342,7 +353,12 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         victim = mid_task()
         victim["metadata"]["script"]["crash_on_attempt"] = 1
         failure_injections.append(
-            {"node": victim["temp_id"], "kind": "worker_crash", "crash_point": "worker_execute", "attempt": 1}
+            {
+                "node": victim["temp_id"],
+                "kind": "worker_crash",
+                "crash_point": "worker_execute",
+                "attempt": 1,
+            }
         )
         control["crash_point"] = "worker_execute"
 
@@ -350,7 +366,11 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         victim = mid_task()
         victim["metadata"]["script"]["crash_before_verification"] = True
         failure_injections.append(
-            {"node": victim["temp_id"], "kind": "runtime_crash", "crash_point": "before_verification"}
+            {
+                "node": victim["temp_id"],
+                "kind": "runtime_crash",
+                "crash_point": "before_verification",
+            }
         )
         control["crash_point"] = "before_verification"
 
@@ -358,7 +378,11 @@ def generate(preset: str, size: str | int = "small", seed: int = 1) -> Controlle
         victim = mid_task()
         victim["metadata"]["script"]["crash_after_tool_calls"] = 1
         failure_injections.append(
-            {"node": victim["temp_id"], "kind": "post_tool_crash", "crash_point": "after_tool_before_event"}
+            {
+                "node": victim["temp_id"],
+                "kind": "post_tool_crash",
+                "crash_point": "after_tool_before_event",
+            }
         )
         control["crash_point"] = "after_tool_before_event"
 

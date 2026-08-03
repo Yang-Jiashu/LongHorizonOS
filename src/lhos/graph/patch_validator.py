@@ -33,7 +33,7 @@ from lhos.graph.state_machine import NodeStateMachine
 
 
 class PatchValidator:
-    def __init__(self, graph_store):  # noqa: ANN001 - SqliteGraphStore
+    def __init__(self, graph_store):
         self._store = graph_store
         self._sm = NodeStateMachine()
 
@@ -80,10 +80,19 @@ class PatchValidator:
             node = self._node(graph, op.target_id, "update_node")
             self._check_version(node, op.expected_version)
             # Simulate the update for downstream ops in the same patch.
-            for field_name in ("title", "specification", "priority", "progress_weight",
-                               "max_attempts", "verification_spec", "metadata",
-                               "estimated_token_cost", "estimated_time_ms",
-                               "estimated_tool_calls", "schedulable"):
+            for field_name in (
+                "title",
+                "specification",
+                "priority",
+                "progress_weight",
+                "max_attempts",
+                "verification_spec",
+                "metadata",
+                "estimated_token_cost",
+                "estimated_time_ms",
+                "estimated_tool_calls",
+                "schedulable",
+            ):
                 if field_name in op.payload:
                     setattr(node, field_name, op.payload[field_name])
             node.version += 1
@@ -96,13 +105,13 @@ class PatchValidator:
             self._node(graph, source, "add_edge(source)")
             self._node(graph, target, "add_edge(target)")
             if kind == EdgeKind.DEPENDS_ON and graph.would_create_cycle(source, target):
-                raise CycleError(
-                    f"add_edge {source} -depends_on-> {target} would create a cycle"
-                )
+                raise CycleError(f"add_edge {source} -depends_on-> {target} would create a cycle")
             graph.edges.append(
                 GraphEdge(
-                    run_id=graph.run_id, source_node_id=source,
-                    target_node_id=target, kind=kind,
+                    run_id=graph.run_id,
+                    source_node_id=source,
+                    target_node_id=target,
+                    kind=kind,
                 )
             )
             return
@@ -119,8 +128,7 @@ class PatchValidator:
             target = NodeState(op.payload["state"])
             if not self._sm.can_transition(node.state, target):
                 raise PatchValidationError(
-                    f"set_state: illegal transition {node.state} -> {target} "
-                    f"for node {node.id}"
+                    f"set_state: illegal transition {node.state} -> {target} for node {node.id}"
                 )
             if target == NodeState.VERIFIED:
                 evidence_ids = op.payload.get("evidence_ids") or []
@@ -130,9 +138,7 @@ class PatchValidator:
                     )
                 for ev_id in evidence_ids:
                     if not self._store.evidence_exists(ev_id):
-                        raise PatchValidationError(
-                            f"set_state: evidence {ev_id!r} does not exist"
-                        )
+                        raise PatchValidationError(f"set_state: evidence {ev_id!r} does not exist")
             node.state = target
             node.version += 1
             return
@@ -157,8 +163,7 @@ class PatchValidator:
             self._check_version(node, op.expected_version)
             if not self._sm.can_transition(node.state, NodeState.STALE):
                 raise PatchValidationError(
-                    f"mark_stale: illegal transition {node.state} -> stale "
-                    f"for node {node.id}"
+                    f"mark_stale: illegal transition {node.state} -> stale for node {node.id}"
                 )
             node.state = NodeState.STALE
             node.version += 1
@@ -196,9 +201,7 @@ class PatchValidator:
                 and e.kind == kind
             ):
                 return e
-        raise EdgeNotFoundError(
-            f"remove_edge: no active edge {source} -{kind}-> {target}"
-        )
+        raise EdgeNotFoundError(f"remove_edge: no active edge {source} -{kind}-> {target}")
 
     # ------------------------------------------------------------ application
     def validate_and_apply(
@@ -233,10 +236,19 @@ class PatchValidator:
 
         if op.op == PatchOperationType.UPDATE_NODE:
             node = self._store.get_node(op.target_id)  # type: ignore[arg-type]
-            for field_name in ("title", "specification", "priority", "progress_weight",
-                               "max_attempts", "verification_spec", "metadata",
-                               "estimated_token_cost", "estimated_time_ms",
-                               "estimated_tool_calls", "schedulable"):
+            for field_name in (
+                "title",
+                "specification",
+                "priority",
+                "progress_weight",
+                "max_attempts",
+                "verification_spec",
+                "metadata",
+                "estimated_token_cost",
+                "estimated_time_ms",
+                "estimated_tool_calls",
+                "schedulable",
+            ):
                 if field_name in op.payload:
                     setattr(node, field_name, op.payload[field_name])
             self._store.update_node(node, actor=actor)

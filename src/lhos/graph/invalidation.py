@@ -30,7 +30,7 @@ from lhos.domain.events import ActorType, EventType, RuntimeEvent
 
 
 def propagate_invalidation(
-    graph_store,  # noqa: ANN001 - SqliteGraphStore
+    graph_store,
     run_id: str,
     changed_node_id: str,
     actor: str = ActorType.RECONCILER,
@@ -132,7 +132,7 @@ def propagate_invalidation(
     return report
 
 
-def invalidation_metrics(event_store, run_id: str) -> list[dict]:  # noqa: ANN001
+def invalidation_metrics(event_store, run_id: str) -> list[dict]:
     """Replanning Amplification inputs (spec 15, 24.3): per propagation event,
     the real affected count, the replanned count, and how many affected nodes
     were actually re-executed afterwards (retry_reason recorded at

@@ -47,7 +47,7 @@ MODES: list[str] = [
 class OracleFifoScheduler:
     """FIFO tie-break, but always picks the highest oracle priority first."""
 
-    def select(self, ready_nodes, graph, budget, resources):  # noqa: ANN001
+    def select(self, ready_nodes, graph, budget, resources):
         if not ready_nodes:
             return None
         return min(
@@ -65,7 +65,7 @@ class OracleCostAwareScheduler(CostAwareScheduler):
 
     _ORACLE_WEIGHT = 1.5
 
-    def score(self, node, graph, resources, max_token_cost, max_time_ms, max_age_seconds, now):  # noqa: ANN001
+    def score(self, node, graph, resources, max_token_cost, max_time_ms, max_age_seconds, now):
         return super().score(
             node, graph, resources, max_token_cost, max_time_ms, max_age_seconds, now
         ) + self._ORACLE_WEIGHT * float(node.priority or 0.0)
@@ -89,29 +89,45 @@ def mode_config(name: str, artifacts_dir: str = "artifacts") -> ModeConfig:
     if name not in MODES:
         raise ValueError(f"unknown mode {name!r}; choose from {MODES}")
     if name == "transcript":
-        return ModeConfig(name, engine="transcript", scheduler="fifo",
-                          use_oracle_priorities=False, config={})
+        return ModeConfig(
+            name, engine="transcript", scheduler="fifo", use_oracle_priorities=False, config={}
+        )
 
     base_features = {"invalidation": True, "local_repair": True}
     table: dict[str, ModeConfig] = {
         "static_graph_fifo": ModeConfig(
-            name, "graph", "fifo", False,
+            name,
+            "graph",
+            "fifo",
+            False,
             config={"features": {"invalidation": False, "local_repair": False}},
         ),
         "dynamic_graph_fifo": ModeConfig(
-            name, "graph", "fifo", False,
+            name,
+            "graph",
+            "fifo",
+            False,
             config={"features": {"invalidation": True, "local_repair": False}},
         ),
         "dynamic_graph_local_repair": ModeConfig(
-            name, "graph", "fifo", False,
+            name,
+            "graph",
+            "fifo",
+            False,
             config={"features": dict(base_features)},
         ),
         "dynamic_graph_cost_aware": ModeConfig(
-            name, "graph", "cost_aware", False,
+            name,
+            "graph",
+            "cost_aware",
+            False,
             config={"features": dict(base_features), "scheduler": {"type": "cost_aware"}},
         ),
         "full_lhos": ModeConfig(
-            name, "graph", "cost_aware", False,
+            name,
+            "graph",
+            "cost_aware",
+            False,
             config={
                 "features": dict(base_features),
                 "scheduler": {"type": "cost_aware"},
@@ -126,18 +142,24 @@ def mode_config(name: str, artifacts_dir: str = "artifacts") -> ModeConfig:
             },
         ),
         "oracle_graph_fifo": ModeConfig(
-            name, "graph", "oracle_fifo", True,
+            name,
+            "graph",
+            "oracle_fifo",
+            True,
             config={"features": dict(base_features)},
         ),
         "oracle_graph_cost_aware": ModeConfig(
-            name, "graph", "oracle_cost_aware", True,
+            name,
+            "graph",
+            "oracle_cost_aware",
+            True,
             config={"features": dict(base_features), "scheduler": {"type": "cost_aware"}},
         ),
     }
     return table[name]
 
 
-def make_scheduler(mode: ModeConfig):  # noqa: ANN001
+def make_scheduler(mode: ModeConfig):
     """Instantiate the scheduler for oracle modes; standard schedulers are
     wired by RuntimeStack from the config dict."""
     if mode.scheduler == "oracle_fifo":

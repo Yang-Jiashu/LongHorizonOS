@@ -43,7 +43,11 @@ class ControlledAdapter:
     (e.g. ``controlled-serial_chain-small``); the seed comes from ``reset``.
     """
 
-    def __init__(self, mode: str = "dynamic_graph_local_repair", work_root: str | Path = "artifacts/benchmark_work"):
+    def __init__(
+        self,
+        mode: str = "dynamic_graph_local_repair",
+        work_root: str | Path = "artifacts/benchmark_work",
+    ):
         self._mode = mode
         self._work_root = Path(work_root)
         self._task: ControlledTask | None = None
@@ -52,7 +56,9 @@ class ControlledAdapter:
     async def reset(self, task_id: str, seed: int) -> None:
         parts = task_id.split("-")
         if len(parts) != 3 or parts[0] != "controlled":
-            raise ValueError(f"controlled task ids look like controlled-<preset>-<size>, got {task_id!r}")
+            raise ValueError(
+                f"controlled task ids look like controlled-<preset>-<size>, got {task_id!r}"
+            )
         _, preset, size = parts
         self._task = generate(preset, size=size, seed=seed)
         self._row = None
@@ -83,15 +89,25 @@ class ControlledAdapter:
             await self.run()
         row = self._row or {}
         skip = {
-            "task_id", "preset", "size", "seed", "mode", "success", "run_status",
-            "verified_progress", "progress_ratio", "run_id", "db_path",
+            "task_id",
+            "preset",
+            "size",
+            "seed",
+            "mode",
+            "success",
+            "run_status",
+            "verified_progress",
+            "progress_ratio",
+            "run_id",
+            "db_path",
         }
         return BenchmarkScore(
             success=bool(row.get("success")),
             verified_progress=float(row.get("verified_progress", 0.0)),
             total_progress=float(row.get("progress_ratio", 0.0)),
             task_specific_metrics={
-                k: float(v) for k, v in row.items()
+                k: float(v)
+                for k, v in row.items()
                 if k not in skip and isinstance(v, (int, float)) and not isinstance(v, bool)
             },
         )

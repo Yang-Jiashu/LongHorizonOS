@@ -23,7 +23,7 @@ def _sha256(path: Path) -> str:
 class FilesystemCheckpointManager:
     checkpoint_type = "filesystem"
 
-    def __init__(self, workspace_dir: str, checkpoint_root: str, db=None):  # noqa: ANN001
+    def __init__(self, workspace_dir: str, checkpoint_root: str, db=None):
         self._workspace = Path(workspace_dir)
         self._root = Path(checkpoint_root)
         self._db = db

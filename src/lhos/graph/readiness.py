@@ -64,15 +64,13 @@ class ReadinessEvaluator:
         if budget_exhausted(self._limits, budget):
             return False
         required = node.metadata.get("required_resources", [])
-        if any(r not in environment.available_resources for r in required):
-            return False
-        return True
+        return not any(r not in environment.available_resources for r in required)
 
 
 class ReadinessRefresher:
     """Applies the evaluator to a stored run and persists READY transitions."""
 
-    def __init__(self, graph_store, evaluator: ReadinessEvaluator):  # noqa: ANN001
+    def __init__(self, graph_store, evaluator: ReadinessEvaluator):
         self._store = graph_store
         self._evaluator = evaluator
 

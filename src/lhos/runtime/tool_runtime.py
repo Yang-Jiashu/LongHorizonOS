@@ -28,10 +28,10 @@ from lhos.ports.tools import ToolRequest, ToolResult
 class ToolRuntime:
     def __init__(
         self,
-        event_store,  # noqa: ANN001 - SqliteEventStore
-        registry,  # noqa: ANN001 - ToolRegistry
+        event_store,
+        registry,
         workspace_dir: str,
-        budget_manager=None,  # noqa: ANN001 - optional BudgetManager
+        budget_manager=None,
     ):
         self._events = event_store
         self._registry = registry
@@ -61,8 +61,7 @@ class ToolRuntime:
                 return ToolResult(**completed.payload["result"])
         elif meta.side_effect_level != SIDE_EFFECT_READ_ONLY:
             raise IdempotencyKeyRequiredError(
-                f"side-effecting tool {request.tool_name!r} requires an "
-                f"idempotency key"
+                f"side-effecting tool {request.tool_name!r} requires an idempotency key"
             )
 
         self._events.append(

@@ -20,7 +20,9 @@ class VerificationSpec(BaseModel):
         if "verifier_type" in raw:
             return cls.model_validate(raw)
         if "type" in raw:
-            params = {k: v for k, v in raw.items() if k not in {"type", "timeout_seconds", "required"}}
+            params = {
+                k: v for k, v in raw.items() if k not in {"type", "timeout_seconds", "required"}
+            }
             return cls(
                 verifier_type=raw["type"],
                 parameters=params,

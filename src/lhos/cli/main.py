@@ -14,9 +14,7 @@ from lhos.cli.run import cmd_init, cmd_run
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="lhos", description="LongHorizonOS runtime CLI"
-    )
+    parser = argparse.ArgumentParser(prog="lhos", description="LongHorizonOS runtime CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_init = sub.add_parser("init", help="initialize a database")
@@ -65,13 +63,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_bench = sub.add_parser("benchmark", help="run the controlled benchmark suite (spec 22-25)")
     p_bench.add_argument("--suite", default="controlled", choices=["controlled"])
-    p_bench.add_argument("--mode", "--modes", dest="mode", default=None,
-                         help="comma list of experiment modes (spec 25)")
-    p_bench.add_argument("--scheduler", default=None,
-                         help="comma list: fifo,cost_aware — selects modes by scheduler family")
+    p_bench.add_argument(
+        "--mode",
+        "--modes",
+        dest="mode",
+        default=None,
+        help="comma list of experiment modes (spec 25)",
+    )
+    p_bench.add_argument(
+        "--scheduler",
+        default=None,
+        help="comma list: fifo,cost_aware — selects modes by scheduler family",
+    )
     p_bench.add_argument("--seeds", default="1", help="comma list of seeds, e.g. 1,2,3")
     p_bench.add_argument("--size", default="small", choices=["small", "medium", "large", "xl"])
-    p_bench.add_argument("--tasks", default=None, help="comma list of scenario presets (default: all 14)")
+    p_bench.add_argument(
+        "--tasks", default=None, help="comma list of scenario presets (default: all 14)"
+    )
     p_bench.add_argument("--out", default="artifacts/benchmark_results")
     p_bench.add_argument("--work-root", dest="work_root", default="artifacts/benchmark_work")
     p_bench.set_defaults(func=cmd_benchmark)

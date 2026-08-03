@@ -17,7 +17,7 @@ from lhos.infrastructure.db.sqlite_event_store import SqliteEventStore
 from lhos.infrastructure.db.sqlite_graph_store import SqliteGraphStore
 
 
-def cmd_inject(args) -> int:  # noqa: ANN001 - argparse.Namespace
+def cmd_inject(args) -> int:
     payload = json.loads(args.payload) if args.payload else {}
     db = Database(args.db)
     try:

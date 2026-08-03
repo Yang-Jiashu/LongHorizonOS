@@ -17,12 +17,12 @@ PROMPT_VERSION = "reconcile_event.v1"
 
 
 class SemanticReconcilerStub:
-    def __init__(self, llm=None, model: str = "mock-reconciler"):  # noqa: ANN001
+    def __init__(self, llm=None, model: str = "mock-reconciler"):
         self._llm = llm
         self._model = model
         self._template = PROMPT_PATH.read_text(encoding="utf-8")
 
-    def reconcile(self, run_id: str, event) -> bool:  # noqa: ANN001
+    def reconcile(self, run_id: str, event) -> bool:
         if self._llm is None:
             raise LhosError(
                 "semantic reconciler has no LLM configured; deterministic "

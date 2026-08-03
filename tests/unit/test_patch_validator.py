@@ -9,7 +9,6 @@ from lhos.domain.enums import NodeState, PatchOperationType
 from lhos.domain.errors import CycleError, NodeNotFoundError, VersionConflictError
 from lhos.domain.graph_patch import GraphPatchOperation
 from lhos.graph.patch_validator import PatchValidator
-
 from tests.conftest import make_edge, make_node
 
 
@@ -67,8 +66,13 @@ def test_failed_patch_leaves_no_partial_update(graph_store, run_id):
     ops = [
         GraphPatchOperation(  # valid on its own
             op=PatchOperationType.ADD_NODE,
-            payload={"temp_id": "n3", "kind": "subtask", "title": "third",
-                     "specification": "x", "schedulable": True},
+            payload={
+                "temp_id": "n3",
+                "kind": "subtask",
+                "title": "third",
+                "specification": "x",
+                "schedulable": True,
+            },
         ),
         GraphPatchOperation(  # invalid: cycle
             op=PatchOperationType.ADD_EDGE,
