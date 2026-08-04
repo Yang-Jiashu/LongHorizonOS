@@ -23,8 +23,14 @@ def _resolve(workspace_dir: str, rel: str) -> Path:
 class FileExistsVerifier:
     """Passes when the named file exists in the workspace.
 
-    Accepts both ``path`` and ``artifact_name`` parameter names for
-    backward compatibility with planner output that may use either.
+    Parameter resolution order:
+    1. ``path`` (canonical parameter name).
+    2. ``artifact_name`` (backward-compatible alias only).
+
+    If both ``path`` and ``artifact_name`` are present with **different**
+    values, the spec is rejected as ``verification_spec_invalid``.
+    If neither is present, the failure code is also
+    ``verification_spec_invalid`` (not a vague "no path").
     """
 
     verifier_type = "file_exists"
@@ -32,11 +38,29 @@ class FileExistsVerifier:
     def verify(
         self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
     ) -> VerificationResult:
-        rel = spec.parameters.get("path") or spec.parameters.get("artifact_name")
+        path_val = spec.parameters.get("path")
+        alias_val = spec.parameters.get("artifact_name")
+
+        # Conflict check: both present but different.
+        if path_val and alias_val and path_val != alias_val:
+            return VerificationResult(
+                passed=False,
+                summary=(
+                    "verification_spec_invalid: file_exists spec has both "
+                    f"path={path_val!r} and artifact_name={alias_val!r} "
+                    "with conflicting values"
+                ),
+            )
+
+        # Canonical: path; alias: artifact_name.
+        rel = path_val or alias_val
         if not rel:
             return VerificationResult(
                 passed=False,
-                summary="file_exists: no path or artifact_name parameter provided",
+                summary=(
+                    "verification_spec_invalid: file_exists spec is missing "
+                    "both 'path' (canonical) and 'artifact_name' (alias)"
+                ),
             )
         path = _resolve(context.workspace_dir, rel)
         passed = path.exists()

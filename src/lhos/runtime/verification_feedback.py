@@ -87,7 +87,9 @@ def build_feedback_from_verification(
 
     # Determine failure code based on verifier type and summary.
     failure_code = "verification_failed"
-    if "no path" in summary.lower():
+    if "verification_spec_invalid" in summary.lower():
+        failure_code = "verification_spec_invalid"
+    elif "no path" in summary.lower() or "missing both" in summary.lower():
         failure_code = "missing_path_parameter"
     elif "command not found" in summary.lower():
         failure_code = "command_not_found"
@@ -120,7 +122,7 @@ def build_feedback_from_verification(
         affected.append(path)
 
     # Determine if retryable.
-    retryable = failure_code not in {"missing_path_parameter"}
+    retryable = failure_code not in {"missing_path_parameter", "verification_spec_invalid"}
     # missing_path_parameter is a spec bug — the worker can't fix it,
     # but a local repair/reconciler might.
 

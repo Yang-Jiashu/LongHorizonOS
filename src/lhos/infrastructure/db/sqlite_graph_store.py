@@ -28,6 +28,11 @@ from lhos.infrastructure.db.connection import Database
 from lhos.infrastructure.db.sqlite_event_store import SqliteEventStore
 
 
+def _row_get(row: Any, key: str, default: Any = 0) -> Any:
+    """Safely get a value from a sqlite3.Row, which lacks .get()."""
+    return row[key] if key in row else default  # noqa: SIM401 -- sqlite3.Row has no .get()
+
+
 def _now() -> datetime:
     return datetime.now().astimezone()
 
@@ -615,11 +620,9 @@ class SqliteGraphStore:
             actual_tool_calls=row["actual_tool_calls"],
             attempt_count=row["attempt_count"],
             max_attempts=row["max_attempts"],
-            verification_attempts=row["verification_attempts"]
-            if "verification_attempts" in row
-            else 0,  # noqa: SIM401
-            parse_attempts=row["parse_attempts"] if "parse_attempts" in row else 0,  # noqa: SIM401
-            tool_attempts=row["tool_attempts"] if "tool_attempts" in row else 0,  # noqa: SIM401
+            verification_attempts=_row_get(row, "verification_attempts"),
+            parse_attempts=_row_get(row, "parse_attempts"),
+            tool_attempts=_row_get(row, "tool_attempts"),
             verification_spec=json.loads(row["verification_spec_json"])
             if row["verification_spec_json"]
             else None,
