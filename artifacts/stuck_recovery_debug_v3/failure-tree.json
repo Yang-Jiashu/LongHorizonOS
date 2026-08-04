@@ -1,0 +1,34 @@
+{
+  "blocked_node_ids": [
+    "stuck-recovery-v3:n6"
+  ],
+  "checkpoint_time_seconds": 0.215205,
+  "failed_node_ids": [],
+  "failed_nodes": 0,
+  "input_tokens": 232486,
+  "invalidated_nodes": 0,
+  "last_successful_event": "NODE_LEASE_RELEASED:system",
+  "model_calls": 6,
+  "model_cost_usd": 0.0,
+  "node_failure_details": [],
+  "output_tokens": 21173,
+  "primary_failure_code": "run_stuck",
+  "ready_node_ids": [],
+  "recommended_debug_action": "Check dependency graph for cycles or dead branches.",
+  "remaining_budget": {
+    "model_calls_remaining": 0,
+    "tokens_remaining": 0,
+    "tool_calls_remaining": 44,
+    "wall_time_remaining": 3600.0
+  },
+  "run_id": "stuck-recovery-v3",
+  "scheduler_time_seconds": 0.003463,
+  "status": "failed",
+  "terminal_status": "failed",
+  "termination_reason": "no ready nodes and no waiting nodes: run is stuck",
+  "tool_calls": 56,
+  "total_nodes": 6,
+  "total_tokens": 253659,
+  "verified_nodes": 5,
+  "waiting_node_ids": []
+}

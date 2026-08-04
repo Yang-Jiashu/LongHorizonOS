@@ -1,0 +1,171 @@
+{
+  "log_consistency": {
+    "db_llm_count": 63,
+    "jsonl_llm_count": 63,
+    "llm_count_match": true,
+    "db_total_tokens": 256108,
+    "tool_requested": 56,
+    "tool_completed": 56,
+    "tool_failed": 0,
+    "tool_events_closed": true,
+    "has_terminal_event": true,
+    "terminal_status": "RUN_FAILED"
+  },
+  "n3_analysis": {
+    "id": "stuck-recovery-v3:n3",
+    "title": "Design config loader module",
+    "state": "verified",
+    "attempts": 2,
+    "max_attempts": 3,
+    "execution_count": 2,
+    "total_tokens": 82924,
+    "tool_calls": 18,
+    "verification_events": 4,
+    "downstream_unlocked": true,
+    "created_target_artifact": true
+  },
+  "node_budget": [
+    {
+      "node_id": "stuck-recovery-v3:n6",
+      "title": "Run all tests to verify no regressions",
+      "state": "pending",
+      "attempts": 0,
+      "executions": 0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "budget_exhausted": false
+    },
+    {
+      "node_id": "stuck-recovery-v3:n1",
+      "title": "Inspect project structure",
+      "state": "verified",
+      "attempts": 1,
+      "executions": 1,
+      "tokens": 28436,
+      "tool_calls": 9,
+      "budget_exhausted": false
+    },
+    {
+      "node_id": "stuck-recovery-v3:n2",
+      "title": "Review existing tests",
+      "state": "verified",
+      "attempts": 1,
+      "executions": 1,
+      "tokens": 27256,
+      "tool_calls": 8,
+      "budget_exhausted": false
+    },
+    {
+      "node_id": "stuck-recovery-v3:n3",
+      "title": "Design config loader module",
+      "state": "verified",
+      "attempts": 2,
+      "executions": 2,
+      "tokens": 82924,
+      "tool_calls": 18,
+      "budget_exhausted": false
+    },
+    {
+      "node_id": "stuck-recovery-v3:n4",
+      "title": "Implement config loader",
+      "state": "verified",
+      "attempts": 1,
+      "executions": 1,
+      "tokens": 31168,
+      "tool_calls": 8,
+      "budget_exhausted": false
+    },
+    {
+      "node_id": "stuck-recovery-v3:n5",
+      "title": "Write unit tests for config loader",
+      "state": "verified",
+      "attempts": 1,
+      "executions": 1,
+      "tokens": 83875,
+      "tool_calls": 13,
+      "budget_exhausted": false
+    }
+  ],
+  "duplicate_work": {
+    "total_tool_calls": 56,
+    "unique_signatures": 48,
+    "duplicate_count": 8,
+    "duplicate_signatures": 8,
+    "file_writes": 4,
+    "file_reads": 14,
+    "shell_calls": 18,
+    "v2_comparison": {
+      "v2_tool_calls": 47,
+      "v3_tool_calls": 56,
+      "delta": 9,
+      "v2_file_ops": 68,
+      "v3_file_ops": 18,
+      "delta_file_ops": -50
+    }
+  },
+  "parse_failure": {
+    "total_model_calls": 63,
+    "first_parse_failures": 9,
+    "first_parse_failure_rate": 14.3,
+    "final_unparsable": 9,
+    "final_unparsable_rate": 14.3,
+    "failure_types": {
+      "other": 9
+    },
+    "v2_comparison": {
+      "v2_parse_failures": 8,
+      "v3_parse_failures": 9,
+      "delta": 1
+    }
+  },
+  "external_grader": {
+    "external_score": 0.3,
+    "total_score": 3.0,
+    "max_score": 10.0,
+    "requirements_passed": 3,
+    "requirements_failed": 7,
+    "passed_list": [
+      "req_6_readme_updated",
+      "req_7_no_regression",
+      "req_8_config_loader_class"
+    ],
+    "failed_list": [
+      "req_1_json_loading",
+      "req_2_missing_file_error",
+      "req_3_invalid_json_error",
+      "req_4_migrate_caller",
+      "req_5_public_tests",
+      "req_9_get_method",
+      "req_10_nested_config"
+    ],
+    "grader_separate_process": true,
+    "runtime_no_hidden_access": true,
+    "score_independent_of_vpg": true,
+    "v2_comparison": {
+      "v2_score": 0.2,
+      "v3_score": 0.3,
+      "delta": 0.09999999999999998,
+      "v2_meets_minimum": true,
+      "v3_meets_minimum": true
+    }
+  },
+  "stop_gate": {
+    "checks": {
+      "tests_pass": true,
+      "ruff_mypy_pass": true,
+      "llm_db_jsonl_consistent": true,
+      "tool_events_closed": true,
+      "has_terminal_event": true,
+      "n3_no_verification_param_error": true,
+      "structured_feedback_entered_context": true,
+      "local_repair_triggered": true,
+      "termination_codes_clear": true,
+      "parse_failure_rate_below_5": false
+    },
+    "all_checks_pass": false,
+    "n3_verified": true,
+    "downstream_unlocked": true,
+    "parse_failure_rate": 14.3,
+    "classification": "FULL-DEBUG-PASS"
+  }
+}

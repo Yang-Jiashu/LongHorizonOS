@@ -1,0 +1,50 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "size": 401,
+      "sha256": "7e767f1278ad6f6b"
+    },
+    {
+      "path": "pyproject.toml",
+      "size": 358,
+      "sha256": "0f457b4141c7e0f4"
+    },
+    {
+      "path": "src/sample_app/__init__.py",
+      "size": 245,
+      "sha256": "a9d99991ab7816f4"
+    },
+    {
+      "path": "src/sample_app/app.py",
+      "size": 996,
+      "sha256": "55dfe26eb590ac9c"
+    },
+    {
+      "path": "src/sample_app.egg-info/PKG-INFO",
+      "size": 223,
+      "sha256": "c2f36f11d5ed1e36"
+    },
+    {
+      "path": "src/sample_app.egg-info/SOURCES.txt",
+      "size": 262,
+      "sha256": "03895af8d2a4b4b7"
+    },
+    {
+      "path": "src/sample_app.egg-info/dependency_links.txt",
+      "size": 1,
+      "sha256": "01ba4719c80b6fe9"
+    },
+    {
+      "path": "src/sample_app.egg-info/requires.txt",
+      "size": 33,
+      "sha256": "fa04abaef5d96a13"
+    },
+    {
+      "path": "src/sample_app.egg-info/top_level.txt",
+      "size": 11,
+      "sha256": "20b6ef874c26d71b"
+    }
+  ],
+  "count": 9
+}

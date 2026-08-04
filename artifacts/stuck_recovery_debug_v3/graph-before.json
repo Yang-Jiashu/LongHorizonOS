@@ -1,0 +1,121 @@
+{
+  "goal": "Add a configuration loading module to the existing SampleApp project that supports JSON file loading with proper error handling.",
+  "nodes": [
+    {
+      "kind": "subtask",
+      "title": "Inspect project structure",
+      "specification": "Explore the SampleApp project directory to understand the existing structure, identify relevant modules, and locate existing tests.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "verifier_type": "command",
+        "parameters": {
+          "command": "find /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace -type f -name '*.py' | head -20"
+        }
+      },
+      "temp_id": "n1"
+    },
+    {
+      "kind": "subtask",
+      "title": "Review existing tests",
+      "specification": "Run existing tests to establish a baseline and understand the test framework being used.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "verifier_type": "command",
+        "parameters": {
+          "command": "cd /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace && python -m pytest --collect-only 2>&1 | head -30"
+        }
+      },
+      "temp_id": "n2"
+    },
+    {
+      "kind": "subtask",
+      "title": "Design config loader module",
+      "specification": "Design a configuration loading module that supports JSON file loading with proper error handling, including validation and sensible defaults.",
+      "schedulable": true,
+      "progress_weight": 1.5,
+      "verification_spec": {
+        "verifier_type": "file_exists",
+        "parameters": {
+          "file_path": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace/config_loader.py"
+        }
+      },
+      "temp_id": "n3"
+    },
+    {
+      "kind": "subtask",
+      "title": "Implement config loader",
+      "specification": "Create the config_loader.py module with functions to load JSON config files, handle missing files, invalid JSON, and missing required fields with appropriate error messages.",
+      "schedulable": true,
+      "progress_weight": 2.0,
+      "verification_spec": {
+        "verifier_type": "command",
+        "parameters": {
+          "command": "cd /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace && python -c \"import config_loader; print('Module imported successfully')\""
+        }
+      },
+      "temp_id": "n4"
+    },
+    {
+      "kind": "subtask",
+      "title": "Write unit tests for config loader",
+      "specification": "Create comprehensive unit tests for the config loader module covering: successful loading, file not found, invalid JSON, missing required fields, and default values.",
+      "schedulable": true,
+      "progress_weight": 2.0,
+      "verification_spec": {
+        "verifier_type": "command",
+        "parameters": {
+          "command": "cd /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace && python -m pytest tests/test_config_loader.py -v"
+        }
+      },
+      "temp_id": "n5"
+    },
+    {
+      "kind": "subtask",
+      "title": "Run all tests to verify no regressions",
+      "specification": "Run the complete test suite to ensure all existing tests still pass and new config loader tests pass.",
+      "schedulable": true,
+      "progress_weight": 1.5,
+      "verification_spec": {
+        "verifier_type": "command",
+        "parameters": {
+          "command": "cd /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3/workspace && python -m pytest -v"
+        }
+      },
+      "temp_id": "n6"
+    }
+  ],
+  "edges": [
+    {
+      "source": "n2",
+      "target": "n1",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n3",
+      "target": "n1",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n3",
+      "target": "n2",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n4",
+      "target": "n3",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n5",
+      "target": "n4",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n6",
+      "target": "n5",
+      "kind": "depends_on"
+    }
+  ]
+}

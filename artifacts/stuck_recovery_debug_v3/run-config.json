@@ -1,0 +1,29 @@
+{
+  "task": "config_loader",
+  "mode": "full_lhos",
+  "model_id": "sensenova-6.7-flash-lite",
+  "seed": 1,
+  "temperature": 0.0,
+  "reasoning_effort": "none",
+  "max_total_tokens": 200000,
+  "max_model_calls": 100,
+  "max_tool_calls": 100,
+  "max_wall_clock_seconds": 3600,
+  "retry_policy": "3 retries, exponential backoff",
+  "structured_output_repair": "1 retry",
+  "scheduler": "cost_aware",
+  "checkpoint": "filesystem",
+  "features": {
+    "invalidation": true,
+    "local_repair": true
+  },
+  "context": {
+    "max_tokens": 12000,
+    "max_dependency_hops": 3,
+    "include_last_failures": 2
+  },
+  "initial_commit": "fixed_initial_commit",
+  "public_spec": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/benchmarks/pilot/config_loader/public_spec.json",
+  "grader": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/benchmarks/pilot/config_loader/grader/grader.py",
+  "git_commit_before": "c6d85f70fabe03932ee8a354c6512e1dbce746f9"
+}

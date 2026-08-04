@@ -1,0 +1,96 @@
+{
+  "nodes": [
+    {
+      "id": "stuck-recovery-v3:n1",
+      "title": "Inspect project structure",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    },
+    {
+      "id": "stuck-recovery-v3:n2",
+      "title": "Review existing tests",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    },
+    {
+      "id": "stuck-recovery-v3:n3",
+      "title": "Design config loader module",
+      "state": "verified",
+      "attempt_count": 2,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    },
+    {
+      "id": "stuck-recovery-v3:n4",
+      "title": "Implement config loader",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    },
+    {
+      "id": "stuck-recovery-v3:n5",
+      "title": "Write unit tests for config loader",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    },
+    {
+      "id": "stuck-recovery-v3:n6",
+      "title": "Run all tests to verify no regressions",
+      "state": "pending",
+      "attempt_count": 0,
+      "max_attempts": 3,
+      "verification_attempts": 0,
+      "parse_attempts": 0,
+      "tool_attempts": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "stuck-recovery-v3:n2",
+      "target": "stuck-recovery-v3:n1",
+      "kind": "depends_on"
+    },
+    {
+      "source": "stuck-recovery-v3:n3",
+      "target": "stuck-recovery-v3:n1",
+      "kind": "depends_on"
+    },
+    {
+      "source": "stuck-recovery-v3:n3",
+      "target": "stuck-recovery-v3:n2",
+      "kind": "depends_on"
+    },
+    {
+      "source": "stuck-recovery-v3:n4",
+      "target": "stuck-recovery-v3:n3",
+      "kind": "depends_on"
+    },
+    {
+      "source": "stuck-recovery-v3:n5",
+      "target": "stuck-recovery-v3:n4",
+      "kind": "depends_on"
+    },
+    {
+      "source": "stuck-recovery-v3:n6",
+      "target": "stuck-recovery-v3:n5",
+      "kind": "depends_on"
+    }
+  ]
+}

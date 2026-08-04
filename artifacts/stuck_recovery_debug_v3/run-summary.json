@@ -1,0 +1,169 @@
+{
+  "run_id": "stuck-recovery-v3",
+  "task": "config_loader",
+  "mode": "full_lhos",
+  "model_id": "sensenova-6.7-flash-lite",
+  "seed": 1,
+  "run_status": "failed",
+  "primary_failure_code": "run_stuck",
+  "termination_reason": "no ready nodes and no waiting nodes: run is stuck (n6 blocked, token budget exhausted)",
+  "wall_time_seconds": 526.2,
+  "node_count": 6,
+  "verified_nodes": 5,
+  "failed_nodes": 0,
+  "pending_nodes": 1,
+  "execution_count": 6,
+  "llm_call_count": 63,
+  "llm_calls_by_role": {
+    "planner": 1,
+    "worker": 62
+  },
+  "llm_calls_by_status": {
+    "success": 54,
+    "parse_failed": 9
+  },
+  "parse_failure_rate": 14.3,
+  "total_input_tokens": 233605,
+  "total_output_tokens": 22503,
+  "total_tokens": 256108,
+  "tool_call_events": {
+    "requested": 56,
+    "completed": 56,
+    "failed": 0
+  },
+  "node_stats": {
+    "stuck-recovery-v3:n6": {
+      "title": "Run all tests to verify no regressions",
+      "state": "pending",
+      "attempt_count": 0,
+      "max_attempts": 3,
+      "execution_count": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "tool_calls": 0
+    },
+    "stuck-recovery-v3:n1": {
+      "title": "Inspect project structure",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "execution_count": 1,
+      "input_tokens": 27291,
+      "output_tokens": 1145,
+      "tool_calls": 9
+    },
+    "stuck-recovery-v3:n2": {
+      "title": "Review existing tests",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "execution_count": 1,
+      "input_tokens": 25905,
+      "output_tokens": 1351,
+      "tool_calls": 8
+    },
+    "stuck-recovery-v3:n3": {
+      "title": "Design config loader module",
+      "state": "verified",
+      "attempt_count": 2,
+      "max_attempts": 3,
+      "execution_count": 2,
+      "input_tokens": 74249,
+      "output_tokens": 8675,
+      "tool_calls": 18
+    },
+    "stuck-recovery-v3:n4": {
+      "title": "Implement config loader",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "execution_count": 1,
+      "input_tokens": 29900,
+      "output_tokens": 1268,
+      "tool_calls": 8
+    },
+    "stuck-recovery-v3:n5": {
+      "title": "Write unit tests for config loader",
+      "state": "verified",
+      "attempt_count": 1,
+      "max_attempts": 3,
+      "execution_count": 1,
+      "input_tokens": 75141,
+      "output_tokens": 8734,
+      "tool_calls": 13
+    }
+  },
+  "external_score": {
+    "total_score": 3.0,
+    "max_score": 10.0,
+    "progress_ratio": 0.3,
+    "requirements": [
+      {
+        "requirement_id": "req_1_json_loading",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_1_json_loading"
+      },
+      {
+        "requirement_id": "req_2_missing_file_error",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_2_missing_file_error"
+      },
+      {
+        "requirement_id": "req_3_invalid_json_error",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_3_invalid_json_error"
+      },
+      {
+        "requirement_id": "req_4_migrate_caller",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_4_migrate_caller"
+      },
+      {
+        "requirement_id": "req_5_public_tests",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_5_public_tests"
+      },
+      {
+        "requirement_id": "req_6_readme_updated",
+        "passed": true,
+        "score": 1.0,
+        "evidence": "PASS: req_6_readme_updated"
+      },
+      {
+        "requirement_id": "req_7_no_regression",
+        "passed": true,
+        "score": 1.0,
+        "evidence": "PASS: req_7_no_regression"
+      },
+      {
+        "requirement_id": "req_8_config_loader_class",
+        "passed": true,
+        "score": 1.0,
+        "evidence": "PASS: req_8_config_loader_class"
+      },
+      {
+        "requirement_id": "req_9_get_method",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_9_get_method"
+      },
+      {
+        "requirement_id": "req_10_nested_config",
+        "passed": false,
+        "score": 0.0,
+        "evidence": "FAIL: req_10_nested_config"
+      }
+    ]
+  },
+  "n3_status": "VERIFIED on attempt 2/3 (first attempt failed verification, structured feedback enabled successful retry)",
+  "workspace_files": [
+    "src/sample_app/config_loader.py",
+    "tests/test_config_loader.py",
+    "README.md"
+  ]
+}

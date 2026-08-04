@@ -1,0 +1,87 @@
+[v3] Calling real planner...
+[v3] Planner generated 12 operations
+[v3] Built graph with 6 nodes
+[v3] Running controller...
+2026-08-04 17:32:18,890 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 0: tool_call filesystem -> completed
+2026-08-04 17:32:33,109 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 1: tool_call filesystem -> completed
+2026-08-04 17:32:34,385 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 2: tool_call filesystem -> completed
+2026-08-04 17:32:38,386 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 3: tool_call filesystem -> completed
+2026-08-04 17:32:40,480 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 4: tool_call filesystem -> completed
+2026-08-04 17:32:41,657 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 5: tool_call filesystem -> completed
+2026-08-04 17:32:43,497 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 6: tool_call shell -> completed
+2026-08-04 17:32:44,921 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 7: tool_call shell -> completed
+2026-08-04 17:32:49,660 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 8: tool_call filesystem -> completed
+2026-08-04 17:32:54,259 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n1 round 9: claim_done (tool_calls=9)
+2026-08-04 17:33:11,587 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 0: tool_call shell -> completed
+2026-08-04 17:33:13,570 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 1: tool_call shell -> completed
+2026-08-04 17:33:15,279 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 2: tool_call filesystem -> completed
+2026-08-04 17:33:26,198 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 3: tool_call filesystem -> completed
+2026-08-04 17:33:28,032 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 4: tool_call filesystem -> completed
+2026-08-04 17:33:30,679 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 5: tool_call filesystem -> completed
+2026-08-04 17:33:32,455 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 6: tool_call filesystem -> completed
+2026-08-04 17:33:40,232 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 7: tool_call filesystem -> completed
+2026-08-04 17:33:45,318 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n2 round 8: claim_done (tool_calls=8)
+2026-08-04 17:33:48,436 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 0: tool_call filesystem -> completed
+2026-08-04 17:33:49,603 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 1: tool_call filesystem -> completed
+2026-08-04 17:33:52,793 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 2: tool_call filesystem -> completed
+2026-08-04 17:33:54,368 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 3: tool_call filesystem -> completed
+2026-08-04 17:34:04,928 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 4: tool_call filesystem -> completed
+2026-08-04 17:34:43,982 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 5: tool_call filesystem -> completed
+2026-08-04 17:34:45,504 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 6: tool_call shell -> failed
+2026-08-04 17:34:47,410 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 7: tool_call shell -> completed
+2026-08-04 17:34:52,987 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 8: tool_call shell -> completed
+2026-08-04 17:34:54,779 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 9: claim_done (tool_calls=9)
+2026-08-04 17:35:13,507 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 0: tool_call filesystem -> completed
+2026-08-04 17:35:15,418 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 1: tool_call filesystem -> completed
+2026-08-04 17:35:17,317 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 2: tool_call filesystem -> completed
+2026-08-04 17:35:18,568 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 3: tool_call filesystem -> completed
+2026-08-04 17:35:19,687 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 4: tool_call filesystem -> completed
+2026-08-04 17:36:43,453 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 5: tool_call filesystem -> completed
+2026-08-04 17:36:45,173 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 6: tool_call shell -> failed
+2026-08-04 17:36:48,015 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 7: tool_call shell -> completed
+2026-08-04 17:36:54,617 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 8: tool_call shell -> completed
+2026-08-04 17:36:56,719 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n3 round 9: claim_done (tool_calls=9)
+2026-08-04 17:37:06,403 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 0: tool_call filesystem -> completed
+2026-08-04 17:37:07,909 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 1: tool_call filesystem -> completed
+2026-08-04 17:37:08,995 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 2: tool_call filesystem -> completed
+2026-08-04 17:37:10,213 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 3: tool_call filesystem -> completed
+2026-08-04 17:37:11,926 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 4: tool_call shell -> failed
+2026-08-04 17:37:13,543 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 5: tool_call shell -> failed
+2026-08-04 17:37:16,020 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 6: tool_call shell -> completed
+2026-08-04 17:37:18,012 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 7: tool_call shell -> completed
+2026-08-04 17:37:31,043 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n4 round 8: claim_done (tool_calls=8)
+2026-08-04 17:37:33,859 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 0: tool_call filesystem -> completed
+2026-08-04 17:37:37,533 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 1: tool_call filesystem -> completed
+2026-08-04 17:37:40,090 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 2: tool_call filesystem -> completed
+2026-08-04 17:37:41,488 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 3: tool_call filesystem -> completed
+2026-08-04 17:37:42,618 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 4: tool_call filesystem -> completed
+2026-08-04 17:37:44,204 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 5: tool_call filesystem -> failed
+2026-08-04 17:37:50,150 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 6: tool_call filesystem -> completed
+2026-08-04 17:37:51,605 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 7: tool_call filesystem -> completed
+2026-08-04 17:39:31,329 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 8: tool_call filesystem -> completed
+2026-08-04 17:39:32,695 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 9: tool_call shell -> failed
+2026-08-04 17:39:44,971 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 10: tool_call shell -> failed
+2026-08-04 17:39:49,678 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 11: tool_call shell -> completed
+2026-08-04 17:39:56,469 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 12: tool_call shell -> completed
+2026-08-04 17:40:00,063 [lhos.agents.llm_worker_adapter] INFO: Worker stuck-recovery-v3:n5 round 13: claim_done (tool_calls=13)
+[v3] Controller finished with status: failed
+[v3] Error collecting graph-after: 'GraphEdge' object has no attribute 'source'
+[v3] Error collecting events: 'RuntimeEvent' object has no attribute 'timestamp'
+[v3] Running external grader...
+
+============================================================
+STUCK RECOVERY DEBUG v3 — SUMMARY
+============================================================
+Status: failed
+Model calls (executions): 6
+LLM calls logged: 63
+Total tokens: 253659
+Wall time: 526.2s
+Nodes: 6
+Verified: 5
+Failed: 0
+External score: 30.0%
+Failure code: run_stuck
+Termination: no ready nodes and no waiting nodes: run is stuck
+
+Artifacts saved to: /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/stuck_recovery_debug_v3

@@ -1,0 +1,40 @@
+{
+  "model_id": "sensenova-6.7-flash-lite",
+  "tools": [
+    {
+      "name": "filesystem",
+      "side_effect_level": "local_write",
+      "retry_safe": false,
+      "default_timeout_seconds": 30,
+      "supports_idempotency": true
+    },
+    {
+      "name": "shell",
+      "side_effect_level": "local_write",
+      "retry_safe": false,
+      "default_timeout_seconds": 60,
+      "supports_idempotency": true
+    }
+  ],
+  "prompts": {
+    "planner": "initial_planner_v1",
+    "worker": "node_worker_v2",
+    "reconciler": "semantic_reconciler_v1"
+  },
+  "verifiers": [
+    "file_exists",
+    "file_changed",
+    "file_contains",
+    "command",
+    "artifact_exists"
+  ],
+  "runtime_features": [
+    "NodeExecutionBudget",
+    "LocalRepairManager",
+    "DuplicateWorkDetector",
+    "StructuredVerificationFeedback",
+    "ContextCompiler",
+    "CostAwareScheduler",
+    "FilesystemCheckpointManager"
+  ]
+}
