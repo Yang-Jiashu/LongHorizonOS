@@ -23,3 +23,4 @@ artifacts/*
 !artifacts/checkpoints/.gitkeep
 !artifacts/benchmark_results/.gitkeep
 !artifacts/reports/.gitkeep
+benchmarks/pilot/config_loader/initial_repo

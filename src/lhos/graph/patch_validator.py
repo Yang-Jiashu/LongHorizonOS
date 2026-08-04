@@ -15,7 +15,7 @@ valid does the store get touched.
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import Any, cast
 
 from lhos.domain.enums import EdgeKind, NodeState, PatchOperationType
 from lhos.domain.errors import (
@@ -99,8 +99,8 @@ class PatchValidator:
             return
 
         if op.op == PatchOperationType.ADD_EDGE:
-            source = op.payload.get("source") or op.payload.get("source_node_id")
-            target = op.payload.get("target") or op.payload.get("target_node_id")
+            source = cast(str, op.payload.get("source") or op.payload.get("source_node_id"))
+            target = cast(str, op.payload.get("target") or op.payload.get("target_node_id"))
             kind = EdgeKind(op.payload.get("kind", "depends_on"))
             self._node(graph, source, "add_edge(source)")
             self._node(graph, target, "add_edge(target)")
@@ -221,7 +221,7 @@ class PatchValidator:
         if op.op == PatchOperationType.ADD_NODE:
             spec = op.payload
             node = GraphNode(
-                id=spec.get("id") or spec.get("temp_id"),
+                id=spec.get("id") or spec.get("temp_id"),  # type: ignore[arg-type]  # id is str|None at runtime but always present in valid patches
                 run_id=run_id,
                 kind=spec.get("kind", "subtask"),
                 title=spec.get("title", ""),

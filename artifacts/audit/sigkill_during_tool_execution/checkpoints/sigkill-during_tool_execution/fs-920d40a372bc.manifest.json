@@ -1,0 +1,8 @@
+{
+  "checkpoint_id": "fs-920d40a372bc",
+  "run_id": "sigkill-during_tool_execution",
+  "reason": "before:sigkill-during_tool_execution:n1",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_during_tool_execution/workspace",
+  "files": {},
+  "created_at": "2026-08-03T21:43:16.507654+08:00"
+}

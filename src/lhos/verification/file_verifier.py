@@ -21,14 +21,23 @@ def _resolve(workspace_dir: str, rel: str) -> Path:
 
 
 class FileExistsVerifier:
+    """Passes when the named file exists in the workspace.
+
+    Accepts both ``path`` and ``artifact_name`` parameter names for
+    backward compatibility with planner output that may use either.
+    """
+
     verifier_type = "file_exists"
 
     def verify(
         self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
     ) -> VerificationResult:
-        rel = spec.parameters.get("path")
+        rel = spec.parameters.get("path") or spec.parameters.get("artifact_name")
         if not rel:
-            return VerificationResult(passed=False, summary="file_exists: no path")
+            return VerificationResult(
+                passed=False,
+                summary="file_exists: no path or artifact_name parameter provided",
+            )
         path = _resolve(context.workspace_dir, rel)
         passed = path.exists()
         evidence = []
@@ -58,9 +67,11 @@ class FileChangedVerifier:
     def verify(
         self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
     ) -> VerificationResult:
-        rel = spec.parameters.get("path")
+        rel = spec.parameters.get("path") or spec.parameters.get("artifact_name")
         if not rel:
-            return VerificationResult(passed=False, summary="file_changed: no path")
+            return VerificationResult(
+                passed=False, summary="file_changed: no path or artifact_name"
+            )
         path = _resolve(context.workspace_dir, rel)
         baseline = context.baseline_hashes.get(rel)
         current = _sha256(path) if path.exists() else None
@@ -89,9 +100,11 @@ class FileContainsVerifier:
     def verify(
         self, node: GraphNode, spec: VerificationSpec, context: VerificationContext
     ) -> VerificationResult:
-        rel = spec.parameters.get("path")
+        rel = spec.parameters.get("path") or spec.parameters.get("artifact_name")
         if not rel:
-            return VerificationResult(passed=False, summary="file_contains: no path")
+            return VerificationResult(
+                passed=False, summary="file_contains: no path or artifact_name"
+            )
         path = _resolve(context.workspace_dir, rel)
         if not path.exists():
             return VerificationResult(passed=False, summary=f"file missing: {rel}")

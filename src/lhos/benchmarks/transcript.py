@@ -30,6 +30,7 @@ from typing import Any
 import networkx as nx
 
 from lhos.benchmarks.controlled.task_schema import ControlledTask
+from lhos.domain.enums import NodeKind
 from lhos.domain.models import GraphNode
 from lhos.domain.verification import VerificationSpec
 from lhos.ports.verifier import VerificationContext
@@ -53,7 +54,7 @@ class TranscriptResult:
 
 
 def _topo_order(task: ControlledTask) -> list[str]:
-    dag = nx.DiGraph()
+    dag: nx.DiGraph = nx.DiGraph()
     schedulable = {n["temp_id"] for n in task.spec.oracle_nodes if n.get("schedulable")}
     dag.add_nodes_from(schedulable)
     for e in task.spec.oracle_edges:
@@ -212,7 +213,7 @@ def run_transcript(task: ControlledTask, workspace_dir: str | Path) -> Transcrip
                 vnode = GraphNode(
                     id=temp_id,
                     run_id="transcript",
-                    kind="subtask",
+                    kind=NodeKind.SUBTASK,
                     title=node.get("title", temp_id),
                     specification=node.get("specification", ""),
                 )

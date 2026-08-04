@@ -502,9 +502,10 @@ class SqliteGraphStore:
                 schedulable, priority, progress_weight, estimated_token_cost,
                 estimated_time_ms, estimated_tool_calls, actual_token_cost,
                 actual_time_ms, actual_tool_calls, attempt_count, max_attempts,
+                verification_attempts, parse_attempts, tool_attempts,
                 verification_spec_json, metadata_json, lease_owner,
                 lease_expires_at, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 node.id,
@@ -525,6 +526,9 @@ class SqliteGraphStore:
                 node.actual_tool_calls,
                 node.attempt_count,
                 node.max_attempts,
+                node.verification_attempts,
+                node.parse_attempts,
+                node.tool_attempts,
                 json.dumps(node.verification_spec, sort_keys=True, default=str)
                 if node.verification_spec is not None
                 else None,
@@ -611,6 +615,11 @@ class SqliteGraphStore:
             actual_tool_calls=row["actual_tool_calls"],
             attempt_count=row["attempt_count"],
             max_attempts=row["max_attempts"],
+            verification_attempts=row["verification_attempts"]
+            if "verification_attempts" in row
+            else 0,  # noqa: SIM401
+            parse_attempts=row["parse_attempts"] if "parse_attempts" in row else 0,  # noqa: SIM401
+            tool_attempts=row["tool_attempts"] if "tool_attempts" in row else 0,  # noqa: SIM401
             verification_spec=json.loads(row["verification_spec_json"])
             if row["verification_spec_json"]
             else None,

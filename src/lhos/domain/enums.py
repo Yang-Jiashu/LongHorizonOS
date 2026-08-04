@@ -62,3 +62,17 @@ SIDE_EFFECT_DESTRUCTIVE = "destructive"
 ALLOWED_SIDE_EFFECT_LEVELS: frozenset[str] = frozenset(
     {SIDE_EFFECT_READ_ONLY, SIDE_EFFECT_LOCAL_WRITE}
 )
+
+# ---------------------------------------------------------------------------
+# Tool name contract (Step 6): single source of truth for tool names.
+# The ToolRegistry, Worker output schema, and Prompt descriptions must all
+# use these constants — no free-form strings.
+# ---------------------------------------------------------------------------
+
+
+class ToolName(StrEnum):
+    """Canonical tool names registered in the ToolRegistry."""
+
+    FILESYSTEM = "filesystem"
+    SHELL = "shell"
+    FAKE = "fake"

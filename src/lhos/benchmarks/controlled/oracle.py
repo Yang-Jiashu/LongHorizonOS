@@ -19,7 +19,7 @@ _DEFAULT_TIME_MS = 1000
 
 
 def _depends_on_dag(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> nx.DiGraph:
-    dag = nx.DiGraph()
+    dag: nx.DiGraph = nx.DiGraph()
     for n in nodes:
         dag.add_node(n["temp_id"])
     for e in edges:
@@ -58,10 +58,10 @@ def compute_oracle(
         parent[node_id] = best_pred
     critical_path: list[str] = []
     if dist:
-        cursor = max(dist, key=lambda n: (dist[n], n))
+        cursor: str | None = max(dist, key=lambda n: (dist[n], n))
         while cursor is not None:
             critical_path.append(cursor)
-            cursor = parent[cursor]
+            cursor = parent[cursor]  # type: ignore[assignment]  # parent values are str | None
         critical_path.reverse()
     cp_seconds = sum(time_ms.get(t, _DEFAULT_TIME_MS) for t in critical_path) / 1000.0
 

@@ -65,10 +65,12 @@ class ControlledAdapter:
 
     async def get_goal(self) -> str:
         self._require_task()
+        assert self._task is not None  # for type narrowing; _require_task raises if None
         return self._task.spec.goal
 
     async def get_environment_snapshot(self) -> dict[str, Any]:
         self._require_task()
+        assert self._task is not None  # for type narrowing; _require_task raises if None
         return {
             "preset": self._task.preset,
             "size": self._task.size,
@@ -81,6 +83,7 @@ class ControlledAdapter:
     async def run(self) -> dict[str, Any]:
         """Drive the cell through the runtime (adapter extension)."""
         self._require_task()
+        assert self._task is not None  # for type narrowing; _require_task raises if None
         self._row = run_cell(self._task, self._mode, self._work_root)
         return self._row
 

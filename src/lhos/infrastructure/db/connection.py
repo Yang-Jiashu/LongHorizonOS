@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 
 class Database:
@@ -34,6 +35,72 @@ class Database:
         ).fetchone()
         if not exists:
             self._conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        self._run_migrations()
+
+    def _run_migrations(self) -> None:
+        """Run additive migrations (never destructive; does not break replay)."""
+        if not MIGRATIONS_DIR.is_dir():
+            return
+        # Ensure migration tracking table exists.
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations("
+            "  name TEXT PRIMARY KEY,"
+            "  applied_at TEXT NOT NULL"
+            ")"
+        )
+        for sql_file in sorted(MIGRATIONS_DIR.glob("*.sql")):
+            already = self._conn.execute(
+                "SELECT 1 FROM schema_migrations WHERE name = ?", (sql_file.name,)
+            ).fetchone()
+            if already:
+                # Even if the migration was "applied", the table might have
+                # been created before the status/error_type/causation_id columns
+                # were added. Check and add them if missing (Step 3).
+                if sql_file.name == "001_llm_calls.sql":
+                    self._ensure_llm_calls_columns()
+                continue
+            try:
+                self._conn.executescript(sql_file.read_text(encoding="utf-8"))
+                from datetime import datetime
+
+                self._conn.execute(
+                    "INSERT INTO schema_migrations(name, applied_at) VALUES (?, ?)",
+                    (sql_file.name, datetime.now().astimezone().isoformat()),
+                )
+            except Exception:
+                # If the migration fails (e.g. duplicate column from newer schema),
+                # still mark it as applied so we don't retry every time.
+                from datetime import datetime
+
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
+                    (sql_file.name, datetime.now().astimezone().isoformat()),
+                )
+
+    def _ensure_llm_calls_columns(self) -> None:
+        """Ensure the llm_calls table has all required columns (Step 3).
+
+        If the table was created by an older version of migration 001 that
+        lacked ``status``, ``error_type``, or ``causation_id``, add them.
+        """
+        # Check if the table exists.
+        exists = self._conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='llm_calls'"
+        ).fetchone()
+        if not exists:
+            return
+        # Get existing columns.
+        cols = {row[1] for row in self._conn.execute("PRAGMA table_info(llm_calls)").fetchall()}
+        if "status" not in cols:
+            self._conn.execute(
+                "ALTER TABLE llm_calls ADD COLUMN status TEXT NOT NULL DEFAULT 'success'"
+            )
+        if "error_type" not in cols:
+            self._conn.execute("ALTER TABLE llm_calls ADD COLUMN error_type TEXT")
+        if "causation_id" not in cols:
+            self._conn.execute("ALTER TABLE llm_calls ADD COLUMN causation_id TEXT")
+        # Add index on status if not present.
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_llm_calls_status ON llm_calls(status)")
 
     @property
     def conn(self) -> sqlite3.Connection:

@@ -172,7 +172,12 @@ class VerificationGate:
                     actor_type=ActorType.VERIFIER,
                     actor_id=node.id,
                     causation_id=causation_id,
-                    payload={"node_id": node.id, "summary": result.summary},
+                    payload={
+                        "node_id": node.id,
+                        "summary": result.summary,
+                        "spec": spec.model_dump() if spec else None,
+                        "evidence": result.evidence,
+                    },
                 )
             )
             self._store.set_state(

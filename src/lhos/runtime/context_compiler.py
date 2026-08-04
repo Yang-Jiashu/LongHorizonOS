@@ -183,6 +183,13 @@ class ContextCompiler:
 
     # ----------------------------------------------------------------- build
     def _previous_failures(self, request: ContextRequest) -> list[str]:
+        """Build structured failure feedback for the worker context.
+
+        Step 3: includes verification failure details (command, exit code,
+        stderr) so the worker can take corrective action on retry.
+        """
+        from lhos.runtime.verification_feedback import build_feedback_from_verification
+
         failures: list[tuple[int, str]] = []
         for event in self._events.list_events(request.run_id):
             if event.event_type not in {
@@ -192,10 +199,29 @@ class ContextCompiler:
                 continue
             if event.payload.get("node_id") != request.node_id:
                 continue
-            summary = (
-                event.payload.get("summary") or event.payload.get("reason") or event.event_type
-            )
-            failures.append((event.sequence, f"[{event.event_type}] {summary}"))
+
+            if event.event_type == EventType.VERIFICATION_FAILED:
+                # Build structured feedback.
+                summary = event.payload.get("summary", "")
+                spec = event.payload.get("spec", {})
+                spec_params = spec.get("parameters", {}) if isinstance(spec, dict) else {}
+                verifier_type = (
+                    spec.get("verifier_type", "unknown") if isinstance(spec, dict) else "unknown"
+                )
+                evidence = event.payload.get("evidence", [])
+                feedback = build_feedback_from_verification(
+                    verifier_type=verifier_type,
+                    summary=summary,
+                    spec_params=spec_params,
+                    evidence=evidence if isinstance(evidence, list) else [],
+                )
+                failures.append((event.sequence, feedback.to_context_string()))
+            else:
+                summary = (
+                    event.payload.get("summary") or event.payload.get("reason") or event.event_type
+                )
+                failures.append((event.sequence, f"[{event.event_type}] {summary}"))
+
         failures.sort(key=lambda t: t[0])
         return [text for _, text in failures[-request.include_last_failures :]]
 
@@ -242,6 +268,19 @@ class ContextCompiler:
             previous_failures=self._previous_failures(request),
             verification_requirements=verification_requirements,
         )
+
+        # Step 3: inject repair feedback from node metadata so the worker
+        # sees local repair guidance on the next retry.
+        repair_feedback = node.metadata.get("repair_feedback")
+        if repair_feedback:
+            packet.previous_failures.append(f"[REPAIR GUIDANCE] {repair_feedback}")
+        # Also include failure code for quick reference.
+        failure_code = node.metadata.get("failure_code")
+        if failure_code and failure_code != "verification_failed":
+            packet.previous_failures.append(
+                f"[FAILURE CODE] {failure_code}"
+                + (" (NOT retryable)" if not node.metadata.get("retryable", True) else "")
+            )
 
         # Priority ordering (spec 10.3): current spec, verification spec,
         # global goal, constraints, direct evidence, artifacts, failures,

@@ -15,7 +15,7 @@ Architecture invariants enforced by tests:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from lhos.benchmarks.modes import MODES, ModeConfig, mode_config
@@ -94,7 +94,6 @@ def build_manifest(mode_name: str, artifacts_dir: str = "artifacts") -> Capabili
     features = cfg.get("features", {})
     checkpoint = cfg.get("checkpoint", {})
     has_checkpoint = bool(checkpoint.get("type", "noop") != "noop")
-    restore_on_crash = bool(checkpoint.get("restore_on_crash", False))
 
     is_transcript = mc.engine == "transcript"
     is_oracle = mc.use_oracle_priorities

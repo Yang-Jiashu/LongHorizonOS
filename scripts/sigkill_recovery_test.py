@@ -74,7 +74,11 @@ TASK_TEMPLATE = {
                     "tool_calls": [
                         {
                             "tool_name": "filesystem",
-                            "arguments": {"op": "write", "path": "n2.txt", "content": "n2-content\n"},
+                            "arguments": {
+                                "op": "write",
+                                "path": "n2.txt",
+                                "content": "n2-content\n",
+                            },
                         }
                     ],
                 },
@@ -130,9 +134,9 @@ CRASH_POINTS = {
 }
 
 # Runner script executed in a subprocess.  Patching is done inline.
-RUNNER_SCRIPT = r'''import json, os, sys, time
+RUNNER_SCRIPT = rf'''import json, os, sys, time
 from pathlib import Path
-sys.path.insert(0, "{src}")
+sys.path.insert(0, "{SRC_PATH}")
 
 from lhos.bootstrap import RuntimeStack
 from lhos.domain.errors import SimulatedCrashError
@@ -231,10 +235,11 @@ else:
         sys.exit(1)
     finally:
         stack.close()
-'''.format(src=SRC_PATH)
+'''
 
 
 # ── Helper functions ──────────────────────────────────────────────────────
+
 
 def file_hash(path: Path) -> str:
     if path.exists():
@@ -277,9 +282,7 @@ def get_state(db_path: str, run_id: str) -> dict:
             "evidence": len(store.list_evidence(run_id)),
             "tool_call_completed": len(completed_keys),
             "duplicate_tool_keys": duplicate_keys,
-            "crash_injected": sum(
-                1 for e in all_events if e.event_type == "CRASH_INJECTED"
-            ),
+            "crash_injected": sum(1 for e in all_events if e.event_type == "CRASH_INJECTED"),
             "checkpoint_restored": sum(
                 1 for e in all_events if e.event_type == "CHECKPOINT_RESTORED"
             ),
@@ -302,7 +305,11 @@ def run_test(crash_point: str, description: str, crash_flag: str, tmp_dir: Path)
     # Build task spec with crash flag on n2
     task = json.loads(json.dumps(TASK_TEMPLATE))
     n2_script = task["nodes"][1]["metadata"]["script"]
-    if crash_flag in ("crash_before_execution", "crash_before_verification", "crash_after_verified"):
+    if crash_flag in (
+        "crash_before_execution",
+        "crash_before_verification",
+        "crash_after_verified",
+    ):
         n2_script[crash_flag] = True
     elif crash_flag == "crash_on_attempt":
         n2_script["crash_on_attempt"] = 1
@@ -325,9 +332,11 @@ def run_test(crash_point: str, description: str, crash_flag: str, tmp_dir: Path)
 
     # ── Phase 1: Start subprocess and wait for marker ───────────────────
     proc = subprocess.Popen(
-        [VENV_PYTHON, str(runner_script), str(db_path), str(workspace),
-         str(graph_file), run_id],
-        env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        [VENV_PYTHON, str(runner_script), str(db_path), str(workspace), str(graph_file), run_id],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
 
     start = time.time()
@@ -358,9 +367,19 @@ def run_test(crash_point: str, description: str, crash_flag: str, tmp_dir: Path)
     # ── Phase 4: Resume in a new subprocess ─────────────────────────────
     resume_env = {**os.environ, "LHOS_FAILPOINT": "", "LHOS_MARKER_FILE": "", "LHOS_CRASH_FLAG": ""}
     resume_proc = subprocess.Popen(
-        [VENV_PYTHON, str(runner_script), str(db_path), str(workspace),
-         str(graph_file), run_id, "resume"],
-        env=resume_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        [
+            VENV_PYTHON,
+            str(runner_script),
+            str(db_path),
+            str(workspace),
+            str(graph_file),
+            run_id,
+            "resume",
+        ],
+        env=resume_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
     try:
         stdout, stderr = resume_proc.communicate(timeout=30)
@@ -448,16 +467,20 @@ def main():
             print(f"    ckpt_rest: {post.get('checkpoint_restored', '?')}")
             ph = r.get("pre_hashes", {})
             sh = r.get("post_hashes", {})
-            print(f"    hashes:    n1={ph.get('n1','?')}->{sh.get('n1','?')}  "
-                  f"n2={ph.get('n2','?')}->{sh.get('n2','?')}  "
-                  f"n3={ph.get('n3','?')}->{sh.get('n3','?')}")
+            print(
+                f"    hashes:    n1={ph.get('n1', '?')}->{sh.get('n1', '?')}  "
+                f"n2={ph.get('n2', '?')}->{sh.get('n2', '?')}  "
+                f"n3={ph.get('n3', '?')}->{sh.get('n3', '?')}"
+            )
 
     # ── Node State Detail ───────────────────────────────────────────────
     print("\n--- Node States (post-resume) ---")
     for r in results:
         if r["status"] in ("PASS", "FAIL"):
             nodes = r.get("post_state", {}).get("nodes", {})
-            states = " ".join(f"{nid.split(':')[-1]}={n['state']}(a={n['attempts']})" for nid, n in nodes.items())
+            states = " ".join(
+                f"{nid.split(':')[-1]}={n['state']}(a={n['attempts']})" for nid, n in nodes.items()
+            )
             print(f"  {r['crash_point']}: {states}")
 
     # Save results

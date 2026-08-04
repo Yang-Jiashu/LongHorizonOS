@@ -87,7 +87,7 @@ class RuntimeStack:
         scheduler_cfg = self.config.get("scheduler", {})
         chosen = scheduler_type or scheduler_cfg.get("type", "fifo")
         if chosen == "cost_aware":
-            self.scheduler = CostAwareScheduler(scheduler_cfg.get("weights"))
+            self.scheduler: Any = CostAwareScheduler(scheduler_cfg.get("weights"))
         else:
             self.scheduler = FifoScheduler()
 
@@ -96,7 +96,7 @@ class RuntimeStack:
         checkpoint_type = checkpoint_cfg.get("type", "noop")
         checkpoint_root = self.config.get("checkpoint_root", "artifacts/checkpoints")
         if checkpoint_type == "git":
-            self.checkpoint_manager = GitCheckpointManager(self.workspace_dir, db=self.db)
+            self.checkpoint_manager: Any = GitCheckpointManager(self.workspace_dir, db=self.db)
         elif checkpoint_type == "filesystem":
             self.checkpoint_manager = FilesystemCheckpointManager(
                 self.workspace_dir, checkpoint_root, db=self.db

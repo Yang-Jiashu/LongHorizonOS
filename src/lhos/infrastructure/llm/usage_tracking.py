@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from lhos.ports.llm import LLMResponse
+from lhos.ports.llm import LegacyLLMResponse
 
 
 class ModelUsage(BaseModel):
@@ -17,7 +17,7 @@ class ModelUsage(BaseModel):
 class UsageTracker(BaseModel):
     per_model: dict[str, ModelUsage] = Field(default_factory=dict)
 
-    def record(self, model: str, response: LLMResponse) -> None:
+    def record(self, model: str, response: LegacyLLMResponse) -> None:
         usage = self.per_model.setdefault(model, ModelUsage(model=model))
         usage.calls += 1
         usage.input_tokens += response.input_tokens

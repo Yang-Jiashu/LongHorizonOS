@@ -58,11 +58,17 @@ class ToolRuntime:
                 key = f"{key}:gen{generation}"
             completed = self._events.find_by_idempotency(run_id, f"{key}:completed")
             if completed is not None:
-                return ToolResult(**completed.payload["result"])
+                return ToolResult(**completed.payload["result"])  # type: ignore[no-any-return]
+        # dict access on payload returns Any; validated by tool runtime contract.
         elif meta.side_effect_level != SIDE_EFFECT_READ_ONLY:
             raise IdempotencyKeyRequiredError(
                 f"side-effecting tool {request.tool_name!r} requires an idempotency key"
             )
+
+        # Normalize the tool name for event logging (Step 6).
+        from lhos.infrastructure.tools.registry import normalize_tool_name
+
+        canonical_tool_name = normalize_tool_name(request.tool_name)
 
         self._events.append(
             RuntimeEvent(
@@ -73,7 +79,10 @@ class ToolRuntime:
                 idempotency_key=key,
                 payload={
                     "node_id": node_id,
-                    "tool_name": request.tool_name,
+                    "tool_name": canonical_tool_name,
+                    "raw_tool_name": request.tool_name
+                    if canonical_tool_name != request.tool_name
+                    else None,
                     "arguments": request.arguments,
                 },
             )
@@ -95,7 +104,7 @@ class ToolRuntime:
                     idempotency_key=f"{key}:failed" if key else None,
                     payload={
                         "node_id": node_id,
-                        "tool_name": request.tool_name,
+                        "tool_name": canonical_tool_name,
                         "error": str(exc),
                     },
                 )
@@ -113,11 +122,12 @@ class ToolRuntime:
                 idempotency_key=f"{key}:completed" if key else None,
                 payload={
                     "node_id": node_id,
-                    "tool_name": request.tool_name,
+                    "tool_name": canonical_tool_name,
                     "result": result.model_dump(mode="json"),
                 },
             )
         )
         if self._budget is not None:
             self._budget.record_tool_call(run_id)
-        return result
+        return result  # type: ignore[no-any-return]
+        # tool.execute returns ToolResult; mypy sees Any due to Protocol dispatch.

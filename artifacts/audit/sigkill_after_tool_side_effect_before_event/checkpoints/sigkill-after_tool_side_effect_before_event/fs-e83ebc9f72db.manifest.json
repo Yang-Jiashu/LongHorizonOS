@@ -1,0 +1,8 @@
+{
+  "checkpoint_id": "fs-e83ebc9f72db",
+  "run_id": "sigkill-after_tool_side_effect_before_event",
+  "reason": "before:sigkill-after_tool_side_effect_before_event:n1",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_tool_side_effect_before_event/workspace",
+  "files": {},
+  "created_at": "2026-08-03T21:43:17.169941+08:00"
+}

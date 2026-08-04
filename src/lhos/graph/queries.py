@@ -106,7 +106,7 @@ class ProgressGraph:
 
     def depends_on_digraph(self, remaining_only: bool = False) -> nx.DiGraph:
         """Active DEPENDS_ON subgraph in EXECUTION order (dependency -> dependent)."""
-        g = nx.DiGraph()
+        g: nx.DiGraph = nx.DiGraph()
         if remaining_only:
             remaining = {n.id for n in self.remaining_nodes()}
             g.add_nodes_from(remaining)

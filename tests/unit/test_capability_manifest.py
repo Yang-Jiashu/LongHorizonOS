@@ -13,6 +13,7 @@ Verifies:
 from __future__ import annotations
 
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -24,11 +25,11 @@ from lhos.benchmarks.capability_manifest import (
 from lhos.benchmarks.controlled.generator import generate
 from lhos.benchmarks.controlled.specs import to_public_spec
 from lhos.benchmarks.modes import MODES, mode_config
-from lhos.benchmarks.scoring import score_graph_run, score_transcript_run
+from lhos.benchmarks.scoring import score_transcript_run
 from lhos.benchmarks.transcript import run_transcript
 
-
 # ── 1. Every mode has a complete manifest ─────────────────────────────────
+
 
 def test_all_modes_have_manifests():
     """Every mode in MODES must have a buildable manifest."""
@@ -52,6 +53,7 @@ def test_manifest_summary_is_serializable():
 
 
 # ── 2. Oracle priority isolation ──────────────────────────────────────────
+
 
 @pytest.mark.parametrize("preset", ["serial_chain", "wide_dag", "branch_join"])
 def test_non_oracle_modes_get_zero_priorities(preset):
@@ -82,6 +84,7 @@ def test_public_spec_strips_priorities():
 
 
 # ── 3. Transcript mode does not use graph runtime ─────────────────────────
+
 
 def test_transcript_mode_has_no_graph_engine():
     m = build_manifest("transcript")
@@ -123,6 +126,7 @@ def test_transcript_does_not_access_oracle_critical_path():
 
 # ── 4. All modes use the same verifier registry ───────────────────────────
 
+
 def test_all_modes_declare_real_verifier():
     for m in all_manifests():
         assert m.uses_real_verifier, f"mode {m.mode} does not use real verifier"
@@ -135,9 +139,7 @@ def test_transcript_uses_same_verifier_as_graph():
     # This is the same function used by RuntimeStack (bootstrap.py)
     registry = build_default_registry()
     # Check that the registry has the standard verifiers
-    assert "file_exists" in registry.names(), (
-        "registry missing file_exists verifier"
-    )
+    assert "file_exists" in registry.names(), "registry missing file_exists verifier"
     assert "command" in registry.names(), "registry missing command verifier"
 
     # Verify that transcript run_transcript uses this registry
@@ -148,6 +150,7 @@ def test_transcript_uses_same_verifier_as_graph():
 
 
 # ── 5. Cost accounting consistency ────────────────────────────────────────
+
 
 def test_all_modes_track_all_cost_dimensions():
     """Every mode must track tokens, tool calls, and time."""
@@ -195,8 +198,11 @@ def test_cost_fields_are_non_negative():
         row = score_transcript_run(result, task)
 
     cost_fields = [
-        "input_tokens", "output_tokens", "total_tokens",
-        "tool_calls", "model_calls",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "tool_calls",
+        "model_calls",
         "simulated_time_seconds",
     ]
     for field in cost_fields:
@@ -204,6 +210,7 @@ def test_cost_fields_are_non_negative():
 
 
 # ── 6. Mode capability ordering (fairness gradient) ──────────────────────
+
 
 def test_capability_gradient_is_monotonic():
     """Capabilities should form a gradient: transcript < static < dynamic < full.
@@ -255,6 +262,7 @@ def test_oracle_modes_have_more_info_than_dynamic():
 
 # ── 7. No hidden oracle access from runtime ───────────────────────────────
 
+
 def test_runtime_does_not_import_hidden_oracle():
     """The lhos.runtime package must not import HiddenOracleSpec."""
     import importlib
@@ -263,18 +271,16 @@ def test_runtime_does_not_import_hidden_oracle():
     import lhos.runtime as runtime_pkg
 
     # Check all modules in the runtime package
-    for importer, modname, ispkg in pkgutil.walk_packages(
+    for _importer, modname, _ispkg in pkgutil.walk_packages(
         runtime_pkg.__path__, prefix="lhos.runtime."
     ):
         try:
             mod = importlib.import_module(modname)
-            source = open(mod.__file__).read() if hasattr(mod, "__file__") and mod.__file__ else ""
-            assert "HiddenOracleSpec" not in source, (
-                f"module {modname} references HiddenOracleSpec"
+            source = (
+                Path(mod.__file__).read_text() if hasattr(mod, "__file__") and mod.__file__ else ""
             )
-            assert "to_hidden_oracle" not in source, (
-                f"module {modname} references to_hidden_oracle"
-            )
+            assert "HiddenOracleSpec" not in source, f"module {modname} references HiddenOracleSpec"
+            assert "to_hidden_oracle" not in source, f"module {modname} references to_hidden_oracle"
         except (ImportError, OSError, FileNotFoundError):
             pass
 
@@ -283,7 +289,7 @@ def test_no_oracle_access_in_transcript_source():
     """The transcript module must not import or reference oracle info."""
     import lhos.benchmarks.transcript as transcript_mod
 
-    source = open(transcript_mod.__file__).read()
+    source = Path(transcript_mod.__file__).read_text()
     assert "task.oracle.priorities" not in source, (
         "transcript module accesses task.oracle.priorities"
     )

@@ -46,7 +46,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B023"]
-"scripts/*" = ["B023"]
+"scripts/*" = ["B023", "E402"]
 "src/lhos/benchmarks/transcript.py" = ["B023"]
 
 [tool.mypy]

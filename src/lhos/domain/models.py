@@ -34,6 +34,10 @@ class GraphNode(BaseModel):
     actual_tool_calls: int = 0
     max_attempts: int = 3
     attempt_count: int = 0
+    # Step 4: separate counters per failure type.
+    verification_attempts: int = 0
+    parse_attempts: int = 0
+    tool_attempts: int = 0
     verification_spec: dict[str, Any] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     lease_owner: str | None = None

@@ -94,9 +94,11 @@ def _select_modes(args) -> list[str]:
     scheduler_filter = set(_parse_csv_list(getattr(args, "scheduler", None)))
     if not scheduler_filter:
         return list(MODES)
-    unknown = scheduler_filter - {"fifo", "cost_aware"}
-    if unknown:
-        raise ValueError(f"unknown scheduler(s) {sorted(unknown)}; choose fifo,cost_aware")
+    unknown_schedulers: set[str] = scheduler_filter - {"fifo", "cost_aware"}
+    if unknown_schedulers:
+        raise ValueError(
+            f"unknown scheduler(s) {sorted(unknown_schedulers)}; choose fifo,cost_aware"
+        )
     return [
         m for m in MODES if m == "transcript" or mode_config(m).scheduler_family in scheduler_filter
     ]

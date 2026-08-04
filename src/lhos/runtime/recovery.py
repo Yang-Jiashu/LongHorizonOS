@@ -122,7 +122,7 @@ class RecoveryManager:
 
     def _restore_node_checkpoint(self, run_id: str, node_id: str) -> str | None:
         executions = self._store.list_executions(run_id, node_id)
-        checkpoint_before = next(
+        checkpoint_before: str | None = next(
             (e.checkpoint_before for e in reversed(executions) if e.checkpoint_before),
             None,
         )
@@ -141,4 +141,4 @@ class RecoveryManager:
                 },
             )
         )
-        return checkpoint_before
+        return str(checkpoint_before)
