@@ -60,6 +60,9 @@ class Database:
                     self._ensure_llm_calls_columns()
                 continue
             try:
+                # Pre-migration check for 003: detect duplicate data.
+                if sql_file.name == "003_fix_execution_uniqueness.sql":
+                    self._check_execution_duplicates()
                 self._conn.executescript(sql_file.read_text(encoding="utf-8"))
                 from datetime import datetime
 
@@ -76,6 +79,38 @@ class Database:
                     "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
                     (sql_file.name, datetime.now().astimezone().isoformat()),
                 )
+
+    def _check_execution_duplicates(self) -> None:
+        """Pre-migration check: detect duplicate (run_id, node_id, attempt_number).
+
+        If duplicates exist under the NEW constraint, the migration cannot
+        proceed without data loss. We log diagnostics but do NOT fail —
+        INSERT OR IGNORE in the migration will keep the first occurrence.
+        """
+        try:
+            dupes = self._conn.execute(
+                """
+                SELECT run_id, node_id, attempt_number, COUNT(*) as cnt
+                FROM executions
+                GROUP BY run_id, node_id, attempt_number
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+            if dupes:
+                # Duplicates exist under the new constraint. The migration
+                # uses INSERT OR IGNORE, so only the first row per group
+                # will be kept. Log but don't fail.
+                import sys
+
+                print(
+                    f"WARNING: {len(dupes)} duplicate execution group(s) found "
+                    f"under UNIQUE(run_id, node_id, attempt_number). "
+                    f"INSERT OR IGNORE will keep the first occurrence.",
+                    file=sys.stderr,
+                )
+        except sqlite3.OperationalError:
+            # Table doesn't exist yet or has old schema — skip check.
+            pass
 
     def _ensure_llm_calls_columns(self) -> None:
         """Ensure the llm_calls table has all required columns (Step 3).

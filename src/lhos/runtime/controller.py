@@ -266,9 +266,9 @@ class RuntimeController:
 
         started = time.monotonic()
         node = self._store.get_node(node.id)
-        # Step 4: Increment attempt_count at the start for worker compatibility,
-        # but decrement it back if the result is a parse failure (parse failures
-        # should not count as full node execution attempts).
+        # Step 4: Increment attempt_count at the start. This value is used
+        # as attempt_number in the execution record and must be monotonically
+        # increasing and NEVER decremented (Milestone 2.3 fix).
         node.attempt_count += 1
         node = self._store.update_node(node, actor=ActorType.WORKER)
         execution = ExecutionRecord(
@@ -351,11 +351,15 @@ class RuntimeController:
             self._ingest_environment_events(run_id, result.environment_events)
             return
 
-        # Step 4: handle parse failures separately — don't count as full attempt.
+        # Step 4: handle parse failures separately.
+        # Parse failures DO count as execution attempts — they consume tokens
+        # and time. The parse_attempts counter tracks them for diagnostics.
+        # Previously, attempt_count was decremented to avoid counting parse
+        # failures toward max_attempts, but this caused UNIQUE constraint
+        # violations when the node was retried with the same attempt_number
+        # (Milestone 2.3 root cause fix).
         if status == "parse_failed":
             node = self._store.get_node(node.id)
-            # Decrement attempt_count since parse failure doesn't count.
-            node.attempt_count -= 1
             node.parse_attempts += 1
             node.actual_token_cost += result.input_tokens + result.output_tokens
             node.actual_tool_calls += result.tool_call_count
@@ -392,7 +396,8 @@ class RuntimeController:
             return
 
         # Step 4: attempt_count was already incremented at the start.
-        # For non-parse-failure paths, it stays incremented.
+        # It is never decremented — all failure types count as execution
+        # attempts to ensure unique (run_id, node_id, attempt_number).
 
         if status == "failed":
             self._store.set_state(

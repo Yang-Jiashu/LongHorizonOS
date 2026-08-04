@@ -29,9 +29,7 @@ def main() -> int:
     nodes = conn.execute(
         "SELECT * FROM nodes WHERE run_id = ? ORDER BY created_at", (RUN_ID,)
     ).fetchall()
-    edges = conn.execute(
-        "SELECT * FROM edges WHERE run_id = ?", (RUN_ID,)
-    ).fetchall()
+    edges = conn.execute("SELECT * FROM edges WHERE run_id = ?", (RUN_ID,)).fetchall()
 
     graph_after = {
         "nodes": [
@@ -41,9 +39,9 @@ def main() -> int:
                 "state": n["state"],
                 "attempt_count": n["attempt_count"],
                 "max_attempts": n["max_attempts"],
-                "verification_attempts": n["verification_attempts"] if "verification_attempts" in n.keys() else 0,
-                "parse_attempts": n["parse_attempts"] if "parse_attempts" in n.keys() else 0,
-                "tool_attempts": n["tool_attempts"] if "tool_attempts" in n.keys() else 0,
+                "verification_attempts": n.get("verification_attempts", 0),
+                "parse_attempts": n.get("parse_attempts", 0),
+                "tool_attempts": n.get("tool_attempts", 0),
             }
             for n in nodes
         ],
@@ -61,14 +59,20 @@ def main() -> int:
     ).fetchall()
     with open(OUTPUT_DIR / "events.jsonl", "w") as f:
         for e in events:
-            f.write(json.dumps({
-                "event_type": e["event_type"],
-                "sequence": e["sequence"],
-                "created_at": e["created_at"],
-                "actor_type": e["actor_type"],
-                "actor_id": e["actor_id"],
-                "payload": json.loads(e["payload_json"]) if e["payload_json"] else {},
-            }, default=str) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "event_type": e["event_type"],
+                        "sequence": e["sequence"],
+                        "created_at": e["created_at"],
+                        "actor_type": e["actor_type"],
+                        "actor_id": e["actor_id"],
+                        "payload": json.loads(e["payload_json"]) if e["payload_json"] else {},
+                    },
+                    default=str,
+                )
+                + "\n"
+            )
     print(f"events.jsonl: {len(events)} events")
 
     # llm-calls.jsonl
@@ -88,12 +92,14 @@ def main() -> int:
     for e in events:
         payload = json.loads(e["payload_json"]) if e["payload_json"] else {}
         if e["event_type"] in {"TOOL_CALL_REQUESTED", "TOOL_CALL_COMPLETED", "TOOL_CALL_FAILED"}:
-            tool_events.append({
-                "event_type": e["event_type"],
-                "node_id": payload.get("node_id"),
-                "tool_name": payload.get("tool_name"),
-                "arguments": payload.get("arguments"),
-            })
+            tool_events.append(
+                {
+                    "event_type": e["event_type"],
+                    "node_id": payload.get("node_id"),
+                    "tool_name": payload.get("tool_name"),
+                    "arguments": payload.get("arguments"),
+                }
+            )
     with open(OUTPUT_DIR / "tool-calls.jsonl", "w") as f:
         for t in tool_events:
             f.write(json.dumps(t, default=str) + "\n")
@@ -104,15 +110,21 @@ def main() -> int:
     for e in events:
         payload = json.loads(e["payload_json"]) if e["payload_json"] else {}
         if e["event_type"] in {
-            "NODE_CLAIMED", "NODE_LEASE_RELEASED", "NODE_VERIFIED",
-            "NODE_FAILED", "NODE_RETRY_SCHEDULED",
-            "NODE_BUDGET_EXHAUSTED", "LOCAL_REPAIR_TRIGGERED",
+            "NODE_CLAIMED",
+            "NODE_LEASE_RELEASED",
+            "NODE_VERIFIED",
+            "NODE_FAILED",
+            "NODE_RETRY_SCHEDULED",
+            "NODE_BUDGET_EXHAUSTED",
+            "LOCAL_REPAIR_TRIGGERED",
         }:
-            worker_events.append({
-                "event_type": e["event_type"],
-                "node_id": payload.get("node_id"),
-                "payload": payload,
-            })
+            worker_events.append(
+                {
+                    "event_type": e["event_type"],
+                    "node_id": payload.get("node_id"),
+                    "payload": payload,
+                }
+            )
     with open(OUTPUT_DIR / "worker-iterations.jsonl", "w") as f:
         for w in worker_events:
             f.write(json.dumps(w, default=str) + "\n")
@@ -130,12 +142,12 @@ def main() -> int:
         total_input = 0
         total_output = 0
         for c in llm_calls:
-            role = c["role"] if "role" in c.keys() else "unknown"
-            status = c["status"] if "status" in c.keys() else "unknown"
+            role = c.get("role", "unknown")
+            status = c.get("status", "unknown")
             by_role[role] = by_role.get(role, 0) + 1
             by_status[status] = by_status.get(status, 0) + 1
-            total_input += c["input_tokens"] if "input_tokens" in c.keys() and c["input_tokens"] else 0
-            total_output += c["output_tokens"] if "output_tokens" in c.keys() and c["output_tokens"] else 0
+            total_input += c["input_tokens"] if c.get("input_tokens") else 0
+            total_output += c["output_tokens"] if c.get("output_tokens") else 0
         print(f"\nLLM calls by role: {by_role}")
         print(f"LLM calls by status: {by_status}")
         print(f"Total input tokens: {total_input}")

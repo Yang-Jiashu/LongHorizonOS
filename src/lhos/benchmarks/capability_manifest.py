@@ -125,7 +125,7 @@ def build_manifest(mode_name: str, artifacts_dir: str = "artifacts") -> Capabili
 
 
 def all_manifests() -> list[CapabilityManifest]:
-    """Build manifests for all 8 modes."""
+    """Build manifests for all modes."""
     return [build_manifest(m) for m in MODES]
 
 
@@ -160,6 +160,14 @@ def _mode_notes(mode: str, mc: ModeConfig) -> str:
             "No graph runtime. Executes in topological order with a growing "
             "transcript. Crashes discard all progress. Token cost modeled as "
             "len(context)//4. Tool calls are direct filesystem writes."
+        )
+    if mode == "minimal_lhos":
+        return (
+            "Minimal graph runtime: VPG + graph-scoped context + verification gate "
+            "+ structured feedback + local retry + event logging + checkpoint/recovery. "
+            "Disabled: mandatory design node, cost-aware scheduler, active reconciler "
+            "(unless 2 consecutive same-signature failures), non-essential intermediate "
+            "artifacts, extra LLM summaries, global replanning. FIFO scheduler."
         )
     if mode == "static_graph_fifo":
         return "Graph built once. Environment events logged but never reconciled."

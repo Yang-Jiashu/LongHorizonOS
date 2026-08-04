@@ -606,8 +606,15 @@ class TestRetryStateMachine:
         assert node.verification_attempts == 1
         assert node.parse_attempts == 1
 
-    def test_parse_failure_does_not_consume_attempt(self):
-        """Simulate controller behavior: parse failure decrements attempt_count."""
+    def test_parse_failure_counts_as_attempt(self):
+        """Parse failures count as execution attempts (Milestone 2.3 fix).
+
+        Previously, parse failures decremented attempt_count to avoid
+        counting toward max_attempts. This caused UNIQUE constraint
+        violations when the node was retried with the same attempt_number.
+        Now parse failures keep attempt_count incremented and track
+        parse-specific failures via parse_attempts.
+        """
         node = GraphNode(
             id="n1",
             run_id="test-run",
@@ -618,12 +625,11 @@ class TestRetryStateMachine:
         )
         # Controller increments at start.
         node.attempt_count += 1
-        # Parse failure: decrement back.
-        node.attempt_count -= 1
+        # Parse failure: attempt_count stays incremented (no decrement).
         node.parse_attempts += 1
-        assert node.attempt_count == 0
+        assert node.attempt_count == 1
         assert node.parse_attempts == 1
-        # Node can still retry.
+        # Node can still retry (1 < 3).
         assert node.attempt_count < node.max_attempts
 
     def test_verification_failure_increments_verification_attempts(self):

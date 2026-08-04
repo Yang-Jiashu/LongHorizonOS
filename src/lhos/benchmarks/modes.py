@@ -34,6 +34,7 @@ from lhos.runtime.cost_aware_scheduler import CostAwareScheduler
 
 MODES: list[str] = [
     "transcript",
+    "minimal_lhos",
     "static_graph_fifo",
     "dynamic_graph_fifo",
     "dynamic_graph_local_repair",
@@ -95,6 +96,28 @@ def mode_config(name: str, artifacts_dir: str = "artifacts") -> ModeConfig:
 
     base_features = {"invalidation": True, "local_repair": True}
     table: dict[str, ModeConfig] = {
+        "minimal_lhos": ModeConfig(
+            name,
+            "graph",
+            "fifo",
+            False,
+            config={
+                "features": {"invalidation": False, "local_repair": True},
+                "scheduler": {"type": "fifo"},
+                "checkpoint": {"type": "noop"},
+                "context": {
+                    "max_tokens": 8000,
+                    "max_dependency_hops": 1,
+                    "include_last_failures": 1,
+                },
+                "planner": {"max_nodes": 4},
+                "reconciler": {
+                    "enabled": False,
+                    "trigger_threshold": 2,
+                },
+                "telemetry": {"jsonl_trace": True, "trace_directory": f"{artifacts_dir}/traces"},
+            },
+        ),
         "static_graph_fifo": ModeConfig(
             name,
             "graph",

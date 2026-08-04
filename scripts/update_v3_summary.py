@@ -15,9 +15,14 @@ def main():
     conn.row_factory = sqlite3.Row
 
     nodes = [dict(r) for r in conn.execute("SELECT * FROM nodes WHERE run_id=?", (RUN_ID,))]
-    executions = [dict(r) for r in conn.execute("SELECT * FROM executions WHERE run_id=?", (RUN_ID,))]
+    executions = [
+        dict(r) for r in conn.execute("SELECT * FROM executions WHERE run_id=?", (RUN_ID,))
+    ]
     llm_calls = [dict(r) for r in conn.execute("SELECT * FROM llm_calls WHERE run_id=?", (RUN_ID,))]
-    events = [dict(r) for r in conn.execute("SELECT * FROM events WHERE run_id=? ORDER BY sequence", (RUN_ID,))]
+    events = [
+        dict(r)
+        for r in conn.execute("SELECT * FROM events WHERE run_id=? ORDER BY sequence", (RUN_ID,))
+    ]
 
     tool_requested = sum(1 for e in events if e["event_type"] == "TOOL_CALL_REQUESTED")
     tool_completed = sum(1 for e in events if e["event_type"] == "TOOL_CALL_COMPLETED")
@@ -68,11 +73,19 @@ def main():
         "total_input_tokens": total_input,
         "total_output_tokens": total_output,
         "total_tokens": total_input + total_output,
-        "tool_call_events": {"requested": tool_requested, "completed": tool_completed, "failed": tool_failed},
+        "tool_call_events": {
+            "requested": tool_requested,
+            "completed": tool_completed,
+            "failed": tool_failed,
+        },
         "node_stats": node_stats,
         "external_score": external_score,
         "n3_status": "VERIFIED on attempt 2/3 (first attempt failed verification, structured feedback enabled successful retry)",
-        "workspace_files": ["src/sample_app/config_loader.py", "tests/test_config_loader.py", "README.md"],
+        "workspace_files": [
+            "src/sample_app/config_loader.py",
+            "tests/test_config_loader.py",
+            "README.md",
+        ],
     }
 
     with open(OUTPUT_DIR / "run-summary.json", "w") as f:
@@ -84,7 +97,9 @@ def main():
             print(f"  {k}: {v}")
     print("\nNode stats:")
     for nid, stats in node_stats.items():
-        print(f"  {nid}: state={stats['state']}, attempts={stats['attempt_count']}/{stats['max_attempts']}, tokens={stats['input_tokens']+stats['output_tokens']}, tool_calls={stats['tool_calls']}")
+        print(
+            f"  {nid}: state={stats['state']}, attempts={stats['attempt_count']}/{stats['max_attempts']}, tokens={stats['input_tokens'] + stats['output_tokens']}, tool_calls={stats['tool_calls']}"
+        )
 
     conn.close()
 

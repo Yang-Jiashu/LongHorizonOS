@@ -101,7 +101,7 @@ CREATE TABLE executions(
     error_json TEXT,
     checkpoint_before TEXT,
     checkpoint_after TEXT,
-    UNIQUE(node_id, attempt_number)
+    UNIQUE(run_id, node_id, attempt_number)
 );
 
 CREATE TABLE checkpoints(
@@ -117,4 +117,5 @@ CREATE INDEX idx_events_run_sequence ON events(run_id, sequence);
 CREATE INDEX idx_nodes_run_state ON nodes(run_id, state);
 CREATE INDEX idx_edges_source ON edges(run_id, source_node_id);
 CREATE INDEX idx_edges_target ON edges(run_id, target_node_id);
-CREATE INDEX idx_executions_node ON executions(node_id, attempt_number);
+CREATE INDEX idx_executions_run_node ON executions(run_id, node_id, attempt_number);
+CREATE INDEX idx_executions_run ON executions(run_id);

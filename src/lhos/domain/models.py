@@ -13,6 +13,40 @@ def _utcnow() -> datetime:
     return datetime.now().astimezone()
 
 
+class AttemptCounters(BaseModel):
+    """Separate counters for different attempt/failure types within a node.
+
+    These counters MUST be independent and never conflated:
+
+    - node_execution_attempt: incremented when a node transitions READY -> RUNNING.
+      Represents one complete execution attempt from start to terminal state
+      (VERIFIED, FAILED, WAITING, ABORTED). This is the value used as
+      ``attempt_number`` in the executions table. It is monotonically
+      increasing and NEVER decremented.
+
+    - worker_iteration: incremented per Worker model decision within one
+      execution attempt. Multiple worker iterations may happen within a
+      single node execution (e.g., tool-call loops). Tracked in-memory
+      and in llm_calls, not on the node.
+
+    - parse_attempt: incremented when structured output parsing fails.
+      Does NOT automatically increment node_execution_attempt unless the
+      parse failure causes the node execution to terminate and restart.
+
+    - tool_attempt: incremented when a tool call fails transiently.
+      Does NOT affect node_execution_attempt.
+
+    - verification_attempt: incremented each time a verifier is actually
+      run. Does NOT affect node_execution_attempt.
+    """
+
+    node_execution_attempt: int = 0
+    worker_iteration: int = 0
+    parse_attempt: int = 0
+    tool_attempt: int = 0
+    verification_attempt: int = 0
+
+
 class GraphNode(BaseModel):
     """Progress graph node (spec section 4.4)."""
 
@@ -94,7 +128,13 @@ class Run(BaseModel):
 
 
 class ExecutionRecord(BaseModel):
-    """One node execution attempt; mirrors the ``executions`` table."""
+    """One node execution attempt; mirrors the ``executions`` table.
+
+    The ``attempt_number`` field represents the **node execution attempt**
+    counter (``GraphNode.attempt_count``), NOT a worker iteration or parse
+    attempt. It is monotonically increasing within (run_id, node_id) and
+    is NEVER decremented.
+    """
 
     id: str = Field(default_factory=lambda: uuid4().hex)
     run_id: str
