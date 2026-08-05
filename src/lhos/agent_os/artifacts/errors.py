@@ -12,9 +12,9 @@ class ArtifactError(Exception):
 
 
 class ArtifactNotFound(ArtifactError):
-    def __init__(self, uri: str):
-        self.uri = uri
-        super().__init__(f"Artifact not found: {uri}")
+    def __init__(self, uri_or_msg: str):
+        self.uri = uri_or_msg
+        super().__init__(f"Artifact not found: {uri_or_msg}")
 
 
 class ArtifactAlreadyExists(ArtifactError):
@@ -26,7 +26,7 @@ class ArtifactAlreadyExists(ArtifactError):
 class VersionConflict(ArtifactError):
     """Optimistic concurrency conflict — expected_version does not match current."""
 
-    def __init__(self, artifact_id: str, expected: int, actual: int):
+    def __init__(self, artifact_id: str, expected: int | None = None, actual: int | None = None):
         self.artifact_id = artifact_id
         self.expected = expected
         self.actual = actual
@@ -106,14 +106,23 @@ class SymlinkRejected(ArtifactError):
 
 
 class QuotaExceeded(ArtifactError):
-    def __init__(self, namespace_id: str, resource: str, limit: int, requested: int):
+    def __init__(
+        self,
+        message: str = "",
+        *,
+        namespace_id: str = "",
+        resource: str = "",
+        limit: int = 0,
+        requested: int = 0,
+    ):
         self.namespace_id = namespace_id
         self.resource = resource
         self.limit = limit
         self.requested = requested
+        self.message = message
         super().__init__(
-            f"Quota exceeded for {resource} in namespace {namespace_id}: "
-            f"limit {limit}, requested {requested}"
+            message
+            or f"Quota exceeded for {resource} in namespace {namespace_id}: limit {limit}, requested {requested}"
         )
 
 
@@ -142,6 +151,21 @@ class TransactionUncertain(ArtifactError):
         self.transaction_id = transaction_id
         self.reason = reason
         super().__init__(f"Transaction {transaction_id} uncertain: {reason}")
+
+
+class TransactionNotFound(ArtifactError):
+    def __init__(self, transaction_id: str):
+        self.transaction_id = transaction_id
+        super().__init__(f"Transaction not found: {transaction_id}")
+
+
+class IdempotencyConflict(ArtifactError):
+    """Idempotency key replay where original transaction was aborted/conflicted."""
+
+    def __init__(self, transaction_id: str, original_state: str):
+        self.transaction_id = transaction_id
+        self.original_state = original_state
+        super().__init__(f"Idempotency conflict: transaction {transaction_id} was {original_state}")
 
 
 class IdempotencyReplay(ArtifactError):
