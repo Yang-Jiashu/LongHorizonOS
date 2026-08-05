@@ -9,9 +9,10 @@
   },
   {
     "name": "capability_always_true",
-    "killed": true,
+    "killed": false,
     "error": null,
-    "rc": 1,
+    "rc": 0,
+    "detail": "Tests passed (mutation survived \u2014 test gap)",
     "source": "lhos/agent_os/kernel/models.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },
@@ -55,9 +56,10 @@
   },
   {
     "name": "capability_ops_ignored",
-    "killed": true,
+    "killed": false,
     "error": null,
-    "rc": 1,
+    "rc": 0,
+    "detail": "Tests passed (mutation survived \u2014 test gap)",
     "source": "lhos/agent_os/kernel/models.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },
@@ -77,9 +79,10 @@
   },
   {
     "name": "waiters_not_recorded",
-    "killed": true,
+    "killed": false,
     "error": null,
-    "rc": 1,
+    "rc": 0,
+    "detail": "Tests passed (mutation survived \u2014 test gap)",
     "source": "lhos/agent_os/services/lease_service.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },

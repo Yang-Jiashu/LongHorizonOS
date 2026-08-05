@@ -1,6 +1,6 @@
 {
   "benchmark_run_success": true,
-  "output": "========\n.venv/lib/python3.11/site-packages/_pytest/config/__init__.py:1464\n  /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/.venv/lib/python3.11/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 7 passed, 1 warning in 0.62s =========================\n",
+  "output": "========\n.venv/lib/python3.11/site-packages/_pytest/config/__init__.py:1464\n  /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/.venv/lib/python3.11/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 7 passed, 1 warning in 0.61s =========================\n",
   "errors": "",
   "benchmarks_found": [
     "sequential_writes",

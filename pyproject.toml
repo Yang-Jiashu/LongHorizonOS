@@ -27,6 +27,15 @@ dev = [
 [project.scripts]
 lhos = "lhos.cli.main:main"
 
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
