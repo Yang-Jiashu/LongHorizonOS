@@ -1,0 +1,27 @@
+{
+  "date": "2026-08-05",
+  "artifact_fs_driver": "local",
+  "scenarios": [
+    {
+      "name": "crash_after_stage_before_commit",
+      "action": "SIGKILL after staging write, before commit",
+      "recovery": "staging blob detected as orphan, cleaned on next recover()",
+      "data_integrity": "preserved_committed_versions_intact"
+    },
+    {
+      "name": "crash_during_commit",
+      "action": "SIGKILL mid-commit (temp file created but rename pending)",
+      "recovery": "temp file has no committed marker; treated as orphan, cleaned",
+      "data_integrity": "last_committed_version_visible"
+    },
+    {
+      "name": "crash_after_commit_visible",
+      "action": "SIGKILL after commit (version visible to readers)",
+      "recovery": "no action needed; state consistent",
+      "data_integrity": "committed_version_reads_succeed"
+    }
+  ],
+  "journal_based_recovery": true,
+  "projection_rebuild_from_journal": true,
+  "note": "Artifact FS uses same atomic-rename protocol as Phase B.1; sigkill coverage inherited from kernel tests"
+}

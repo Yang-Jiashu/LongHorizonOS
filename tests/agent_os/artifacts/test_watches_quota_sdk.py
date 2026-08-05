@@ -30,7 +30,9 @@ def setup(tmp_path: Path):
     storage_driver = LocalArtifactStorageDriver(tmp_path / "cas")
     ns_service = NamespaceService(projections, journal)
     service = ArtifactFSService(
-        projections, storage_driver, journal,
+        projections,
+        storage_driver,
+        journal,
         signal_service=signal_service,
     )
     sdk = ArtifactSDK(service, ns_service)

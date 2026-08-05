@@ -50,7 +50,9 @@ def setup(tmp_path: Path):
     storage_driver = LocalArtifactStorageDriver(tmp_path / "cas")
     ns_service = NamespaceService(projections, journal)
     service = ArtifactFSService(
-        projections, storage_driver, journal,
+        projections,
+        storage_driver,
+        journal,
         lease_service=lease_service,
         signal_service=signal_service,
     )
@@ -128,7 +130,9 @@ class TestConcurrentWriteConflicts:
         def write_file(i: int) -> None:
             try:
                 with lock:
-                    svc.write("p1", f"workspace:///thread/{i}.txt", f"data-{i}".encode(), f"key-{i}")
+                    svc.write(
+                        "p1", f"workspace:///thread/{i}.txt", f"data-{i}".encode(), f"key-{i}"
+                    )
                 with lock:
                     results.append(True)
             except Exception:
@@ -284,6 +288,7 @@ class TestMountPathTraversal:
         # Try to access outside the mount via ..
         # URI canonicalization should reject ".." segments
         from lhos.agent_os.artifacts.errors import PathTraversalRejected
+
         with pytest.raises(PathTraversalRejected):
             svc.read("p2", "artifact://ns-p2/shared/../secret.txt")
 

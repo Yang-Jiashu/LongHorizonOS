@@ -40,7 +40,9 @@ def demo_basic_operations(sdk: ArtifactSDK) -> None:
     print(f"  Read: {data[:30]}...")
 
     # Write new version
-    sdk.write("p1", "workspace:///report.md", b"# Q3 Report\nRevenue: $12M", "v2", expected_version=1)
+    sdk.write(
+        "p1", "workspace:///report.md", b"# Q3 Report\nRevenue: $12M", "v2", expected_version=1
+    )
     print("  Wrote report.md v2")
 
     # List versions
@@ -79,7 +81,9 @@ def demo_mounts(sdk: ArtifactSDK) -> None:
     print(f"  p3 read original: {data}")
 
     # p3 writes through COW — creates local copy
-    sdk.write("p3", "artifact://ns-p3/templates/templates/base.html", b"<html>modified</html>", "cow1")
+    sdk.write(
+        "p3", "artifact://ns-p3/templates/templates/base.html", b"<html>modified</html>", "cow1"
+    )
     print("  p3 wrote through COW mount")
 
     # p1's original is unchanged
@@ -126,7 +130,9 @@ def demo_watches(sdk: ArtifactSDK, sig_svc: SignalService) -> None:
     print(f"  p2 received {len(pending)} signal(s)")
     if pending:
         sig = pending[0]
-        print(f"    type={sig.signal_type}, uri={sig.payload['canonical_uri']}, v{sig.payload['new_version']}")
+        print(
+            f"    type={sig.signal_type}, uri={sig.payload['canonical_uri']}, v{sig.payload['new_version']}"
+        )
 
 
 def demo_quotas(sdk: ArtifactSDK) -> None:
@@ -141,10 +147,13 @@ def demo_quotas(sdk: ArtifactSDK) -> None:
     print("  Wrote 5 bytes — OK")
 
     usage = sdk.get_usage("p4")
-    print(f"  Usage: {usage['total_bytes']}/{usage['quota_bytes']} bytes ({usage['quota_used_pct']:.0f}%)")
+    print(
+        f"  Usage: {usage['total_bytes']}/{usage['quota_bytes']} bytes ({usage['quota_used_pct']:.0f}%)"
+    )
 
     # Try to exceed quota
     from lhos.agent_os.artifacts.errors import QuotaExceeded
+
     try:
         sdk.write("p4", "workspace:///quota/big.txt", b"x" * 200, "q2")
         print("  ERROR: Should have been rejected!")
@@ -159,7 +168,9 @@ def demo_recovery(sdk: ArtifactSDK) -> None:
     print("  Wrote recovery.txt")
 
     results = sdk.recover()
-    print(f"  Recovery: {results['uncertain_resolved']} uncertain resolved, {results['orphaned_cleaned']} orphans cleaned")
+    print(
+        f"  Recovery: {results['uncertain_resolved']} uncertain resolved, {results['orphaned_cleaned']} orphans cleaned"
+    )
     print(f"  Data intact: {sdk.read_text('p1', 'workspace:///recovery.txt')}")
 
 
@@ -174,7 +185,9 @@ def main() -> None:
         storage_driver = LocalArtifactStorageDriver(Path(tmpdir) / "cas")
         ns_service = NamespaceService(projections, journal)
         service = ArtifactFSService(
-            projections, storage_driver, journal,
+            projections,
+            storage_driver,
+            journal,
             signal_service=signal_service,
         )
         sdk = ArtifactSDK(service, ns_service)

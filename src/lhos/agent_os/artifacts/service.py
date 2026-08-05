@@ -718,13 +718,9 @@ class ArtifactFSService:
 
         total_bytes = self._projections.count_committed_bytes(namespace_id)
         artifacts = self._projections.list_artifacts(namespace_id)
-        version_count = sum(
-            len(self._projections.list_versions(a.artifact_id)) for a in artifacts
-        )
+        version_count = sum(len(self._projections.list_versions(a.artifact_id)) for a in artifacts)
         quota_bytes = ns.quota_bytes
-        quota_used_pct = (
-            (total_bytes / quota_bytes * 100) if quota_bytes else None
-        )
+        quota_used_pct = (total_bytes / quota_bytes * 100) if quota_bytes else None
 
         return {
             "total_bytes": total_bytes,

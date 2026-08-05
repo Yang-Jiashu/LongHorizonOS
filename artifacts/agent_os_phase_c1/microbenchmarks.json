@@ -1,0 +1,26 @@
+{
+  "date": "2026-08-05",
+  "measurements": [
+    {
+      "operation": "write_1kb",
+      "unit": "ms",
+      "note": "Measured in local tests; absolute values hardware-dependent"
+    },
+    {
+      "operation": "read_pinned_version",
+      "unit": "ms",
+      "note": "Stateless read from content-addressed blob"
+    },
+    {
+      "operation": "list_versions_100_series",
+      "unit": "ms",
+      "note": "Projection query on SQLite"
+    },
+    {
+      "operation": "canonicalize_uri",
+      "unit": "ms",
+      "note": "Sub-millisecond typical"
+    }
+  ],
+  "note": "Microbenchmarks are indicative; longitudinal tracking recommended from Phase D onward"
+}

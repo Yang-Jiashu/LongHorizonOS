@@ -149,9 +149,7 @@ class ArtifactSDK:
     ) -> NamespaceMount:
         """Mount a source process's namespace into the target process's namespace."""
         source_ns_id = f"ns-{source_pid}"
-        return self._ns_service.mount(
-            target_pid, mount_point, source_ns_id, source_prefix, mode
-        )
+        return self._ns_service.mount(target_pid, mount_point, source_ns_id, source_prefix, mode)
 
     def unmount(self, target_pid: str, mount_point: str) -> bool:
         """Remove a mount from a process's namespace."""

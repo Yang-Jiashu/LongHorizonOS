@@ -40,7 +40,9 @@ def setup(tmp_path: Path):
     storage_driver = LocalArtifactStorageDriver(tmp_path / "cas")
     ns_service = NamespaceService(projections, journal)
     service = ArtifactFSService(
-        projections, storage_driver, journal,
+        projections,
+        storage_driver,
+        journal,
         signal_service=signal_service,
     )
     ns_service.create_namespace("p1")
@@ -63,7 +65,9 @@ class TestBenchmarks:
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  Sequential writes: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  Sequential writes: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 100, f"Write throughput too low: {rate:.0f} ops/s"
 
     def test_timing_sequential_reads(self, setup) -> None:
@@ -81,7 +85,9 @@ class TestBenchmarks:
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  Sequential reads: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  Sequential reads: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 100, f"Read throughput too low: {rate:.0f} ops/s"
 
     def test_timing_version_updates(self, setup) -> None:
@@ -94,15 +100,19 @@ class TestBenchmarks:
         start = time.perf_counter()
         for i in range(1, n + 1):
             svc.write(
-                "p1", "workspace:///bench/versioned.txt",
-                f"v{i}".encode(), f"vu-{i}",
+                "p1",
+                "workspace:///bench/versioned.txt",
+                f"v{i}".encode(),
+                f"vu-{i}",
                 expected_version=i,
             )
         elapsed = time.perf_counter() - start
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  Version updates: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  Version updates: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 50, f"Version update throughput too low: {rate:.0f} ops/s"
 
     def test_timing_mount_readthrough(self, setup) -> None:
@@ -122,7 +132,9 @@ class TestBenchmarks:
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  Mount read-through: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  Mount read-through: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 50, f"Mount read throughput too low: {rate:.0f} ops/s"
 
     def test_timing_snapshot_creation(self, setup) -> None:
@@ -139,7 +151,9 @@ class TestBenchmarks:
         elapsed = time.perf_counter() - start
 
         latency_ms = elapsed * 1000
-        print(f"\n  Snapshot creation: {len(snap.artifact_versions)} artifacts in {latency_ms:.2f}ms")
+        print(
+            f"\n  Snapshot creation: {len(snap.artifact_versions)} artifacts in {latency_ms:.2f}ms"
+        )
         assert latency_ms < 1000, f"Snapshot too slow: {latency_ms:.2f}ms"
 
     def test_timing_watch_signal_delivery(self, setup) -> None:
@@ -156,7 +170,9 @@ class TestBenchmarks:
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  Write + watch signal: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  Write + watch signal: {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 50, f"Watch+write throughput too low: {rate:.0f} ops/s"
 
     def test_timing_cow_write_isolation(self, setup) -> None:
@@ -174,10 +190,14 @@ class TestBenchmarks:
 
         start = time.perf_counter()
         for i in range(n):
-            svc.write("p2", f"artifact://ns-p2/src/cow/t{i}.txt", f"modified-{i}".encode(), f"cw-{i}")
+            svc.write(
+                "p2", f"artifact://ns-p2/src/cow/t{i}.txt", f"modified-{i}".encode(), f"cw-{i}"
+            )
         elapsed = time.perf_counter() - start
 
         rate = n / elapsed
         latency_ms = (elapsed / n) * 1000
-        print(f"\n  COW write (local copy): {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)")
+        print(
+            f"\n  COW write (local copy): {n} ops in {elapsed:.3f}s = {rate:.0f} ops/s ({latency_ms:.2f}ms/op)"
+        )
         assert rate > 20, f"COW write throughput too low: {rate:.0f} ops/s"

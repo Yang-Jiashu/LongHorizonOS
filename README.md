@@ -1,32 +1,34 @@
 # LongHorizonOS (lhos)
 
-A Verified Progress Graph runtime for long-horizon agents, implementing
-Phases 0–8 of `LongHorizonOS_MVP_工程设计规格`, including the Controlled
-Benchmark (spec 22–25).
+> **LongHorizonOS is a deterministic agent microkernel beneath a dynamic verified graph control plane.**
 
-## Architecture
+A Verified Progress Graph runtime for long-horizon agents. The trusted
+execution plane (process/action journal, capability/lease/signal, versioned
+Artifact FS, namespace isolation) guarantees crash-consistent execution.
+The semantic control plane (Verified Progress Runtime, graph-derived
+multi-agent scheduling) coordinates multi-agent work through
+evidence-backed progress.
 
-- append-only Event Log + transactional graph projection (spec 5);
-- Verified Progress Graph with a strict node state machine (spec 4, 6);
-- deterministic Initial Graph Builder + incremental Graph Patches with
-  version/cycle/evidence validation (spec 8);
-- deterministic Readiness, FIFO + Cost-aware schedulers (spec 9, 11);
-- Graph-scoped Context Compiler with caching and context hashes (spec 10);
-- Tool Runtime with idempotency keys, crash-safe replay and rollback
-  generations (spec 13);
-- Verification Gate — agents can never self-verify (spec 14);
-- mid-run invalidation: artifact version tracking, STALE/INVALIDATED
-  propagation, deterministic must-invalidate rules, Replanning Amplification
-  inputs (spec 15);
-- checkpoints (noop / filesystem / git) with restore-on-failure and
-  restore-on-crash policies, crash injection at all spec 26.2 points,
-  crash recovery and resume (spec 16);
-- budget management and full event trace (spec 17, 24);
-- Controlled Benchmark: deterministic generator, oracle, scripted
-  environment, 8 experiment modes, metric suite (spec 22–25).
+## Current Status (Phase C1 — 2026-08-05)
 
-No real LLM calls anywhere: the scripted FakeWorker drives runs
-deterministically, so every experiment is reproducible from (task, mode, seed).
+Implemented:
+
+- **Process / Action / Journal** — deterministic state machines, append-only event log
+- **Capability / Lease / Signal** — resource ownership, access control, inter-process signaling
+- **Crash recovery** — SIGKILL-resilient with exactly-once semantics and UNCERTAIN handling
+- **Versioned Artifact FS** — content-addressed immutable storage with atomic writes
+- **Namespace isolation** — private per-process namespaces, explicit readonly sharing
+- **Optimistic concurrency** — expected_version prevents lost updates
+- **Canonical URI security** — path traversal, encoding, and symlink defenses
+
+Not yet implemented:
+
+- Context Virtual Memory (token-budgeted working sets)
+- Verified Progress Runtime (evidence-backed graph)
+- Graph-derived multi-agent scheduler
+- Version-aware semantic invalidation and local repair
+- Real distributed execution
+- Production security hardening
 
 ## Quick start
 
@@ -34,28 +36,16 @@ deterministically, so every experiment is reproducible from (task, mode, seed).
 make install            # pip install -e .[dev]
 make test               # python -m pytest tests/ -x -q
 
-# run one task graph
-lhos init --db artifacts/lhos.db
-lhos run --db artifacts/lhos.db \
-  --graph-file tasks/example_task.json \
-  --workspace artifacts/smoke_workspace \
-  --scheduler fifo
-lhos inspect --db artifacts/lhos.db --run-id <RUN_ID>
-lhos replay   --db artifacts/lhos.db --run-id <RUN_ID>
-lhos inject   --db artifacts/lhos.db --run-id <RUN_ID> \
-  --type constraint_changed --payload '{"node_id": "...", "invalidates": ["..."]}'
-
-# run the controlled benchmark (spec 22-25)
-lhos benchmark --suite controlled --scheduler fifo,cost_aware --seeds 1,2,3
-lhos benchmark --suite controlled \
-  --mode transcript,dynamic_graph_fifo,full_lhos --seeds 1,2 --size small
-python scripts/build_report.py    # markdown report from the newest results JSON
+# Artifact FS demos
+python -m examples.agent_os.private_workspace
+python -m examples.agent_os.shared_readonly
+python -m examples.agent_os.optimistic_conflict
+python -m examples.agent_os.crash_recovery
+python -m examples.agent_os.multi_process_artifacts
 ```
 
-Benchmark results land in `artifacts/benchmark_results/controlled_<ts>.json/.csv`
-(one row per preset × mode × seed cell, plus per-cell config snapshots);
-run artifacts (SQLite db, workspace, traces) stay under
-`artifacts/benchmark_work/runs/<run_id>/`.
+## Architecture
+
 
 ## Experiment modes (spec 25)
 
