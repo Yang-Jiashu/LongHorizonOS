@@ -1,0 +1,31 @@
+{
+  "date": "2026-08-05",
+  "claimed": {"full": 749, "artifact": 162},
+  "actual": {"full": 749, "agent_os": 369, "artifact": 162},
+  "match": true,
+  "skipped": 0,
+  "xfailed": 0,
+  "xpassed": 0,
+  "trivial_tests": 0,
+  "dynamic_hiding_detected": false,
+  "per_file_counts": {
+    "tests/unit/test_state_machine.py": 49,
+    "tests/unit/test_milestone_2_2.py": 45,
+    "tests/unit/test_generator.py": 43,
+    "tests/unit/test_tool_name_contract.py": 35,
+    "tests/agent_os/artifacts/test_uri_canonicalization.py": 34,
+    "tests/agent_os/artifacts/test_watches_quota_sdk.py": 28,
+    "tests/agent_os/artifacts/test_adversarial.py": 28,
+    "tests/agent_os/test_process_state_machine.py": 26,
+    "tests/agent_os/artifacts/test_artifact_service.py": 26,
+    "tests/agent_os/test_action_state_machine.py": 25,
+    "tests/agent_os/artifacts/test_local_storage_driver.py": 24,
+    "tests/unit/test_capability_manifest.py": 21,
+    "tests/agent_os/test_architecture.py": 21,
+    "tests/agent_os/artifacts/test_mounts_snapshots.py": 15,
+    "tests/unit/test_benchmark_metrics.py": 14,
+    "tests/integration/test_multi_run_isolation.py": 14,
+    "tests/agent_os/artifacts/test_uri_security.py": null,
+    "tests/agent_os/artifacts/test_recovery.py": null
+  }
+}

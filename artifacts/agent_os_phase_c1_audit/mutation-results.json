@@ -1,0 +1,100 @@
+[
+  {
+    "name": "lease_exclusivity_disabled",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/services/lease_service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "capability_always_true",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/kernel/models.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "journal_offset_gap",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/services/journal.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_journal_atomicity.py"
+  },
+  {
+    "name": "version_never_incremented",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/artifacts/service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "projection_upsert_noop",
+    "killed": true,
+    "error": null,
+    "rc": 2,
+    "source": "lhos/agent_os/artifacts/projections.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_projection_rebuild.py"
+  },
+  {
+    "name": "idempotency_broken",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/services/journal.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "lease_release_noop",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/services/lease_service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_process_cleanup.py"
+  },
+  {
+    "name": "capability_ops_ignored",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/kernel/models.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "uri_normalization_disabled",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/artifacts/uri.py",
+    "test_file": "tests/agent_os/artifacts/test_uri_audit_adversarial.py"
+  },
+  {
+    "name": "commit_skips_cas_write",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/artifacts/service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_projection_rebuild.py"
+  },
+  {
+    "name": "waiters_not_recorded",
+    "killed": true,
+    "error": null,
+    "rc": 1,
+    "source": "lhos/agent_os/services/lease_service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  },
+  {
+    "name": "journal_not_committed",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/services/journal.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_journal_atomicity.py"
+  },
+  {
+    "name": "version_sequence_gap_on_commit",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
+    "source": "lhos/agent_os/artifacts/service.py",
+    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+  }
+]

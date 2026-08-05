@@ -581,7 +581,7 @@ class ArtifactFSService:
                 # Content was committed — resolve as committed
                 artifact = self._projections.get_artifact(txn.artifact_id)
                 if artifact:
-                    new_version = artifact.current_version + 1
+                    new_version = artifact.current_version
                     ver = ArtifactVersion(
                         artifact_id=artifact.artifact_id,
                         version=new_version,

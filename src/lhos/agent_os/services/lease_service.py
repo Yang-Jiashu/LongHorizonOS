@@ -76,7 +76,7 @@ class LeaseService:
         for claim in claims:
             resource_id = claim["resource_id"]
             mode = claim.get("mode", "exclusive")
-            if not self._is_available(resource_id, mode, exclude_pid=pid):
+            if not self._is_available(resource_id, mode, exclude_pid=None):
                 # Record waiter
                 self._add_waiter(pid, resource_id)
                 # Journal the failure

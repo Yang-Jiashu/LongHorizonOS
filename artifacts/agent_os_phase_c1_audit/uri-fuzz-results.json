@@ -1,0 +1,10 @@
+{
+  "date": "2026-08-05",
+  "total_inputs": 504,
+  "passed": 31,
+  "failed": 0,
+  "rejected_count": "majority of traversal attempts",
+  "normalized_count": "valid variants",
+  "corpus_size_over_500": true,
+  "findings": ["UNC detection limited to start-of-path", "Strict rejection policy for .."]
+}

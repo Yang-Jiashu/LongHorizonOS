@@ -1,0 +1,614 @@
+{
+  "lhos": [],
+  "lhos.agent_os": [],
+  "lhos.agent_os.artifacts": [],
+  "lhos.agent_os.artifacts.errors": [],
+  "lhos.agent_os.artifacts.models": [],
+  "lhos.agent_os.artifacts.namespace_service": [
+    "lhos.agent_os.artifacts.models",
+    "lhos.agent_os.artifacts.projections",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.journal"
+  ],
+  "lhos.agent_os.artifacts.projections": [
+    "lhos.agent_os.artifacts.models",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.artifacts.service": [
+    "lhos.agent_os.artifacts.errors",
+    "lhos.agent_os.artifacts.models",
+    "lhos.agent_os.artifacts.projections",
+    "lhos.agent_os.artifacts.uri",
+    "lhos.agent_os.drivers.local_artifact_storage",
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.capability_service",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.services.lease_service",
+    "lhos.agent_os.services.signal_service"
+  ],
+  "lhos.agent_os.artifacts.uri": [
+    "lhos.agent_os.artifacts.errors"
+  ],
+  "lhos.agent_os.drivers": [],
+  "lhos.agent_os.drivers.base": [],
+  "lhos.agent_os.drivers.local_artifact_storage": [
+    "lhos.agent_os.artifacts.models",
+    "lhos.agent_os.drivers.base",
+    "lhos.agent_os.drivers.base"
+  ],
+  "lhos.agent_os.drivers.mock_device": [
+    "lhos.agent_os.drivers.base"
+  ],
+  "lhos.agent_os.drivers.mock_model": [
+    "lhos.agent_os.drivers.base"
+  ],
+  "lhos.agent_os.kernel": [],
+  "lhos.agent_os.kernel.dispatcher": [
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.action_service",
+    "lhos.agent_os.services.capability_service",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.services.lease_service",
+    "lhos.agent_os.services.process_service",
+    "lhos.agent_os.services.signal_service",
+    "lhos.agent_os.storage.sqlite",
+    "lhos.agent_os.services.capability_service"
+  ],
+  "lhos.agent_os.kernel.errors": [],
+  "lhos.agent_os.kernel.kernel": [
+    "lhos.agent_os.drivers.base",
+    "lhos.agent_os.drivers.mock_device",
+    "lhos.agent_os.drivers.mock_model",
+    "lhos.agent_os.kernel.dispatcher",
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.programs.base",
+    "lhos.agent_os.services.action_service",
+    "lhos.agent_os.services.capability_service",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.services.lease_service",
+    "lhos.agent_os.services.process_service",
+    "lhos.agent_os.services.signal_service",
+    "lhos.agent_os.storage.sqlite",
+    "lhos.agent_os.kernel.models"
+  ],
+  "lhos.agent_os.kernel.models": [],
+  "lhos.agent_os.kernel.state_machine": [
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models"
+  ],
+  "lhos.agent_os.programs": [],
+  "lhos.agent_os.programs.base": [
+    "lhos.agent_os.kernel.models"
+  ],
+  "lhos.agent_os.programs.scripted": [
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.programs.base",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.kernel.models"
+  ],
+  "lhos.agent_os.sdk": [],
+  "lhos.agent_os.sdk.artifact_sdk": [
+    "lhos.agent_os.artifacts.models",
+    "lhos.agent_os.artifacts.namespace_service",
+    "lhos.agent_os.artifacts.service"
+  ],
+  "lhos.agent_os.sdk.client": [
+    "lhos.agent_os.artifacts.namespace_service",
+    "lhos.agent_os.artifacts.projections",
+    "lhos.agent_os.artifacts.service",
+    "lhos.agent_os.drivers.local_artifact_storage",
+    "lhos.agent_os.kernel.dispatcher",
+    "lhos.agent_os.kernel.kernel",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.sdk.artifact_sdk",
+    "lhos.agent_os.services.action_service",
+    "lhos.agent_os.services.capability_service",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.services.lease_service",
+    "lhos.agent_os.services.process_service",
+    "lhos.agent_os.services.signal_service",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services": [],
+  "lhos.agent_os.services.action_service": [
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.kernel.state_machine",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services.capability_service": [
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services.journal": [
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services.lease_service": [
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services.process_service": [
+    "lhos.agent_os.kernel.errors",
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.kernel.state_machine",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.services.signal_service": [
+    "lhos.agent_os.kernel.models",
+    "lhos.agent_os.services.journal",
+    "lhos.agent_os.services.process_service",
+    "lhos.agent_os.storage.sqlite"
+  ],
+  "lhos.agent_os.storage": [],
+  "lhos.agent_os.storage.schema": [],
+  "lhos.agent_os.storage.sqlite": [
+    "lhos.agent_os.storage.schema"
+  ],
+  "lhos.agents": [],
+  "lhos.agents.executor": [
+    "lhos.infrastructure.llm.structured_output",
+    "lhos.runtime.worker"
+  ],
+  "lhos.agents.llm_worker_adapter": [
+    "lhos.agents.real_worker",
+    "lhos.domain.models",
+    "lhos.infrastructure.llm.structured_output",
+    "lhos.infrastructure.tools.registry",
+    "lhos.ports.llm",
+    "lhos.ports.tools",
+    "lhos.runtime.context_compiler",
+    "lhos.runtime.duplicate_work",
+    "lhos.runtime.node_budget",
+    "lhos.runtime.worker"
+  ],
+  "lhos.agents.planner": [
+    "lhos.domain.errors",
+    "lhos.infrastructure.llm.structured_output"
+  ],
+  "lhos.agents.prompt_manager": [],
+  "lhos.agents.real_planner": [
+    "lhos.agents.prompt_manager",
+    "lhos.domain.errors",
+    "lhos.infrastructure.llm.structured_output",
+    "lhos.ports.llm"
+  ],
+  "lhos.agents.real_reconciler": [
+    "lhos.agents.prompt_manager",
+    "lhos.domain.errors",
+    "lhos.infrastructure.llm.structured_output",
+    "lhos.ports.llm"
+  ],
+  "lhos.agents.real_worker": [
+    "lhos.agents.prompt_manager",
+    "lhos.domain.errors",
+    "lhos.infrastructure.llm.structured_output",
+    "lhos.ports.llm",
+    "lhos.runtime.context_compiler",
+    "lhos.runtime.worker"
+  ],
+  "lhos.agents.semantic_reconciler": [
+    "lhos.domain.errors"
+  ],
+  "lhos.benchmarks": [],
+  "lhos.benchmarks.adapter": [
+    "lhos.benchmarks.controlled.generator",
+    "lhos.benchmarks.controlled.task_schema",
+    "lhos.benchmarks.runner"
+  ],
+  "lhos.benchmarks.capability_manifest": [
+    "lhos.benchmarks.modes"
+  ],
+  "lhos.benchmarks.controlled": [
+    "lhos.benchmarks.controlled.generator",
+    "lhos.benchmarks.controlled.task_schema"
+  ],
+  "lhos.benchmarks.controlled.environment": [
+    "lhos.domain.enums",
+    "lhos.domain.events"
+  ],
+  "lhos.benchmarks.controlled.generator": [
+    "lhos.benchmarks.controlled.oracle",
+    "lhos.benchmarks.controlled.task_schema"
+  ],
+  "lhos.benchmarks.controlled.oracle": [
+    "lhos.benchmarks.controlled.task_schema"
+  ],
+  "lhos.benchmarks.controlled.specs": [],
+  "lhos.benchmarks.controlled.task_schema": [],
+  "lhos.benchmarks.external_grader": [],
+  "lhos.benchmarks.metrics": [],
+  "lhos.benchmarks.modes": [
+    "lhos.runtime.cost_aware_scheduler"
+  ],
+  "lhos.benchmarks.runner": [
+    "lhos.benchmarks",
+    "lhos.benchmarks.controlled.environment",
+    "lhos.benchmarks.controlled.generator",
+    "lhos.benchmarks.controlled.task_schema",
+    "lhos.benchmarks.modes",
+    "lhos.benchmarks.transcript",
+    "lhos.bootstrap",
+    "lhos.domain.errors"
+  ],
+  "lhos.benchmarks.scoring": [
+    "lhos.benchmarks",
+    "lhos.benchmarks.controlled.task_schema",
+    "lhos.benchmarks.transcript",
+    "lhos.domain.enums",
+    "lhos.domain.events",
+    "lhos.graph.invalidation"
+  ],
+  "lhos.benchmarks.transcript": [
+    "lhos.benchmarks.controlled.task_schema",
+    "lhos.domain.enums",
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier",
+    "lhos.verification.registry"
+  ],
+  "lhos.bootstrap": [
+    "lhos.domain.budgets",
+    "lhos.graph.initial_builder",
+    "lhos.graph.patch_validator",
+    "lhos.graph.readiness",
+    "lhos.graph.reconciler",
+    "lhos.infrastructure.checkpoints.filesystem_checkpoint",
+    "lhos.infrastructure.checkpoints.git_checkpoint",
+    "lhos.infrastructure.checkpoints.noop",
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store",
+    "lhos.infrastructure.telemetry.jsonl_tracer",
+    "lhos.infrastructure.tools.fake_tool",
+    "lhos.infrastructure.tools.filesystem_tool",
+    "lhos.infrastructure.tools.registry",
+    "lhos.infrastructure.tools.shell_tool",
+    "lhos.runtime.budget_manager",
+    "lhos.runtime.context_compiler",
+    "lhos.runtime.controller",
+    "lhos.runtime.cost_aware_scheduler",
+    "lhos.runtime.fifo_scheduler",
+    "lhos.runtime.recovery",
+    "lhos.runtime.termination",
+    "lhos.runtime.tool_runtime",
+    "lhos.runtime.verification_gate",
+    "lhos.runtime.worker",
+    "lhos.verification.registry"
+  ],
+  "lhos.cli": [],
+  "lhos.cli.benchmark": [
+    "lhos.benchmarks.controlled.generator",
+    "lhos.benchmarks.modes",
+    "lhos.benchmarks.runner"
+  ],
+  "lhos.cli.inject": [
+    "lhos.domain.events",
+    "lhos.graph.reconciler",
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store"
+  ],
+  "lhos.cli.inspect": [
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store",
+    "lhos.infrastructure.telemetry.metrics_collector"
+  ],
+  "lhos.cli.main": [
+    "lhos.cli.benchmark",
+    "lhos.cli.inject",
+    "lhos.cli.inspect",
+    "lhos.cli.replay",
+    "lhos.cli.resume",
+    "lhos.cli.run"
+  ],
+  "lhos.cli.replay": [
+    "lhos.graph.projection",
+    "lhos.infrastructure.db.connection"
+  ],
+  "lhos.cli.resume": [
+    "lhos.bootstrap",
+    "lhos.config",
+    "lhos.domain.errors",
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store"
+  ],
+  "lhos.cli.run": [
+    "lhos.bootstrap",
+    "lhos.config",
+    "lhos.domain.errors",
+    "lhos.infrastructure.db.connection"
+  ],
+  "lhos.config": [],
+  "lhos.domain": [],
+  "lhos.domain.budgets": [],
+  "lhos.domain.enums": [],
+  "lhos.domain.errors": [],
+  "lhos.domain.events": [],
+  "lhos.domain.graph_patch": [
+    "lhos.domain.enums"
+  ],
+  "lhos.domain.models": [
+    "lhos.domain.enums"
+  ],
+  "lhos.domain.verification": [],
+  "lhos.graph": [],
+  "lhos.graph.critical_path": [
+    "lhos.graph.queries"
+  ],
+  "lhos.graph.initial_builder": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.graph.queries"
+  ],
+  "lhos.graph.invalidation": [
+    "lhos.domain.enums",
+    "lhos.domain.events"
+  ],
+  "lhos.graph.patch_validator": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.domain.graph_patch",
+    "lhos.domain.models",
+    "lhos.graph.queries",
+    "lhos.graph.state_machine"
+  ],
+  "lhos.graph.projection": [
+    "lhos.domain.models",
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store"
+  ],
+  "lhos.graph.queries": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.models"
+  ],
+  "lhos.graph.readiness": [
+    "lhos.domain.budgets",
+    "lhos.domain.enums",
+    "lhos.domain.events",
+    "lhos.domain.models",
+    "lhos.graph.queries"
+  ],
+  "lhos.graph.reconciler": [
+    "lhos.domain.events",
+    "lhos.graph.invalidation"
+  ],
+  "lhos.graph.state_machine": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.domain.models"
+  ],
+  "lhos.infrastructure": [],
+  "lhos.infrastructure.checkpoints": [],
+  "lhos.infrastructure.checkpoints.filesystem_checkpoint": [],
+  "lhos.infrastructure.checkpoints.git_checkpoint": [],
+  "lhos.infrastructure.checkpoints.noop": [],
+  "lhos.infrastructure.db": [],
+  "lhos.infrastructure.db.connection": [],
+  "lhos.infrastructure.db.sqlite_event_store": [
+    "lhos.domain.events",
+    "lhos.infrastructure.db.connection",
+    "lhos.ports.telemetry"
+  ],
+  "lhos.infrastructure.db.sqlite_graph_store": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.domain.models",
+    "lhos.graph.queries",
+    "lhos.graph.state_machine",
+    "lhos.infrastructure.db.connection",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.domain.errors"
+  ],
+  "lhos.infrastructure.llm": [],
+  "lhos.infrastructure.llm.adapter": [
+    "lhos.infrastructure.llm.usage_tracking",
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.llm.call_logger": [
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.llm.logged_client": [
+    "lhos.infrastructure.llm.call_logger",
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.llm.sensenova": [
+    "lhos.domain.errors",
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.llm.structured_output": [
+    "lhos.domain.errors",
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.llm.usage_tracking": [
+    "lhos.ports.llm"
+  ],
+  "lhos.infrastructure.telemetry": [],
+  "lhos.infrastructure.telemetry.jsonl_tracer": [
+    "lhos.domain.events"
+  ],
+  "lhos.infrastructure.telemetry.metrics_collector": [
+    "lhos.domain.enums",
+    "lhos.domain.events"
+  ],
+  "lhos.infrastructure.tools": [],
+  "lhos.infrastructure.tools.fake_tool": [
+    "lhos.domain.errors",
+    "lhos.ports.tools"
+  ],
+  "lhos.infrastructure.tools.filesystem_tool": [
+    "lhos.domain.errors",
+    "lhos.ports.tools"
+  ],
+  "lhos.infrastructure.tools.registry": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.ports.tools"
+  ],
+  "lhos.infrastructure.tools.shell_tool": [
+    "lhos.domain.errors",
+    "lhos.ports.tools"
+  ],
+  "lhos.ports": [],
+  "lhos.ports.benchmark": [],
+  "lhos.ports.checkpoint": [],
+  "lhos.ports.event_store": [
+    "lhos.domain.events"
+  ],
+  "lhos.ports.graph_store": [
+    "lhos.domain.enums",
+    "lhos.domain.models",
+    "lhos.graph.queries"
+  ],
+  "lhos.ports.llm": [],
+  "lhos.ports.telemetry": [
+    "lhos.domain.events"
+  ],
+  "lhos.ports.tools": [
+    "lhos.domain.models"
+  ],
+  "lhos.ports.verifier": [
+    "lhos.domain.models",
+    "lhos.domain.verification"
+  ],
+  "lhos.runtime": [],
+  "lhos.runtime.budget_manager": [
+    "lhos.domain.budgets",
+    "lhos.domain.events"
+  ],
+  "lhos.runtime.context_compiler": [
+    "lhos.domain.enums",
+    "lhos.domain.events",
+    "lhos.domain.models",
+    "lhos.graph.queries",
+    "lhos.runtime.verification_feedback"
+  ],
+  "lhos.runtime.controller": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.domain.graph_patch",
+    "lhos.domain.models",
+    "lhos.graph.patch_validator",
+    "lhos.graph.readiness",
+    "lhos.graph.reconciler",
+    "lhos.runtime.budget_manager",
+    "lhos.runtime.context_compiler",
+    "lhos.runtime.local_repair",
+    "lhos.runtime.node_budget",
+    "lhos.runtime.recovery",
+    "lhos.runtime.scheduler",
+    "lhos.runtime.termination",
+    "lhos.runtime.verification_gate",
+    "lhos.infrastructure.checkpoints.filesystem_checkpoint",
+    "lhos.infrastructure.db.sqlite_event_store",
+    "lhos.infrastructure.db.sqlite_graph_store",
+    "lhos.runtime.scheduler",
+    "lhos.runtime.worker",
+    "lhos.runtime.verification_feedback"
+  ],
+  "lhos.runtime.cost_aware_scheduler": [
+    "lhos.domain.budgets",
+    "lhos.domain.models",
+    "lhos.graph",
+    "lhos.graph.queries",
+    "lhos.runtime.scheduler"
+  ],
+  "lhos.runtime.duplicate_work": [],
+  "lhos.runtime.fifo_scheduler": [
+    "lhos.domain.budgets",
+    "lhos.domain.models",
+    "lhos.graph.queries",
+    "lhos.runtime.scheduler"
+  ],
+  "lhos.runtime.local_repair": [],
+  "lhos.runtime.node_budget": [],
+  "lhos.runtime.recovery": [
+    "lhos.domain.enums",
+    "lhos.domain.events"
+  ],
+  "lhos.runtime.scheduler": [
+    "lhos.domain.budgets",
+    "lhos.domain.models",
+    "lhos.graph.queries"
+  ],
+  "lhos.runtime.termination": [
+    "lhos.domain.enums",
+    "lhos.graph.queries"
+  ],
+  "lhos.runtime.tool_runtime": [
+    "lhos.domain.enums",
+    "lhos.domain.errors",
+    "lhos.domain.events",
+    "lhos.ports.tools",
+    "lhos.infrastructure.tools.registry"
+  ],
+  "lhos.runtime.verification_feedback": [],
+  "lhos.runtime.verification_gate": [
+    "lhos.domain.enums",
+    "lhos.domain.events",
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.runtime.worker": [
+    "lhos.domain.errors",
+    "lhos.domain.models",
+    "lhos.ports.tools",
+    "lhos.runtime.context_compiler"
+  ],
+  "lhos.verification": [],
+  "lhos.verification.command_verifier": [
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.verification.composite_verifier": [
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.verification.file_verifier": [
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.verification.json_verifier": [
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.verification.llm_verifier": [
+    "lhos.domain.errors",
+    "lhos.domain.models",
+    "lhos.domain.verification",
+    "lhos.ports.verifier"
+  ],
+  "lhos.verification.registry": [
+    "lhos.domain.errors",
+    "lhos.ports.verifier",
+    "lhos.verification.command_verifier",
+    "lhos.verification.composite_verifier",
+    "lhos.verification.file_verifier",
+    "lhos.verification.json_verifier",
+    "lhos.verification.llm_verifier"
+  ]
+}
