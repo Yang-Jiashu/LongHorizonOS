@@ -62,6 +62,12 @@ _DEFAULT_MAX_OPEN_HANDLES = 64
 # Default quota (100 MB)
 _DEFAULT_QUOTA_BYTES = 100 * 1024 * 1024
 
+# Try to import SignalService — optional dependency
+try:
+    from lhos.agent_os.services.signal_service import SignalService
+except ImportError:
+    SignalService = None  # type: ignore[assignment, misc]
+
 
 class ArtifactFSService:
     """Core service for versioned artifact file system operations."""
@@ -73,12 +79,14 @@ class ArtifactFSService:
         journal: JournalService,
         capability_service: CapabilityService | None = None,
         lease_service: LeaseService | None = None,
+        signal_service: SignalService | None = None,  # type: ignore[valid-type]
     ) -> None:
         self._projections = projections
         self._storage_driver = storage_driver
         self._journal = journal
         self._capability_service = capability_service
         self._lease_service = lease_service
+        self._signal_service = signal_service
 
     # ── Read ──────────────────────────────────────────────────────────────
 
@@ -491,6 +499,9 @@ class ArtifactFSService:
         )
         self._journal.append_event(ev)
 
+        # Step 8: Notify watches
+        self._notify_watches(artifact.canonical_uri, new_version, txn.pid)
+
         return txn
 
     def abort(self, transaction_id: str) -> WriteTransaction:
@@ -616,7 +627,11 @@ class ArtifactFSService:
     # ── Watches ───────────────────────────────────────────────────────────
 
     def watch(self, pid: str, uri_prefix: str) -> ArtifactWatch:
-        """Register a watch for artifact changes matching uri_prefix."""
+        """Register a watch for artifact changes matching uri_prefix.
+
+        When any artifact whose canonical URI starts with uri_prefix is committed,
+        an ARTIFACT_CHANGED signal is sent to the watching process.
+        """
         namespace_id = f"ns-{pid}"
         watch = ArtifactWatch(
             pid=pid,
@@ -636,13 +651,88 @@ class ArtifactFSService:
 
     def unwatch(self, watch_id: str) -> bool:
         """Deactivate a watch."""
-        # Simple implementation: mark as inactive
         with self._projections._storage.transaction() as tx:
             tx.execute(
                 "UPDATE artifact_watches_projection SET active = 0 WHERE watch_id = ?",
                 (watch_id,),
             )
         return True
+
+    def list_watches(self, pid: str) -> list[ArtifactWatch]:
+        """List all active watches for a process."""
+        namespace_id = f"ns-{pid}"
+        return self._projections.list_active_watches(namespace_id)
+
+    def _notify_watches(self, canonical_uri: str, new_version: int, writer_pid: str) -> int:
+        """Notify all watches matching the given URI.
+
+        Sends ARTIFACT_CHANGED signals to watching processes.
+        Does NOT notify the writer process itself.
+
+        Returns count of signals sent.
+        """
+        if self._signal_service is None:
+            return 0
+
+        # Find all active watches across all namespaces
+        # We need to check all watches — not just the writer's namespace
+        rows = self._projections._storage.query_all(
+            "SELECT * FROM artifact_watches_projection WHERE active = 1 AND pid != ?",
+            (writer_pid,),
+        )
+
+        count = 0
+        for row in rows:
+            watch = ArtifactProjections._row_to_watch(row)
+            if canonical_uri.startswith(watch.uri_prefix):
+                self._signal_service.send(
+                    target_pid=watch.pid,
+                    signal_type="ARTIFACT_CHANGED",
+                    source_pid=writer_pid,
+                    payload={
+                        "canonical_uri": canonical_uri,
+                        "new_version": new_version,
+                        "watch_id": watch.watch_id,
+                        "uri_prefix": watch.uri_prefix,
+                    },
+                )
+                count += 1
+
+        return count
+
+    # ── Quota ─────────────────────────────────────────────────────────────
+
+    def get_namespace_usage(self, namespace_id: str) -> dict[str, Any]:
+        """Get namespace storage usage statistics.
+
+        Returns:
+            total_bytes: Sum of all committed version sizes
+            artifact_count: Number of non-deleted artifacts
+            version_count: Total number of versions
+            quota_bytes: Configured quota (None = unlimited)
+            quota_used_pct: Percentage of quota used (None if no quota)
+        """
+        ns = self._projections.get_namespace(namespace_id)
+        if not ns:
+            raise NamespaceNotFound(namespace_id)
+
+        total_bytes = self._projections.count_committed_bytes(namespace_id)
+        artifacts = self._projections.list_artifacts(namespace_id)
+        version_count = sum(
+            len(self._projections.list_versions(a.artifact_id)) for a in artifacts
+        )
+        quota_bytes = ns.quota_bytes
+        quota_used_pct = (
+            (total_bytes / quota_bytes * 100) if quota_bytes else None
+        )
+
+        return {
+            "total_bytes": total_bytes,
+            "artifact_count": len(artifacts),
+            "version_count": version_count,
+            "quota_bytes": quota_bytes,
+            "quota_used_pct": quota_used_pct,
+        }
 
     # ── Delete ────────────────────────────────────────────────────────────
 
