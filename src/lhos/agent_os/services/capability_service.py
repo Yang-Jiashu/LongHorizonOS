@@ -184,11 +184,11 @@ class CapabilityService:
         elif ev.event_type == "CAPABILITY_GRANTED":
             pid = ev.payload["pid"]
             cap = Capability(**ev.payload["capability"])
-            cap_set = self.get_capability_set(pid)
-            if cap_set is None:
-                cap_set = self.create_capability_set(pid)
-            cap_set.capabilities.append(cap)
-            self._upsert_capability_set(cap_set)
+            existing: CapabilitySet | None = self.get_capability_set(pid)
+            if existing is None:
+                existing = self.create_capability_set(pid)
+            existing.capabilities.append(cap)
+            self._upsert_capability_set(existing)
 
     def _upsert_capability_set(self, cap_set: CapabilitySet) -> None:
         caps_json = SQLiteStorage.dumps([c.model_dump(mode="json") for c in cap_set.capabilities])

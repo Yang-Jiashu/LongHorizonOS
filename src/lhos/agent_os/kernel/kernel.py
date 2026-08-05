@@ -142,9 +142,11 @@ class AgentKernel:
             return
 
         # Re-fetch PCB so we have the current state (RUNNING)
-        pcb = self._process_service.get_process(pcb.pid)
-        if pcb is None:
+        current_pcb: ProcessControlBlock | None = self._process_service.get_process(pcb.pid)
+        if current_pcb is None:
             return
+        # Use the freshly fetched PCB
+        pcb = current_pcb
 
         # Get program state
         state = self._process_service.get_program_state(pcb.pid)

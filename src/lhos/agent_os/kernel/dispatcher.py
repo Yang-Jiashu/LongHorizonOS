@@ -57,9 +57,7 @@ class SyscallDispatcher:
         self._capability_service = capability_service
         self._lease_service = lease_service
         self._signal_service = signal_service
-        self._handlers: dict[
-            str, Callable[[KernelRequest], Awaitable[KernelEvent | None]]
-        ] = {
+        self._handlers: dict[str, Callable[..., Awaitable[KernelEvent | None]]] = {
             "spawn": self._handle_spawn,
             "submit_action": self._handle_submit_action,
             "inspect_action": self._handle_inspect_action,
@@ -353,5 +351,3 @@ class SyscallDispatcher:
         )
         self._journal.append_event(ev)
         return ev
-
-

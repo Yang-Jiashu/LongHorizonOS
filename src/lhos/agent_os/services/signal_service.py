@@ -135,6 +135,14 @@ class SignalService:
         if ev.event_type == "SIGNAL_SENT":
             signal = Signal(**ev.payload)
             self._upsert_signal(signal)
+        elif ev.event_type == "SIGNAL_CONSUMED":
+            signal_id = ev.payload.get("signal_id")
+            if signal_id:
+                with self._storage.transaction() as tx:
+                    tx.execute(
+                        "UPDATE signals_projection SET consumed = 1 WHERE signal_id = ?",
+                        (signal_id,),
+                    )
 
     # ── Internal ───────────────────────────────────────────────────────────
 

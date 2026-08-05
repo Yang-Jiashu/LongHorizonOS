@@ -271,8 +271,8 @@ class ActionService:
             action_id = ev.payload.get("action_id")
             if not action_id:
                 return
-            acb = self.get_action(action_id)
-            if acb is None:
+            current_acb: ActionControlBlock | None = self.get_action(action_id)
+            if current_acb is None:
                 return
             state_map = {
                 "ACTION_ADMITTED": ActionState.ADMITTED,
@@ -284,16 +284,16 @@ class ActionService:
                 "ACTION_CANCELLED": ActionState.CANCELLED,
             }
             if ev.event_type in state_map:
-                acb.state = state_map[ev.event_type]
+                current_acb.state = state_map[ev.event_type]
             if ev.event_type == "ACTION_INTENT_DURABLE":
-                acb.lease_ids = ev.payload.get("lease_ids", [])
+                current_acb.lease_ids = ev.payload.get("lease_ids", [])
             if ev.event_type == "ACTION_COMMITTED":
-                acb.result = ev.payload.get("result", {})
-                acb.finished_at = datetime.utcnow()
+                current_acb.result = ev.payload.get("result", {})
+                current_acb.finished_at = ev.created_at
             if ev.event_type in ("ACTION_FAILED", "ACTION_TIMED_OUT", "ACTION_UNCERTAIN"):
-                acb.error = ev.payload.get("error") or ev.payload.get("detail", {})
-                acb.finished_at = datetime.utcnow()
-            self._upsert_projection(acb)
+                current_acb.error = ev.payload.get("error") or ev.payload.get("detail", {})
+                current_acb.finished_at = ev.created_at
+            self._upsert_projection(current_acb)
 
     # ── Internal ───────────────────────────────────────────────────────────
 

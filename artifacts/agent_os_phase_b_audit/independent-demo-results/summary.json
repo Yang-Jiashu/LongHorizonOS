@@ -1,0 +1,66 @@
+{
+  "audit_date": "2026-08-05",
+  "runner": "scripts/run_phase_b_demos.py",
+  "fresh_db_per_demo": true,
+  "fresh_kernel_per_demo": true,
+  "total_demos": 5,
+  "all_passed": true,
+  "demos": [
+    {
+      "id": "A",
+      "name": "Normal Model Action",
+      "status": "PASS",
+      "process_state": "exited",
+      "action_state": "committed",
+      "leases_released": true,
+      "journal_events": 19,
+      "event_types": [
+        "PROCESS_SPAWNED", "PROCESS_READY", "CAPABILITY_SET_CREATED",
+        "SPAWN_COMPLETE", "PROCESS_RUNNING", "ACTION_SUBMITTED",
+        "ACTION_ADMITTED", "ACTION_INTENT_DURABLE", "PROCESS_BLOCKED",
+        "ACTION_RUNNING", "ACTION_COMMITTED", "SIGNAL_SENT",
+        "SIGNAL_CONSUMED", "PROCESS_READY", "PROCESS_RUNNING",
+        "PROCESS_READY", "PROCESS_RUNNING", "PROCESS_EXITED",
+        "PROCESS_EXITED"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Async Device Action",
+      "status": "PASS",
+      "process_state": "exited",
+      "action_state": "committed",
+      "leases_released": true
+    },
+    {
+      "id": "C",
+      "name": "Crash Recovery",
+      "status": "PASS",
+      "process_state": "exited",
+      "action_state": "uncertain",
+      "leases_released": true
+    },
+    {
+      "id": "D",
+      "name": "Deadlock Detection",
+      "status": "PASS",
+      "deadlock_detected": true,
+      "deadlock_recovered": true,
+      "victim_failed": true,
+      "victim_leases_released": true
+    },
+    {
+      "id": "E",
+      "name": "Capability Isolation",
+      "status": "PASS",
+      "unauthorized_access_denied": true,
+      "namespace_isolation_enforced": true
+    }
+  ],
+  "verification": {
+    "all_demos_use_fresh_db": true,
+    "all_demos_use_fresh_kernel": true,
+    "no_shared_state_between_demos": true,
+    "all_journal_events_consistent": true
+  }
+}

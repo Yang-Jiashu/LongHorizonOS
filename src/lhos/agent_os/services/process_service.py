@@ -177,18 +177,22 @@ class ProcessService:
         )
         if not row:
             return {}
-        return SQLiteStorage.loads(row["state_json"])
+        result: dict[str, Any] = SQLiteStorage.loads(row["state_json"])
+        return result
 
     def save_program_state(self, pid: str, state: dict[str, Any]) -> None:
         self._save_program_state(pid, state)
 
-    def _save_program_state(self, pid: str, state: dict[str, Any]) -> None:
+    def _save_program_state(
+        self, pid: str, state: dict[str, Any], ts: datetime | None = None
+    ) -> None:
+        ts = ts or datetime.utcnow()
         with self._storage.transaction() as tx:
             tx.execute(
                 """INSERT INTO program_states (pid, state_json, updated_at)
                    VALUES (?, ?, ?)
                    ON CONFLICT(pid) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at""",
-                (pid, SQLiteStorage.dumps(state), datetime.utcnow().isoformat()),
+                (pid, SQLiteStorage.dumps(state), ts.isoformat()),
             )
 
     # ── Projection ─────────────────────────────────────────────────────────
@@ -198,7 +202,7 @@ class ProcessService:
         if ev.event_type == "PROCESS_SPAWNED":
             pcb = ProcessControlBlock(**ev.payload)
             self._upsert_projection(pcb)
-            self._save_program_state(pcb.pid, self.get_program_state(pcb.pid))
+            self._save_program_state(pcb.pid, self.get_program_state(pcb.pid), ev.created_at)
         elif ev.event_type.startswith("PROCESS_") and ev.event_type not in (
             "PROCESS_SPAWNED",
             "PROCESS_TRANSITION_REJECTED",
@@ -206,14 +210,29 @@ class ProcessService:
             # Update state from payload
             new_state = ev.payload.get("new_state")
             if new_state:
-                pcb = self.get_process(ev.pid)
-                if pcb:
-                    pcb.state = ProcessState(new_state)
+                current_pcb: ProcessControlBlock | None = self.get_process(ev.pid)
+                if current_pcb:
+                    current_pcb.state = ProcessState(new_state)
                     if ev.payload.get("wait_condition"):
-                        pcb.wait_condition = ev.payload["wait_condition"]
+                        current_pcb.wait_condition = ev.payload["wait_condition"]
                     elif new_state in ("ready", "running"):
-                        pcb.wait_condition = None
-                    self._upsert_projection(pcb)
+                        current_pcb.wait_condition = None
+                    self._upsert_projection(current_pcb)
+            # Restore exit_code and result_ref for PROCESS_EXITED events
+            # (these may come from a separate event without new_state)
+            if ev.event_type == "PROCESS_EXITED":
+                exit_pcb: ProcessControlBlock | None = self.get_process(ev.pid)
+                if exit_pcb:
+                    if ev.payload.get("exit_code"):
+                        exit_pcb.exit_code = ev.payload["exit_code"]
+                    if ev.payload.get("result_ref"):
+                        exit_pcb.result_ref = ev.payload["result_ref"]
+                    self._upsert_projection(exit_pcb)
+            # Update event_cursor to track replay position
+            cursor_pcb: ProcessControlBlock | None = self.get_process(ev.pid)
+            if cursor_pcb:
+                cursor_pcb.event_cursor = ev.journal_offset + 1
+                self._upsert_projection(cursor_pcb)
 
     def _upsert_projection(self, pcb: ProcessControlBlock) -> None:
         with self._storage.transaction() as tx:
