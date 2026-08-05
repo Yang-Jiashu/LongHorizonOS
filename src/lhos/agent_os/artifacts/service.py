@@ -738,7 +738,7 @@ class ArtifactFSService:
     # ── Internal ──────────────────────────────────────────────────────────
 
     def _resolve_and_check(self, pid: str, uri: str, operation: str) -> CanonicalURI:
-        """Resolve URI and check capabilities."""
+        """Resolve URI, check capabilities, and resolve through mounts for reads."""
         namespace_id = f"ns-{pid}"
         canonical = resolve_workspace_uri(uri, namespace_id)
 
@@ -748,6 +748,31 @@ class ArtifactFSService:
             op_map = {"read": "read", "write": "write", "append": "write"}
             if not self._capability_service.check(pid, resource, op_map.get(operation, operation)):
                 raise CapabilityDenied(pid, canonical.canonical, operation)
+
+        # Mount resolution: for read operations, check if path falls under a mount
+        if operation == "read" and canonical.namespace_id == namespace_id:
+            # First: check if artifact exists locally (COW copy may have been created)
+            local_artifact = self._projections.get_artifact_by_uri(canonical.canonical)
+            if local_artifact is None or local_artifact.deleted:
+                # Not local — check mounts
+                mounts = self._projections.list_mounts(namespace_id)
+                for mnt in mounts:
+                    mp = mnt.mount_point
+                    if canonical.path == mp or canonical.path.startswith(mp + "/"):
+                        relative = canonical.path[len(mp) :].lstrip("/")
+                        resolved_path = (
+                            f"{mnt.source_prefix}/{relative}".strip("/")
+                            if mnt.source_prefix
+                            else relative
+                        )
+                        if mnt.mode in ("shared_readonly", "copy_on_write", "shared_readwrite"):
+                            # Resolve to source namespace
+                            canonical.namespace_id = mnt.source_namespace_id
+                            canonical.path = resolved_path
+                            canonical.canonical = (
+                                f"artifact://{mnt.source_namespace_id}/{resolved_path}"
+                            )
+                        break
 
         return canonical
 
