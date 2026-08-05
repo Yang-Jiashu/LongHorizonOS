@@ -133,6 +133,16 @@ class JournalService:
                 "checkpoints",
                 "capability_sets",
                 "lease_waiters",
+                # Phase C1: Artifact FS projections
+                "artifacts_projection",
+                "artifact_versions_projection",
+                "artifact_handles_projection",
+                "write_transactions_projection",
+                "namespaces_projection",
+                "mounts_projection",
+                "artifact_watches_projection",
+                "artifact_idempotency",
+                "namespace_snapshots_projection",
             ]:
                 tx.execute(f"DELETE FROM {table}")
             # Reset meta

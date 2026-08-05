@@ -131,6 +131,127 @@ CREATE TABLE IF NOT EXISTS lease_waiters (
 )
 """
 
+# ── Phase C1: Artifact FS Tables ─────────────────────────────────────────────
+
+CREATE_ARTIFACTS_PROJECTION = """
+CREATE TABLE IF NOT EXISTS artifacts_projection (
+    artifact_id TEXT PRIMARY KEY,
+    namespace_id TEXT NOT NULL,
+    canonical_uri TEXT NOT NULL UNIQUE,
+    current_version INTEGER NOT NULL DEFAULT 0,
+    artifact_type TEXT NOT NULL DEFAULT 'file',
+    created_by_pid TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}'
+)
+"""
+
+CREATE_ARTIFACT_VERSIONS_PROJECTION = """
+CREATE TABLE IF NOT EXISTS artifact_versions_projection (
+    artifact_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    content_ref TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    parent_version INTEGER,
+    committed_by_pid TEXT NOT NULL,
+    committed_action_id TEXT NOT NULL,
+    committed_at TEXT NOT NULL,
+    PRIMARY KEY (artifact_id, version)
+)
+"""
+
+CREATE_ARTIFACT_HANDLES_PROJECTION = """
+CREATE TABLE IF NOT EXISTS artifact_handles_projection (
+    handle_id TEXT PRIMARY KEY,
+    pid TEXT NOT NULL,
+    artifact_id TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    opened_version INTEGER,
+    expected_version INTEGER,
+    lease_id TEXT,
+    transaction_id TEXT,
+    opened_at TEXT NOT NULL,
+    closed_at TEXT
+)
+"""
+
+CREATE_WRITE_TRANSACTIONS_PROJECTION = """
+CREATE TABLE IF NOT EXISTS write_transactions_projection (
+    transaction_id TEXT PRIMARY KEY,
+    artifact_id TEXT NOT NULL,
+    pid TEXT NOT NULL,
+    expected_version INTEGER,
+    staged_content_ref TEXT NOT NULL DEFAULT '',
+    staged_content_hash TEXT NOT NULL DEFAULT '',
+    staged_size_bytes INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL DEFAULT 'open',
+    idempotency_key TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    finished_at TEXT
+)
+"""
+
+CREATE_NAMESPACES_PROJECTION = """
+CREATE TABLE IF NOT EXISTS namespaces_projection (
+    namespace_id TEXT PRIMARY KEY,
+    owner_pid TEXT NOT NULL,
+    root_uri TEXT NOT NULL,
+    quota_bytes INTEGER,
+    max_open_handles INTEGER,
+    created_at TEXT NOT NULL
+)
+"""
+
+CREATE_MOUNTS_PROJECTION = """
+CREATE TABLE IF NOT EXISTS mounts_projection (
+    mount_id TEXT PRIMARY KEY,
+    namespace_id TEXT NOT NULL,
+    mount_point TEXT NOT NULL,
+    source_namespace_id TEXT NOT NULL,
+    source_prefix TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'private',
+    created_at TEXT NOT NULL
+)
+"""
+
+CREATE_ARTIFACT_WATCHES_PROJECTION = """
+CREATE TABLE IF NOT EXISTS artifact_watches_projection (
+    watch_id TEXT PRIMARY KEY,
+    pid TEXT NOT NULL,
+    namespace_id TEXT NOT NULL,
+    uri_prefix TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1
+)
+"""
+
+CREATE_IDEMPOTENCY_INDEX = """
+CREATE TABLE IF NOT EXISTS artifact_idempotency (
+    idempotency_key TEXT NOT NULL,
+    artifact_id TEXT NOT NULL,
+    pid TEXT NOT NULL,
+    transaction_id TEXT NOT NULL,
+    result_state TEXT NOT NULL,
+    result_version INTEGER,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (idempotency_key, artifact_id, pid)
+)
+"""
+
+CREATE_SNAPSHOTS_PROJECTION = """
+CREATE TABLE IF NOT EXISTS namespace_snapshots_projection (
+    snapshot_id TEXT PRIMARY KEY,
+    namespace_id TEXT NOT NULL,
+    artifact_versions_json TEXT NOT NULL DEFAULT '{}',
+    content_refs_json TEXT NOT NULL DEFAULT '{}',
+    created_by_pid TEXT NOT NULL,
+    created_at TEXT NOT NULL
+)
+"""
+
 ALL_DDL = [
     CREATE_JOURNAL_EVENTS,
     CREATE_JOURNAL_META,
@@ -142,6 +263,16 @@ ALL_DDL = [
     CREATE_CHECKPOINTS,
     CREATE_CAPABILITY_SETS,
     CREATE_LEASE_WAITERS,
+    # Phase C1: Artifact FS
+    CREATE_ARTIFACTS_PROJECTION,
+    CREATE_ARTIFACT_VERSIONS_PROJECTION,
+    CREATE_ARTIFACT_HANDLES_PROJECTION,
+    CREATE_WRITE_TRANSACTIONS_PROJECTION,
+    CREATE_NAMESPACES_PROJECTION,
+    CREATE_MOUNTS_PROJECTION,
+    CREATE_ARTIFACT_WATCHES_PROJECTION,
+    CREATE_IDEMPOTENCY_INDEX,
+    CREATE_SNAPSHOTS_PROJECTION,
 ]
 
 CREATE_INDEXES = [
@@ -153,4 +284,16 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_leases_owner ON leases_projection(owner_pid)",
     "CREATE INDEX IF NOT EXISTS idx_leases_resource ON leases_projection(resource_id)",
     "CREATE INDEX IF NOT EXISTS idx_signals_target ON signals_projection(target_pid, consumed)",
+    # Phase C1: Artifact FS indexes
+    "CREATE INDEX IF NOT EXISTS idx_artifacts_ns ON artifacts_projection(namespace_id)",
+    "CREATE INDEX IF NOT EXISTS idx_artifacts_uri ON artifacts_projection(canonical_uri)",
+    "CREATE INDEX IF NOT EXISTS idx_versions_artifact ON artifact_versions_projection(artifact_id)",
+    "CREATE INDEX IF NOT EXISTS idx_handles_pid ON artifact_handles_projection(pid)",
+    "CREATE INDEX IF NOT EXISTS idx_handles_artifact ON artifact_handles_projection(artifact_id)",
+    "CREATE INDEX IF NOT EXISTS idx_txns_artifact ON write_transactions_projection(artifact_id)",
+    "CREATE INDEX IF NOT EXISTS idx_txns_pid ON write_transactions_projection(pid)",
+    "CREATE INDEX IF NOT EXISTS idx_txns_idem ON write_transactions_projection(idempotency_key)",
+    "CREATE INDEX IF NOT EXISTS idx_mounts_ns ON mounts_projection(namespace_id)",
+    "CREATE INDEX IF NOT EXISTS idx_watches_pid ON artifact_watches_projection(pid)",
+    "CREATE INDEX IF NOT EXISTS idx_watches_ns ON artifact_watches_projection(namespace_id)",
 ]
