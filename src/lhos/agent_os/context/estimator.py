@@ -57,7 +57,11 @@ class DeterministicByteTokenEstimator:
         encoding: str,
     ) -> int:
         text = self._decode(content, media_type, encoding)
-        count = max(len(text), 1) if text else 1
+        # When the declared media_type is binary or fails to decode, fall
+        # back to byte_length (the conservative upper bound per spec).
+        if text is None:
+            return math.ceil(len(content) / 4.0)
+        count = max(len(text), 1)
         return math.ceil(count / 4.0)
 
     @staticmethod
