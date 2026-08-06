@@ -1,6 +1,6 @@
 {
   "benchmark_run_success": true,
-  "output": "test_timing_snapshot_creation \n  Snapshot creation: 50 artifacts in 0.85ms\nPASSED\ntests/agent_os/artifacts/test_benchmark.py::TestBenchmarks::test_timing_watch_signal_delivery \n  Write + watch signal: 50 ops in 0.035s = 1440 ops/s (0.69ms/op)\nPASSED\ntests/agent_os/artifacts/test_benchmark.py::TestBenchmarks::test_timing_cow_write_isolation \n  COW write (local copy): 20 ops in 0.015s = 1366 ops/s (0.73ms/op)\nPASSED\n\n============================== 7 passed in 0.63s ===============================\n",
+  "output": "test_timing_snapshot_creation \n  Snapshot creation: 50 artifacts in 0.84ms\nPASSED\ntests/agent_os/artifacts/test_benchmark.py::TestBenchmarks::test_timing_watch_signal_delivery \n  Write + watch signal: 50 ops in 0.035s = 1442 ops/s (0.69ms/op)\nPASSED\ntests/agent_os/artifacts/test_benchmark.py::TestBenchmarks::test_timing_cow_write_isolation \n  COW write (local copy): 20 ops in 0.012s = 1602 ops/s (0.62ms/op)\nPASSED\n\n============================== 7 passed in 0.64s ===============================\n",
   "errors": "",
   "benchmarks_found": [
     "sequential_writes",

@@ -58,7 +58,6 @@ class TestREADMEClaims:
         """README must accurately list unimplemented features."""
         content = README.read_text()
         not_yet = [
-            "Context Virtual Memory",
             "Verified Progress Runtime",
             "Graph-derived multi-agent scheduler",
         ]
@@ -314,7 +313,7 @@ class TestPublicClaimsAuditor:
     def test_record_public_claims(self) -> None:
         """Record all public claims audit results."""
         claims = {
-            "phase_c1_features": {
+            "phase_c1_c2_features": {
                 "process_action_journal": True,
                 "capability_lease_signal": True,
                 "crash_recovery": True,
@@ -322,9 +321,9 @@ class TestPublicClaimsAuditor:
                 "namespace_isolation": True,
                 "optimistic_concurrency": True,
                 "canonical_uri_security": True,
+                "version_bound_context_vm": True,
             },
             "not_yet_implemented": [
-                "Context Virtual Memory",
                 "Verified Progress Runtime",
                 "Graph scheduler",
                 "Semantic invalidation",
@@ -338,7 +337,7 @@ class TestPublicClaimsAuditor:
         content = (
             "# Section 19: Public Claims Audit\n\n"
             "## Verified Claims\n\n"
-            + "\n".join(f"- [x] **{k}**: VERIFIED" for k in claims["phase_c1_features"])
+            + "\n".join(f"- [x] **{k}**: VERIFIED" for k in claims["phase_c1_c2_features"])
             + "\n\n## Documented Limitations\n\n"
             + "\n".join(f"- [ ] {item}" for item in claims["not_yet_implemented"])
             + f"\n\n## Architecture\n\n{claims['architecture']}"

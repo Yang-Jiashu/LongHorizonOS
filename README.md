@@ -9,7 +9,7 @@ The semantic control plane (Verified Progress Runtime, graph-derived
 multi-agent scheduling) coordinates multi-agent work through
 evidence-backed progress.
 
-## Current Status (Phase C1 — 2026-08-05, semantically closed)
+## Current Status (Phase C2 — semantically closed)
 
 Implemented:
 
@@ -25,9 +25,26 @@ Implemented:
 
 Semantic closure: Phase C1 all-23 UNCERTAIN items from `artifacts/agent_os_phase_c1_audit/uncertain-semantics-audit.md` closed with regression tests (FIX) or spec text (DOC); 0 failures on `tests/`; 0 surviving mutations.
 
+### Phases completed
+
+| Phase | Name | Key deliverables |
+|-------|------|------------------|
+| C1.2 | Capability / Lease / Signal | `src/lhos/agent_os/kernel/`, `src/lhos/agent_os/services/` capability + lease |
+| C1.1 | Graph / Namespace / Artifact FS v1 | `src/lhos/agent_os/artifacts/`, `src/lhos/agent_os/graph/` |
+| **C2** | **Version-bound Context VM** | **context snapshots, deterministic working sets, process-isolated working sets** |
+
+### Phase C2 implementation locations
+
+| Layer | Path |
+|-------|------|
+| Models | `src/lhos/agent_os/context/models.py` |
+| Service | `src/lhos/agent_os/context/service.py` |
+| SDK | `src/lhos/agent_os/context/sdk.py` |
+| Demos | `examples/agent_os/context_*.py` (6 scripts) |
+| Tests | `tests/agent_os/context/` (21+ test files) |
+
 Not yet implemented:
 
-- Context Virtual Memory (token-budgeted working sets)
 - Verified Progress Runtime (evidence-backed graph)
 - Graph-derived multi-agent scheduler
 - Version-aware semantic invalidation and local repair

@@ -9,10 +9,10 @@
 - [x] **namespace_isolation**: VERIFIED
 - [x] **optimistic_concurrency**: VERIFIED
 - [x] **canonical_uri_security**: VERIFIED
+- [x] **version_bound_context_vm**: VERIFIED
 
 ## Documented Limitations
 
-- [ ] Context Virtual Memory
 - [ ] Verified Progress Runtime
 - [ ] Graph scheduler
 - [ ] Semantic invalidation
