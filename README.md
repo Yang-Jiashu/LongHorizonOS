@@ -9,7 +9,7 @@ The semantic control plane (Verified Progress Runtime, graph-derived
 multi-agent scheduling) coordinates multi-agent work through
 evidence-backed progress.
 
-## Current Status (Phase C1 — 2026-08-05)
+## Current Status (Phase C1 — 2026-08-05, semantically closed)
 
 Implemented:
 
@@ -20,6 +20,10 @@ Implemented:
 - **Namespace isolation** — private per-process namespaces, explicit readonly sharing
 - **Optimistic concurrency** — expected_version prevents lost updates
 - **Canonical URI security** — path traversal, encoding, and symlink defenses
+- **Datetime consistency** — all modules use UTC-aware stamps (X-01 / LEASE-04 / MOD-02 closed)
+- **Capability merge + atomic lease journaling** — concurrent-capability and lease acquisitions merge into single rows (CAP-02 / LEASE-01)
+
+Semantic closure: Phase C1 all-23 UNCERTAIN items from `artifacts/agent_os_phase_c1_audit/uncertain-semantics-audit.md` closed with regression tests (FIX) or spec text (DOC); 0 failures on `tests/`; 0 surviving mutations.
 
 Not yet implemented:
 
@@ -120,7 +124,7 @@ verification: {allow_llm_judge: false}
 ## Tests
 
 ```bash
-make test    # 161 tests: unit + integration + e2e
+make test    # 924 tests: unit + integration + e2e + audit regression gates
 ```
 
 Coverage includes the state machine, DAG cycles, readiness, invalidation
