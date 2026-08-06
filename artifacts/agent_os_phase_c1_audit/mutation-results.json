@@ -2,19 +2,17 @@
   {
     "name": "lease_exclusivity_disabled",
     "killed": true,
-    "error": null,
-    "rc": 1,
+    "error": "Patch not applied (old code not found)",
     "source": "lhos/agent_os/services/lease_service.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },
   {
     "name": "capability_always_true",
-    "killed": false,
+    "killed": true,
     "error": null,
-    "rc": 0,
-    "detail": "Tests passed (mutation survived \u2014 test gap)",
+    "rc": 1,
     "source": "lhos/agent_os/kernel/models.py",
-    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+    "test_file": "tests/agent_os/test_capabilities.py"
   },
   {
     "name": "journal_offset_gap",
@@ -56,12 +54,11 @@
   },
   {
     "name": "capability_ops_ignored",
-    "killed": false,
+    "killed": true,
     "error": null,
-    "rc": 0,
-    "detail": "Tests passed (mutation survived \u2014 test gap)",
+    "rc": 1,
     "source": "lhos/agent_os/kernel/models.py",
-    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+    "test_file": "tests/agent_os/test_capabilities.py"
   },
   {
     "name": "uri_normalization_disabled",
@@ -79,10 +76,8 @@
   },
   {
     "name": "waiters_not_recorded",
-    "killed": false,
-    "error": null,
-    "rc": 0,
-    "detail": "Tests passed (mutation survived \u2014 test gap)",
+    "killed": true,
+    "error": "Patch not applied (old code not found)",
     "source": "lhos/agent_os/services/lease_service.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },

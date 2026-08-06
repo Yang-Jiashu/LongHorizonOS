@@ -1,0 +1,41 @@
+{
+  "gates": 26,
+  "verified_via_tests": [
+    "test_audit_26_gates.py",
+    "test_audit_comprehensive.py",
+    "test_audit_projection_rebuild.py",
+    "test_audit_journal_atomicity.py",
+    "test_audit_sigkill_recovery.py",
+    "test_uri_audit_adversarial.py"
+  ],
+  "original_20_gates": "Phase C1 correctness guarantees",
+  "additional_6_gates": "Adversarial security/concurrency/isolation",
+  "gate_mapping": {
+    "1": "Process host-path hidden",
+    "2": "URI canonical uniqueness",
+    "3": "Path traversal defense",
+    "4": "Capability after canonicalization",
+    "5": "Mount AND capability required",
+    "6": "Handle ownership by creator PID",
+    "7": "Read handle pins version",
+    "8": "Reader never sees staged content",
+    "9": "Versions immutable + monotonic",
+    "10": "Optimistic concurrency (lost-update prevention)",
+    "11": "Single active writer (exclusion)",
+    "12": "Atomic commit",
+    "13": "Idempotent writes",
+    "14": "Crash recovery idempotent (no double commit)",
+    "15": "UNCERTAIN state preserved",
+    "16": "No handle/lease leak on process exit",
+    "17": "Projection rebuild from Journal",
+    "18": "Blob content hash verification",
+    "19": "Artifact FS decoupled from VPG/Harness",
+    "20": "NoGraph agent independent",
+    "21": "Cross-namespace mount access controlled",
+    "22": "Concurrent writer lease exclusion",
+    "23": "Quota accounting accurate",
+    "24": "Journal causal ordering",
+    "25": "Snapshot point-in-time isolation",
+    "26": "Artifact delete + re-create"
+  }
+}
