@@ -184,6 +184,7 @@ class ArtifactFSService:
         versions = self._projections.list_versions(artifact.artifact_id)
         return [
             {
+                "artifact_id": v.artifact_id,
                 "version": v.version,
                 "size_bytes": v.size_bytes,
                 "content_hash": v.content_hash,
