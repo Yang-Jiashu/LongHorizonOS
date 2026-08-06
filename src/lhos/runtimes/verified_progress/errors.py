@@ -1,0 +1,105 @@
+"""VPG Runtime errors + enum codes.
+
+Every failure mode surfaced by the GraphStore, PatchValidator, AdmissionEngine,
+EvidenceValidator and Readiness engine is typed here so tests can assert on
+specific failure causes rather than generic exceptions.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class VPGCode(StrEnum):
+    # /graph lifecycle
+    GRAPH_NOT_FOUND = "GRAPH_NOT_FOUND"
+    GRAPH_ALREADY_EXISTS = "GRAPH_ALREADY_EXISTS"
+    GRAPH_CLOSED = "GRAPH_CLOSED"
+
+    # patch commit
+    GRAPH_VERSION_CONFLICT = "GRAPH_VERSION_CONFLICT"
+    PATCH_REJECTED = "PATCH_REJECTED"
+    PATCH_EMPTY = "PATCH_EMPTY"
+    PATCH_TOO_LARGE = "PATCH_TOO_LARGE"
+
+    # node
+    NODE_NOT_FOUND = "NODE_NOT_FOUND"
+    NODE_ALREADY_EXISTS = "NODE_ALREADY_EXISTS"
+    INVALID_NODE_TYPE = "INVALID_NODE_TYPE"
+    INVALID_NODE_SCHEMA = "INVALID_NODE_SCHEMA"
+    INVALID_LIFECYCLE_TRANSITION = "INVALID_LIFECYCLE_TRANSITION"
+
+    # construction rules
+    AGENT_FORBIDDEN_DIRECT_VERIFIED = "AGENT_FORBIDDEN_DIRECT_VERIFIED"
+    AGENT_FORBIDDEN_DIRECT_STALE = "AGENT_FORBIDDEN_DIRECT_STALE"
+    AGENT_FORBIDDEN_INVALID = "AGENT_FORBIDDEN_INVALID"
+    AGENT_FORBIDDEN_CLOSE = "AGENT_FORBIDDEN_CLOSE"
+    AGENT_FORBIDDEN_DELETE = "AGENT_FORBIDDEN_DELETE"
+
+    # edge
+    EDGE_NOT_FOUND = "EDGE_NOT_FOUND"
+    EDGE_ALREADY_EXISTS = "EDGE_ALREADY_EXISTS"
+    INVALID_EDGE_TYPE_COMBINATION = "INVALID_EDGE_TYPE_COMBINATION"
+    EDGE_SOURCE_NOT_FOUND = "EDGE_SOURCE_NOT_FOUND"
+    EDGE_TARGET_NOT_FOUND = "EDGE_TARGET_NOT_FOUND"
+    EDGE_CROSS_GRAPH = "EDGE_CROSS_GRAPH"
+    GRAPH_EXECUTION_CYCLE = "GRAPH_EXECUTION_CYCLE"
+
+    # artifact
+    ARTIFACT_NOT_FOUND = "ARTIFACT_NOT_FOUND"
+    ARTIFACT_HASH_MISMATCH = "ARTIFACT_HASH_MISMATCH"
+    ARTIFACT_VERSION_INVALID = "ARTIFACT_VERSION_INVALID"
+    ARTIFACT_NO_CAPABILITY = "ARTIFACT_NO_CAPABILITY"
+    ARTIFACT_URI_INVALID = "ARTIFACT_URI_INVALID"
+    ARTIFACT_NOT_COMMITTED = "ARTIFACT_NOT_COMMITTED"
+
+    # verification / evidence
+    EVIDENCE_SOURCE_ACTION_NOT_FOUND = "EVIDENCE_SOURCE_ACTION_NOT_FOUND"
+    EVIDENCE_SOURCE_ACTION_NOT_TERMINAL = "EVIDENCE_SOURCE_ACTION_NOT_TERMINAL"
+    EVIDENCE_SOURCE_ACTION_WRONG_PID = "EVIDENCE_SOURCE_ACTION_WRONG_PID"
+    EVIDENCE_ACTION_RESULT_MISMATCH = "EVIDENCE_ACTION_RESULT_MISMATCH"
+    EVIDENCE_VERIFICATION_EDGE_MISSING = "EVIDENCE_VERIFICATION_EDGE_MISSING"
+    EVIDENCE_PRODUCES_EDGE_MISSING = "EVIDENCE_PRODUCES_EDGE_MISSING"
+    EVIDENCE_ARTIFACT_HASH_MISMATCH = "EVIDENCE_ARTIFACT_HASH_MISMATCH"
+    EVIDENCE_REQUIRED_VERIFICATION_COUNT_INVALID = (
+        "EVIDENCE_REQUIRED_VERIFICATION_COUNT_INVALID"
+    )
+    EVIDENCE_FAIL_REJECTED = "EVIDENCE_FAIL_REJECTED"
+    EVIDENCE_INCONCLUSIVE_REJECTED = "EVIDENCE_INCONCLUSIVE_REJECTED"
+
+    # misc
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+    STORAGE_ERROR = "STORAGE_ERROR"
+    PROCESS_NOT_FOUND = "PROCESS_NOT_FOUND"
+    CAPABILITY_DENIED = "CAPABILITY_DENIED"
+
+
+    # recovery
+    GRAPH_RECOVERY_FAILED = "GRAPH_RECOVERY_FAILED"
+
+
+class VPGError(Exception):
+    """Base VPG error with a machine-readable code."""
+
+    def __init__(self, code: VPGCode, message: str = "") -> None:
+        self.code = code
+        super().__init__(f"[{code.value}] {message}" if message else code.value)
+
+
+# ── Convenience constructors ──────────────────────────────────────────────────
+def graph_not_found(graph_id: str) -> VPGError:
+    return VPGError(VPGCode.GRAPH_NOT_FOUND, f"graph not found: {graph_id}")
+
+
+def graph_version_conflict(expected: int, actual: int) -> VPGError:
+    return VPGError(
+        VPGCode.GRAPH_VERSION_CONFLICT,
+        f"expected graph version {expected}, current is {actual}",
+    )
+
+
+def execution_cycle(path: list[str]) -> VPGError:
+    return VPGError(
+        VPGCode.GRAPH_EXECUTION_CYCLE,
+        f"execution cycle detected: {' -> '.join(path)}",
+    )

@@ -9,7 +9,7 @@ The semantic control plane (Verified Progress Runtime, graph-derived
 multi-agent scheduling) coordinates multi-agent work through
 evidence-backed progress.
 
-## Current Status (Phase C2 — semantically closed)
+## Current Status (Phase D1 — Verified Progress Runtime implemented; multi-agent scheduler TBD)
 
 Implemented:
 
@@ -22,8 +22,10 @@ Implemented:
 - **Canonical URI security** — path traversal, encoding, and symlink defenses
 - **Datetime consistency** — all modules use UTC-aware stamps (X-01 / LEASE-04 / MOD-02 closed)
 - **Capability merge + atomic lease journaling** — concurrent-capability and lease acquisitions merge into single rows (CAP-02 / LEASE-01)
+- **Verified Progress Runtime (VPG)** — deterministic semantically-closed Task/Goal state graph; evidence-backed VERIFIED derivation; task-local artifact-version invalidation; deterministic READY frontier (priority DESC / topo depth ASC / created ASC / node_id ASC); atomic optimistic patch commit with composite-key idempotency; architecture boundary at L4 (no kernel-internal imports)
 
-Semantic closure: Phase C1 all-23 UNCERTAIN items from `artifacts/agent_os_phase_c1_audit/uncertain-semantics-audit.md` closed with regression tests (FIX) or spec text (DOC); 0 failures on `tests/`; 0 surviving mutations.
+Semantic closure: Phase C1 all-23 UNCERTAIN items closed with regression tests (FIX) or spec text (DOC); 0 surviving mutations.
+Phase D1: 214 tests green across 27 test files; all 5 flagship demos pass.
 
 ### Phases completed
 
@@ -32,6 +34,7 @@ Semantic closure: Phase C1 all-23 UNCERTAIN items from `artifacts/agent_os_phase
 | C1.2 | Capability / Lease / Signal | `src/lhos/agent_os/kernel/`, `src/lhos/agent_os/services/` capability + lease |
 | C1.1 | Graph / Namespace / Artifact FS v1 | `src/lhos/agent_os/artifacts/`, `src/lhos/agent_os/graph/` |
 | **C2** | **Version-bound Context VM** | **context snapshots, deterministic working sets, process-isolated working sets** |
+| **D1** | **Verified Progress Runtime** | **VPG runtime: models, DAG, patch protocol, evidence/verification/closure/readiness, projection, recovery, SDK; 5 demos** |
 
 ### Phase C2 implementation locations
 
@@ -43,11 +46,18 @@ Semantic closure: Phase C1 all-23 UNCERTAIN items from `artifacts/agent_os_phase
 | Demos | `examples/agent_os/context_*.py` (6 scripts) |
 | Tests | `tests/agent_os/context/` (21+ test files) |
 
+### Phase D1 implementation locations
+
+| Layer | Path |
+|-------|------|
+| Runtime package | `src/lhos/runtimes/verified_progress/` |
+| Public SDK | `src/lhos/runtimes/verified_progress/sdk.py` (`VerifiedProgressRuntime`) |
+| Demos | `examples/verified_progress/*.py` (6 scripts: basic closure, evidence, version reopen, optimistic conflict, ready frontier, SIGKILL recovery) |
+| Tests | `tests/runtimes/verified_progress/` (27+ test files) |
+
 Not yet implemented:
 
-- Verified Progress Runtime (evidence-backed graph)
 - Graph-derived multi-agent scheduler
-- Version-aware semantic invalidation and local repair
 - Real distributed execution
 - Production security hardening
 
