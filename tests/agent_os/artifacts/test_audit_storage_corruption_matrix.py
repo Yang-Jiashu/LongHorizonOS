@@ -92,8 +92,7 @@ class TestCorruptionCAS:
 
     def test_cas_read_recovers_after_missing_blob(self, tmp_path):
         """If the CAS file for v3 is deleted, version 3 read fails, v2 still works."""
-        storage, cas_root = _build_known_good_state(str(tmp_path)
-        )
+        storage, cas_root = _build_known_good_state(str(tmp_path))
         content_hash = _uri_hash(storage)
         # Find CAS file
         prefix = content_hash[:2]
@@ -111,6 +110,7 @@ class TestCorruptionCAS:
         assert _count(storage, "artifact_versions_projection") == 3
         # Re-reading the driver would fail -> FileNotFoundError path is exercised
         from lhos.agent_os.drivers.local_artifact_storage import LocalArtifactStorageDriver
+
         driver = LocalArtifactStorageDriver(cas_root)
         with pytest.raises(FileNotFoundError):
             driver.read(content_hash)
@@ -143,6 +143,7 @@ class TestCorruptionJournalMeta:
         # Now append works cleanly
         journal = JournalService(storage)
         from lhos.agent_os.kernel.models import KernelEvent
+
         journal.append_event(KernelEvent(pid="p1", event_type="POST_CORRUPTION"))
         new_n = _count(storage, "journal_events")
         assert new_n == n_events + 1
@@ -174,6 +175,7 @@ class TestCorruptionOrphanArtifactProjection:
         storage, _ = _build_known_good_state(str(tmp_path))
         # Inject an orphan artifact row
         import uuid
+
         with storage.transaction() as tx:
             tx.execute(
                 "INSERT INTO artifacts_projection "
@@ -203,6 +205,7 @@ class TestCorruptionOrphanArtifactProjection:
         """ArtifactVersion row pointing to unknown artifact_id is tolerated."""
         storage, _ = _build_known_good_state(str(tmp_path))
         import uuid
+
         with storage.transaction() as tx:
             tx.execute(
                 "INSERT INTO artifact_versions_projection "
@@ -235,6 +238,7 @@ class TestCorruptionOrphanStagedTransaction:
         """Orphan transaction row must not break journal causal ordering."""
         storage, _ = _build_known_good_state(str(tmp_path))
         import uuid
+
         aid_row = storage.query_one("SELECT artifact_id FROM artifacts_projection")
         aid = aid_row["artifact_id"]
         with storage.transaction() as tx:
