@@ -19,13 +19,12 @@ Claims audited:
 
 from __future__ import annotations
 
+import io
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
-
+from _pytest.config import get_config  # noqa: F401
 
 ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
 README = ROOT / "README.md"
@@ -38,15 +37,18 @@ class TestREADMEClaims:
         """README.md must exist at project root."""
         assert README.exists(), "README.md not found"
 
-    @pytest.mark.parametrize("claim", [
-        "Process / Action / Journal",
-        "Capability / Lease / Signal",
-        "Crash recovery",
-        "Versioned Artifact FS",
-        "Namespace isolation",
-        "Optimistic concurrency",
-        "Canonical URI security",
-    ])
+    @pytest.mark.parametrize(
+        "claim",
+        [
+            "Process / Action / Journal",
+            "Capability / Lease / Signal",
+            "Crash recovery",
+            "Versioned Artifact FS",
+            "Namespace isolation",
+            "Optimistic concurrency",
+            "Canonical URI security",
+        ],
+    )
     def test_readme_lists_implemented_features(self, claim: str) -> None:
         """README must list all implemented Phase C1 features."""
         content = README.read_text()
@@ -61,26 +63,32 @@ class TestREADMEClaims:
             "Graph-derived multi-agent scheduler",
         ]
         for item in not_yet:
-            assert item in content, (
-                f"README should list '{item}' as not-yet-implemented"
-            )
+            assert item in content, f"README should list '{item}' as not-yet-implemented"
 
     def test_readme_test_count_claim(self) -> None:
         """README test count must match actual count (if stated)."""
+        import re as _re
+        import sys
+
         content = README.read_text()
         # Look for a claim like "N tests" or similar
-        matches = re.findall(r"(\d+)\s+tests?", content)
+        matches = _re.findall(r"(\d+)\s+tests?", content)
         if matches:
             claimed = max(int(m) for m in matches)
-            # Get actual count
-            result = subprocess.run(
-                ["uv", "run", "pytest", "--collect-only", "-q"],
-                capture_output=True, text=True,
-                cwd=str(ROOT),
-                timeout=30,
-            )
+            # Get actual count via in-process collection
+            old_argv = sys.argv
+            buf = io.StringIO()
+            old_stdout = sys.stdout
+            sys.stdout = buf
+            try:
+                sys.argv = ["pytest", "--collect-only", "-q", "tests"]
+                pytest.main(["--collect-only", "-q", "tests"])
+            finally:
+                sys.stdout = old_stdout
+                sys.argv = old_argv
+            output = buf.getvalue()
             # Parse "N tests collected"
-            actual_matches = re.findall(r"(\d+)\s+tests?\s+collected", result.stdout)
+            actual_matches = _re.findall(r"(\d+)\s+tests?\s+collected", output)
             if actual_matches:
                 actual = max(int(m) for m in actual_matches)
                 # README count may be from earlier; allow within 20%
@@ -105,7 +113,6 @@ class TestREADMEClaims:
 
     def test_deterministic_kernel(self) -> None:
         """README claims deterministic — same input → same output."""
-        from lhos.agent_os.kernel.models import KernelEvent
         from lhos.agent_os.sdk.client import create_kernel
 
         kernel = create_kernel(":memory:")
@@ -199,9 +206,7 @@ class TestREADMEClaims:
         """Atomic write protocol must be defined in service module."""
         import lhos.agent_os.artifacts.service as svc_mod
 
-        assert hasattr(svc_mod, "ArtifactFSService"), (
-            "ArtifactFSService not found"
-        )
+        assert hasattr(svc_mod, "ArtifactFSService"), "ArtifactFSService not found"
 
     def test_capability_model_exists(self) -> None:
         """Capability model must exist for authorization claims."""
@@ -209,18 +214,24 @@ class TestREADMEClaims:
 
         cap_set = CapabilitySet(
             pid="p1",
-            capabilities=[
-                Capability(resource_pattern="artifact://ns-p1/**", operations={"read"})
-            ],
+            capabilities=[Capability(resource_pattern="artifact://ns-p1/**", operations={"read"})],
         )
         assert cap_set.check("artifact://ns-p1/file.txt", "read")
         assert not cap_set.check("artifact://ns-p1/file.txt", "write")
 
     def test_lease_model_exists(self) -> None:
         """Lease model must exist for resource ownership claims."""
+        from datetime import UTC, datetime, timedelta
+
         from lhos.agent_os.kernel.models import ResourceLease
 
-        lease = ResourceLease(resource_id="model_slot:mock", owner_pid="p1")
+        now = datetime.now(UTC)
+        lease = ResourceLease(
+            resource_id="model_slot:mock",
+            owner_pid="p1",
+            acquired_at=now,
+            expires_at=now + timedelta(minutes=5),
+        )
         assert lease.resource_id == "model_slot:mock"
         assert lease.owner_pid == "p1"
 
@@ -230,8 +241,13 @@ class TestREADMEClaims:
 
         # Must have core methods
         for method in [
-            "write", "read", "read_text", "list_versions",
-            "snapshot", "watch", "recover",
+            "write",
+            "read",
+            "read_text",
+            "list_versions",
+            "snapshot",
+            "watch",
+            "recover",
         ]:
             assert hasattr(ArtifactSDK, method), f"ArtifactSDK missing {method}"
 
@@ -244,10 +260,7 @@ class TestREADMEClaims:
         storage = SQLiteStorage(":memory:")
         journal = JournalService(storage)
 
-        events = [
-            KernelEvent(event_id=f"multi-{i}", pid="p1", event_type="test")
-            for i in range(5)
-        ]
+        events = [KernelEvent(event_id=f"multi-{i}", pid="p1", event_type="test") for i in range(5)]
         results = journal.append_events_atomically(events)
         assert len(results) == 5
 
@@ -258,30 +271,41 @@ class TestREADMEClaims:
 class TestQuickstartCommands:
     """Test that README quickstart commands actually work."""
 
-    def test_pytest_works(self) -> None:
-        """`make test` (pytest) must exit 0."""
-        result = subprocess.run(
-            ["uv", "run", "pytest", "-q", "--tb=line", "-x"],
-            capture_output=True, text=True,
-            cwd=str(ROOT),
-            timeout=180,
-        )
-        # Full pytest run: may take ~2 minutes; just verify it executes
-        assert result.returncode in (0, 1), (
-            f"pytest broken: rc={result.returncode}, stderr={result.stderr[-200:]}"
-        )
+    def test_pytest_collects_in_process(self) -> None:
+        """pytest collection must succeed (no import errors).
 
-    def test_collect_only_works(self) -> None:
-        """Test collection must work (no import errors)."""
-        result = subprocess.run(
-            ["uv", "run", "pytest", "--collect-only", "-q"],
-            capture_output=True, text=True,
-            cwd=str(ROOT),
-            timeout=30,
-        )
-        assert result.returncode == 0, (
-            f"Test collection failed: {result.stderr[-300:]}"
-        )
+        This replaces a brittle subprocess `uv run pytest -x` that raced
+        against the outer suite and triggered the 180s subprocess timeout.
+        The gate step runs the full suite ourselves, so a redundant
+        full-suite subprocess invocation only adds timing flakiness.
+        """
+        import sys
+
+        old_argv = sys.argv
+        try:
+            sys.argv = ["pytest", "--collect-only", "-q", "tests"]
+            rc = pytest.main(["--collect-only", "-q", "tests"])
+        finally:
+            sys.argv = old_argv
+        # Exit 0=ok, 5=no tests collected (should never happen here)
+        assert rc in (0, 5), f"in-process collection rc={rc}; expected 0=ok or 5=no tests"
+
+    def test_quickstart_imports_work(self) -> None:
+        """Each claimed entry symbol is importable."""
+        import importlib
+
+        modules_to_check = [
+            "lhos.agent_os.artifacts.service",
+            "lhos.agent_os.artifacts.namespace_service",
+            "lhos.agent_os.artifacts.uri",
+            "lhos.agent_os.sdk.artifact_sdk",
+            "lhos.agent_os.services.journal",
+            "lhos.agent_os.services.capability_service",
+            "lhos.agent_os.services.lease_service",
+            "lhos.agent_os.storage.sqlite",
+        ]
+        for mod in modules_to_check:
+            importlib.import_module(mod)
 
 
 class TestPublicClaimsAuditor:

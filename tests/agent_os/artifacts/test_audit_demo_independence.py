@@ -17,14 +17,12 @@ Each run uses fresh temp directories to verify independence.
 from __future__ import annotations
 
 import importlib
+import json
 import subprocess
 import sys
-import tempfile
-import json
 from pathlib import Path
 
 import pytest
-
 
 ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
 DEMO_MODULE = "tests.agent_os.artifacts.demo"
@@ -44,13 +42,12 @@ class TestDemoExecution:
     def test_full_demo_run(self, run, demo_module) -> None:
         """Run complete demo script — must succeed 3x in a row."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); "
-            f"from {DEMO_MODULE} import main; "
-            f"main()"
+            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=30,
         )
@@ -64,13 +61,12 @@ class TestDemoExecution:
     def test_demo_no_warnings(self, run, demo_module) -> None:
         """Demo must not produce runtime warnings or exceptions in output."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); "
-            f"from {DEMO_MODULE} import main; "
-            f"main()"
+            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=30,
         )
@@ -81,13 +77,12 @@ class TestDemoExecution:
     def test_demo_output_contains_all_sections(self, demo_module) -> None:
         """Demo output must cover all 6 demo sections."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); "
-            f"from {DEMO_MODULE} import main; "
-            f"main()"
+            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=30,
         )
@@ -111,15 +106,14 @@ class TestDemoExecution:
         UUIDs/hashes will differ, so we compare structural line counts.
         """
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); "
-            f"from {DEMO_MODULE} import main; "
-            f"main()"
+            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
         )
         results = []
         for _ in range(2):
             result = subprocess.run(
                 [sys.executable, "-c", runner],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
                 cwd=str(ROOT),
                 timeout=30,
             )
@@ -141,11 +135,12 @@ class TestDemoScript:
         from tests.agent_os.artifacts.demo import (
             demo_basic_operations,
             demo_mounts,
-            demo_snapshots,
-            demo_watches,
             demo_quotas,
             demo_recovery,
+            demo_snapshots,
+            demo_watches,
         )
+
         assert callable(demo_basic_operations)
         assert callable(demo_mounts)
         assert callable(demo_snapshots)
@@ -154,8 +149,8 @@ class TestDemoScript:
         assert callable(demo_recovery)
 
     def test_demo_main_callable(self) -> None:
-        main_fn = None
         import tests.agent_os.artifacts.demo as demo_mod
+
         assert hasattr(demo_mod, "main")
         assert callable(demo_mod.main)
 
@@ -175,7 +170,8 @@ class TestDemoAuditRecorder:
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=30,
         )
@@ -184,7 +180,8 @@ class TestDemoAuditRecorder:
             "success": result.returncode == 0,
             "output_lines": len(result.stdout.split("\n")),
             "sections_completed": sum(
-                1 for name in [
+                1
+                for name in [
                     "Basic Read/Write/Versioning",
                     "Namespace Mounts",
                     "Snapshots",

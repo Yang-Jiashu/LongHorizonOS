@@ -22,7 +22,6 @@ import json
 import subprocess
 from pathlib import Path
 
-
 ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
 SRC_ROOT = ROOT / "src"
 
@@ -33,7 +32,8 @@ def _run_tests(test_file: str) -> tuple[int, str, str]:
     """Run tests via uv. Returns (rc, stdout, stderr)."""
     result = subprocess.run(
         ["uv", "run", "pytest", test_file, "-q", "--tb=line", "-x"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
         cwd=str(ROOT),
         timeout=120,
     )
@@ -69,7 +69,7 @@ def _mutation_kills_test(
             info["error"] = "Patch not applied (old code not found)"
             info["killed"] = True  # Treat as analyzed
             return info
-        rc, stdout, stderr = _run_tests(test_rel)
+        rc, _stdout, _stderr = _run_tests(test_rel)
         info["killed"] = rc != 0
         info["rc"] = rc
         if rc == 0:
@@ -96,15 +96,15 @@ MUTATIONS = [
     (
         "capability_always_true",
         "lhos/agent_os/kernel/models.py",
-        "for cap in self.capabilities:\n"
+        "        for cap in self.capabilities:\n"
         "            if fnmatch.fnmatch(resource, cap.resource_pattern) and operation in cap.operations:\n"
         "                return True\n"
         "        return False",
-        "for cap in self.capabilities:\n"
+        "        for cap in self.capabilities:\n"
         "            if fnmatch.fnmatch(resource, cap.resource_pattern) and operation in cap.operations:\n"
         "                return True\n"
         "        return True",
-        "tests/agent_os/artifacts/test_audit_comprehensive.py",
+        "tests/agent_os/test_capabilities.py",
     ),
     (
         "journal_offset_gap",
@@ -130,7 +130,7 @@ MUTATIONS = [
     (
         "idempotency_broken",
         "lhos/agent_os/services/journal.py",
-        'existing = self._storage.query_one(\n'
+        "existing = self._storage.query_one(\n"
         '                "SELECT journal_offset, process_sequence FROM journal_events WHERE event_id = ?",\n'
         "                (ev.event_id,),\n"
         "            )\n"
@@ -157,9 +157,9 @@ MUTATIONS = [
     (
         "capability_ops_ignored",
         "lhos/agent_os/kernel/models.py",
-        "if fnmatch.fnmatch(resource, cap.resource_pattern) and operation in cap.operations:",
-        "if fnmatch.fnmatch(resource, cap.resource_pattern):  # MUTATION",
-        "tests/agent_os/artifacts/test_audit_comprehensive.py",
+        "            if fnmatch.fnmatch(resource, cap.resource_pattern) and operation in cap.operations:",
+        "            if fnmatch.fnmatch(resource, cap.resource_pattern):  # MUTATION",
+        "tests/agent_os/test_capabilities.py",
     ),
     (
         "uri_normalization_disabled",
@@ -193,7 +193,7 @@ MUTATIONS = [
     (
         "version_sequence_gap_on_commit",
         "lhos/agent_os/artifacts/service.py",
-        "results = tx.execute(\n                \"UPDATE artifacts_projection SET current_version = ? WHERE artifact_id = ?\",\n                (new_version, artifact.artifact_id),\n            )",
+        'results = tx.execute(\n                "UPDATE artifacts_projection SET current_version = ? WHERE artifact_id = ?",\n                (new_version, artifact.artifact_id),\n            )',
         "results = 1  # MUTATION: skip version update",
         "tests/agent_os/artifacts/test_audit_comprehensive.py",
     ),
@@ -229,9 +229,7 @@ class TestMutationAudit:
 
         # Verify revert succeeded for all
         revert_failures = [r for r in results if r.get("revert_error")]
-        assert not revert_failures, (
-            f"Revert failed for: {[r['name'] for r in revert_failures]}"
-        )
+        assert not revert_failures, f"Revert failed for: {[r['name'] for r in revert_failures]}"
 
     def test_individual_mutations_expected_killed(self) -> None:
         """Specific mutations that MUST be killed (covered by tests)."""
@@ -255,6 +253,4 @@ class TestMutationAudit:
         ]
         for f in files_to_check:
             content = f.read_text()
-            assert "MUTATION" not in content, (
-                f"Mutation marker found in {f.name} — revert failed"
-            )
+            assert "MUTATION" not in content, f"Mutation marker found in {f.name} — revert failed"

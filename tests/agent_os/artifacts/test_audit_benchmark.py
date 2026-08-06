@@ -14,11 +14,9 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
-
 
 ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
 RESULTS_PATH = ROOT / "artifacts/agent_os_phase_c1_audit/microbenchmark-audit.json"
@@ -43,26 +41,33 @@ class TestBenchmarkCorrectness:
         """Running benchmarks must complete without test failure."""
         result = subprocess.run(
             [
-                "uv", "run", "pytest",
-                "tests/agent_os/artifacts/test_benchmark.py", "-q",
+                "uv",
+                "run",
+                "pytest",
+                "tests/agent_os/artifacts/test_benchmark.py",
+                "-q",
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=60,
         )
         assert result.returncode == 0, (
-            f"Benchmarks failed: {result.stdout[-200:]}\n"
-            f"{result.stderr[-200:]}"
+            f"Benchmarks failed: {result.stdout[-200:]}\n{result.stderr[-200:]}"
         )
 
     def test_benchmark_output_contains_rates(self) -> None:
         """Benchmark output must include ops/s measurements."""
         result = subprocess.run(
             [
-                "uv", "run", "pytest",
-                "tests/agent_os/artifacts/test_benchmark.py", "-s",
+                "uv",
+                "run",
+                "pytest",
+                "tests/agent_os/artifacts/test_benchmark.py",
+                "-s",
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=60,
         )
@@ -78,10 +83,15 @@ class TestBenchmarkCorrectness:
         """
         result = subprocess.run(
             [
-                "uv", "run", "pytest",
-                "tests/agent_os/artifacts/test_benchmark.py", "-s", "-v",
+                "uv",
+                "run",
+                "pytest",
+                "tests/agent_os/artifacts/test_benchmark.py",
+                "-s",
+                "-v",
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=60,
         )
@@ -89,6 +99,7 @@ class TestBenchmarkCorrectness:
 
         # Parse performance numbers from output
         import re
+
         for line in output.split("\n"):
             if "Sequential writes:" in line:
                 match = re.search(r"(\d+)\s*ops/s", line)
@@ -111,19 +122,21 @@ class TestBenchmarkReproducibility:
         for _ in range(2):
             result = subprocess.run(
                 [
-                    "uv", "run", "pytest",
-                    "tests/agent_os/artifacts/test_benchmark.py", "-q",
+                    "uv",
+                    "run",
+                    "pytest",
+                    "tests/agent_os/artifacts/test_benchmark.py",
+                    "-q",
                 ],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
                 cwd=str(ROOT),
                 timeout=120,
             )
             results.append(result.returncode)
 
         # Both runs should pass
-        assert all(r == 0 for r in results), (
-            f"Benchmark runs not consistent: {results}"
-        )
+        assert all(r == 0 for r in results), f"Benchmark runs not consistent: {results}"
 
 
 class TestBenchmarkArtifacts:
@@ -155,10 +168,15 @@ class TestMicrobenchmarkAudit:
         # Run benchmarks and capture
         result = subprocess.run(
             [
-                "uv", "run", "pytest",
-                "tests/agent_os/artifacts/test_benchmark.py", "-s", "-v",
+                "uv",
+                "run",
+                "pytest",
+                "tests/agent_os/artifacts/test_benchmark.py",
+                "-s",
+                "-v",
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(ROOT),
             timeout=60,
         )

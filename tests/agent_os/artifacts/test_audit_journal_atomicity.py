@@ -18,7 +18,6 @@ We patch _Tx.execute (not sqlite3.Cursor.execute, which is immutable).
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -46,9 +45,7 @@ class TestJournalAtomicityFailpoints:
         """Return current journal state for assertions."""
         events = [
             dict(r)
-            for r in storage.query_all(
-                "SELECT * FROM journal_events ORDER BY journal_offset"
-            )
+            for r in storage.query_all("SELECT * FROM journal_events ORDER BY journal_offset")
         ]
         meta = storage.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
         next_offset = meta["value"] if meta else 0
@@ -72,9 +69,11 @@ class TestJournalAtomicityFailpoints:
         storage = self._fresh_storage(tmp_path)
         journal = JournalService(storage)
 
-        with patch.object(_Tx, "execute", side_effect=RuntimeError("crash")):
-            with pytest.raises(RuntimeError):
-                journal.append_event(self._make_event())
+        with (
+            patch.object(_Tx, "execute", side_effect=RuntimeError("crash")),
+            pytest.raises(RuntimeError),
+        ):
+            journal.append_event(self._make_event())
 
         state = self._journal_state(storage)
         assert state["count"] == 0
@@ -85,12 +84,15 @@ class TestJournalAtomicityFailpoints:
         storage = self._fresh_storage(tmp_path)
         journal = JournalService(storage)
 
-        with patch.object(
-            SQLiteStorage, "transaction",
-            side_effect=RuntimeError("crash mid-transaction"),
+        with (
+            patch.object(
+                SQLiteStorage,
+                "transaction",
+                side_effect=RuntimeError("crash mid-transaction"),
+            ),
+            pytest.raises(RuntimeError),
         ):
-            with pytest.raises(RuntimeError):
-                journal.append_event(self._make_event())
+            journal.append_event(self._make_event())
 
         state = self._journal_state(storage)
         assert state["count"] == 0
@@ -166,9 +168,8 @@ class TestJournalAtomicityFailpoints:
                 raise RuntimeError("crash on 2nd event insert")
             return original_exec(self_tx, sql, *args, **kwargs)
 
-        with patch.object(_Tx, "execute", selective_fail):
-            with pytest.raises(RuntimeError):
-                journal.append_events_atomically(events)
+        with patch.object(_Tx, "execute", selective_fail), pytest.raises(RuntimeError):
+            journal.append_events_atomically(events)
 
         state = self._journal_state(storage)
         assert state["count"] == 0
@@ -185,9 +186,11 @@ class TestJournalAtomicityFailpoints:
         assert ev1.journal_offset == 0
 
         # Failed append
-        with patch.object(_Tx, "execute", side_effect=RuntimeError("crash")):
-            with pytest.raises(RuntimeError):
-                journal.append_event(self._make_event("evt-fail"))
+        with (
+            patch.object(_Tx, "execute", side_effect=RuntimeError("crash")),
+            pytest.raises(RuntimeError),
+        ):
+            journal.append_event(self._make_event("evt-fail"))
 
         # Third successful append: should get offset 1, NOT reuse 0
         ev3 = self._make_event("evt-ok-3")
@@ -212,9 +215,11 @@ class TestJournalAtomicityFailpoints:
         assert ev2.process_sequence == 1
 
         # Failed append for p1 — tx rolls back, sequence not consumed
-        with patch.object(_Tx, "execute", side_effect=RuntimeError("crash")):
-            with pytest.raises(RuntimeError):
-                journal.append_event(self._make_event("seq-fail", "p1"))
+        with (
+            patch.object(_Tx, "execute", side_effect=RuntimeError("crash")),
+            pytest.raises(RuntimeError),
+        ):
+            journal.append_event(self._make_event("seq-fail", "p1"))
 
         # Next append: sequence max is still 1, so new seq = 2
         ev4 = self._make_event("seq-4", "p1")
@@ -256,9 +261,11 @@ class TestJournalAtomicityFailpoints:
         assert ev_p2.process_sequence == 0
 
         # Failed append for p1 — has no effect on p2
-        with patch.object(_Tx, "execute", side_effect=RuntimeError("crash")):
-            with pytest.raises(RuntimeError):
-                journal.append_event(self._make_event("p1-fail", "p1"))
+        with (
+            patch.object(_Tx, "execute", side_effect=RuntimeError("crash")),
+            pytest.raises(RuntimeError),
+        ):
+            journal.append_event(self._make_event("p1-fail", "p1"))
 
         # p2 unaffected: next seq for p2 is 1
         ev_p2_next = self._make_event("p2-2", "p2")
@@ -279,13 +286,9 @@ class TestJournalMetaConsistency:
         journal = JournalService(storage)
 
         for i in range(5):
-            journal.append_event(KernelEvent(
-                event_id=f"m-{i}", pid="p1", event_type="test"
-            ))
+            journal.append_event(KernelEvent(event_id=f"m-{i}", pid="p1", event_type="test"))
 
-        meta = storage.query_one(
-            "SELECT value FROM journal_meta WHERE key = 'next_offset'"
-        )
+        meta = storage.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
         assert meta["value"] == 5
 
     def test_next_offset_after_failure(self, tmp_path):
@@ -294,20 +297,16 @@ class TestJournalMetaConsistency:
 
         # 3 successful appends
         for i in range(3):
-            journal.append_event(KernelEvent(
-                event_id=f"m2-{i}", pid="p1", event_type="test"
-            ))
+            journal.append_event(KernelEvent(event_id=f"m2-{i}", pid="p1", event_type="test"))
 
         # 1 failed append
-        with patch.object(_Tx, "execute", side_effect=RuntimeError("crash")):
-            with pytest.raises(RuntimeError):
-                journal.append_event(KernelEvent(
-                    event_id="m2-fail", pid="p1", event_type="test"
-                ))
+        with (
+            patch.object(_Tx, "execute", side_effect=RuntimeError("crash")),
+            pytest.raises(RuntimeError),
+        ):
+            journal.append_event(KernelEvent(event_id="m2-fail", pid="p1", event_type="test"))
 
-        meta = storage.query_one(
-            "SELECT value FROM journal_meta WHERE key = 'next_offset'"
-        )
+        meta = storage.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
         assert meta["value"] == 3  # Not 4 — failed append didn't consume offset
 
     def test_next_offset_after_idempotent(self, tmp_path):
@@ -318,7 +317,5 @@ class TestJournalMetaConsistency:
         journal.append_event(ev)
         journal.append_event(ev)  # idempotent
 
-        meta = storage.query_one(
-            "SELECT value FROM journal_meta WHERE key = 'next_offset'"
-        )
+        meta = storage.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
         assert meta["value"] == 1  # Only one offset consumed

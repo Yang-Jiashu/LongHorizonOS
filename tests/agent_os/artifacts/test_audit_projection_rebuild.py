@@ -31,14 +31,20 @@ def _make_state(journal):
     # 3 namespaces
     for p in ["p1", "p2", "p3"]:
         ns_svc.create_namespace(p)
-        cap_svc.grant(p, Capability(resource_pattern=f"artifact://ns-{p}/**", operations={"read", "write"}))
+        cap_svc.grant(
+            p, Capability(resource_pattern=f"artifact://ns-{p}/**", operations={"read", "write"})
+        )
 
     # Artifacts: 10 total
     for i in range(10):
         pid = f"p{(i % 3) + 1}"
         sdk.write(pid, f"workspace:///art_{i}.txt", f"v1-{i}".encode(), f"init-{i}")
-        sdk.write(pid, f"workspace:///art_{i}.txt", f"v2-{i}".encode(), f"up-{i}", expected_version=1)
-        sdk.write(pid, f"workspace:///art_{i}.txt", f"v3-{i}".encode(), f"fin-{i}", expected_version=2)
+        sdk.write(
+            pid, f"workspace:///art_{i}.txt", f"v2-{i}".encode(), f"up-{i}", expected_version=1
+        )
+        sdk.write(
+            pid, f"workspace:///art_{i}.txt", f"v3-{i}".encode(), f"fin-{i}", expected_version=2
+        )
 
     # 2 mounts
     sdk.mount("p2", "view_p1", "p1", mode="shared_readonly")
@@ -73,18 +79,14 @@ def snap(projections):
         aid_to_uri[dict(row)["artifact_id"]] = dict(row)["canonical_uri"]
 
     nss = []
-    for row in projections._storage.query_all(
-        "SELECT * FROM namespaces_projection", ()
-    ):
+    for row in projections._storage.query_all("SELECT * FROM namespaces_projection", ()):
         d = dict(row)
         d.pop("created_at", None)
         nss.append(d)
     state["namespaces"] = sorted(nss, key=lambda x: x.get("namespace_id", ""))
 
     arts = []
-    for row in projections._storage.query_all(
-        "SELECT * FROM artifacts_projection", ()
-    ):
+    for row in projections._storage.query_all("SELECT * FROM artifacts_projection", ()):
         d = dict(row)
         d.pop("artifact_id", None)  # random UUID — not deterministic
         d.pop("created_at", None)
@@ -93,9 +95,7 @@ def snap(projections):
     state["artifacts"] = sorted(arts, key=lambda x: x.get("canonical_uri", ""))
 
     vers = []
-    for row in projections._storage.query_all(
-        "SELECT * FROM artifact_versions_projection", ()
-    ):
+    for row in projections._storage.query_all("SELECT * FROM artifact_versions_projection", ()):
         d = dict(row)
         d.pop("committed_at", None)
         d.pop("committed_action_id", None)  # random UUID
@@ -106,14 +106,10 @@ def snap(projections):
         elif aid:
             d["artifact_key"] = aid
         vers.append(d)
-    state["versions"] = sorted(
-        vers, key=lambda x: (x.get("artifact_key", ""), x.get("version", 0))
-    )
+    state["versions"] = sorted(vers, key=lambda x: (x.get("artifact_key", ""), x.get("version", 0)))
 
     txns = []
-    for row in projections._storage.query_all(
-        "SELECT * FROM write_transactions_projection", ()
-    ):
+    for row in projections._storage.query_all("SELECT * FROM write_transactions_projection", ()):
         d = dict(row)
         d.pop("transaction_id", None)  # random UUID
         d.pop("created_at", None)
@@ -122,11 +118,12 @@ def snap(projections):
         txns.append(d)
     # Sort by idempotency_key if available, else by artifact_uri + pid
     state["transactions"] = sorted(
-        txns, key=lambda x: (
+        txns,
+        key=lambda x: (
             x.get("artifact_uri", "") or x.get("artifact_key", ""),
             x.get("pid", ""),
             x.get("idempotency_key", ""),
-        )
+        ),
     )
 
     # Journal: sort events deterministically by sequence_number
@@ -144,12 +141,12 @@ def snap(projections):
 
 
 class TestProjectionRebuild:
-
     def test_deterministic_projection_state(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             def build_state(idx):
                 from lhos.agent_os.storage.sqlite import SQLiteStorage
+
                 db_path = str(Path(tmpdir) / f"audit-{idx}.db")
                 storage = SQLiteStorage(db_path)
                 journal = JournalService(storage)
@@ -179,7 +176,6 @@ class TestProjectionRebuild:
 
 
 class TestBlobIntegrity:
-
     def test_missing_blob_read_fails(self, tmp_path):
         """Reading missing blob raises error."""
         driver = LocalArtifactStorageDriver(tmp_path / "cas")

@@ -28,7 +28,6 @@ from lhos.agent_os.kernel.models import (
     ProcessState,
 )
 from lhos.agent_os.sdk.client import create_kernel
-from lhos.agent_os.storage.sqlite import SQLiteStorage
 
 
 def _exit(kernel, pid: str, exit_code=0) -> None:
@@ -63,13 +62,13 @@ class TestProcessExitCleanup:
             assert lease is not None
 
         active = kernel._lease_service.list_all_leases()
-        p1_active = [l for l in active if l.owner_pid == pid]
+        p1_active = [lease for lease in active if lease.owner_pid == pid]
         assert len(p1_active) == 3
 
         _exit(kernel, pid)
 
         active_after = kernel._lease_service.list_all_leases()
-        p1_after = [l for l in active_after if l.owner_pid == pid]
+        p1_after = [lease for lease in active_after if lease.owner_pid == pid]
         assert len(p1_after) == 0
 
     def test_exit_journals_exited_event(self, kernel):
@@ -80,17 +79,13 @@ class TestProcessExitCleanup:
         _exit(kernel, pid, exit_code=42)
 
         events = kernel._journal.read_all()
-        exited = [
-            e for e in events
-            if e.event_type == "PROCESS_EXITED" and e.pid == pid
-        ]
+        exited = [e for e in events if e.event_type == "PROCESS_EXITED" and e.pid == pid]
         # NOTE: dispatcher emits PROCESS_EXITED twice (from transition + explicit).
         # We check at least one has the correct payload.
         assert len(exited) >= 1
         with_code = [e for e in exited if e.payload.get("exit_code") == "42"]
         assert len(with_code) >= 1, (
-            f"No PROCESS_EXITED with exit_code=42 found. "
-            f"Events: {[e.payload for e in exited]}"
+            f"No PROCESS_EXITED with exit_code=42 found. Events: {[e.payload for e in exited]}"
         )
 
     def test_exit_transitions_to_exited_state(self, kernel):
@@ -117,8 +112,8 @@ class TestProcessExitCleanup:
         _exit(kernel, pid1)
 
         active = kernel._lease_service.list_all_leases()
-        p2_leases = [l for l in active if l.owner_pid == pid2]
-        p1_leases = [l for l in active if l.owner_pid == pid1]
+        p2_leases = [lease for lease in active if lease.owner_pid == pid2]
+        p1_leases = [lease for lease in active if lease.owner_pid == pid1]
         assert len(p2_leases) == 1
         assert len(p1_leases) == 0
 
@@ -153,7 +148,7 @@ class TestProcessExitCleanup:
         kernel._process_service.transition(pid, ProcessState.FAILED)
 
         active = kernel._lease_service.list_all_leases()
-        p1_leases = [l for l in active if l.owner_pid == pid]
+        p1_leases = [lease for lease in active if lease.owner_pid == pid]
         assert len(p1_leases) == 0
 
         pcb_after = kernel._process_service.get_process(pid)
@@ -172,7 +167,6 @@ class TestProcessExitCleanup:
 
     def test_exit_twice_is_rejected(self, kernel):
         """Second EXIT on EXITED process raises TerminalStateError (by design)."""
-        from lhos.agent_os.kernel.errors import TerminalStateError
 
         pcb = kernel._process_service.spawn("prog-twice")
         pid = pcb.pid
@@ -188,7 +182,9 @@ class TestProcessExitCleanup:
         pcb_after = kernel._process_service.get_process(pid)
         assert pcb_after.state == ProcessState.EXITED
         # First exit still released the leases
-        active = [l for l in kernel._lease_service.list_all_leases() if l.owner_pid == pid]
+        active = [
+            lease for lease in kernel._lease_service.list_all_leases() if lease.owner_pid == pid
+        ]
         assert len(active) == 0
 
     def test_exit_deletes_lease_projection_rows(self, kernel):
@@ -233,7 +229,7 @@ class TestCrashRecoveryResourceCleanup:
             # Second session: lease still exists
             kernel2 = create_kernel(str(db_path))
             active = kernel2._lease_service.list_all_leases()
-            p1_active = [l for l in active if l.owner_pid == pid]
+            p1_active = [lease for lease in active if lease.owner_pid == pid]
             assert len(p1_active) == 1
             kernel2._storage.close()
 
@@ -246,9 +242,7 @@ class TestCrashRecoveryResourceCleanup:
             pcb = kernel._process_service.spawn("prog-persist")
             pid = pcb.pid
 
-            asyncio.run(
-                kernel._dispatcher.dispatch(ExitRequest(pid=pid, exit_code="0"))
-            )
+            asyncio.run(kernel._dispatcher.dispatch(ExitRequest(pid=pid, exit_code="0")))
             kernel._storage.close()
 
             # Restart
@@ -296,5 +290,5 @@ class TestLeaseAcquisitionAfterExit:
         _exit(kernel, pid)
 
         active = kernel._lease_service.list_all_leases()
-        pid_active = [l for l in active if l.owner_pid == pid]
+        pid_active = [lease for lease in active if lease.owner_pid == pid]
         assert len(pid_active) == 0

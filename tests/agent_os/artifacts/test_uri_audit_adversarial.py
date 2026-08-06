@@ -8,7 +8,6 @@ from __future__ import annotations
 import pytest
 
 from lhos.agent_os.artifacts.uri import (
-    CanonicalURI,
     canonicalize_uri,
     is_canonical,
 )
@@ -56,9 +55,7 @@ class TestURIEncoding:
         """%252e should decode once to %2e (literal), not become '.'."""
         uri = "artifact://ns-a/%252e%252e/secret"
         result = canonicalize_uri(uri)
-        assert "%2e" in result.path or result.path == "secret", (
-            f"Unexpected decode: {result.path}"
-        )
+        assert "%2e" in result.path or result.path == "secret", f"Unexpected decode: {result.path}"
 
 
 class TestURIBackslash:
@@ -130,16 +127,40 @@ class TestURIFuzz:
 
     def _generate_fuzz_inputs(self) -> list[str]:
         base_paths = [
-            "file.txt", "dir/file.txt", "a/b/c/d.txt",
-            "foo bar.txt", "file%20name.txt", "data/report.md",
-            "x/y/z.txt", "one/two/three.txt", "alpha/beta/gamma.txt",
-            "test/data/result.json", "src/main/app.py", "notes.txt",
-            "my document.pdf", "image.png", "script.sh",
+            "file.txt",
+            "dir/file.txt",
+            "a/b/c/d.txt",
+            "foo bar.txt",
+            "file%20name.txt",
+            "data/report.md",
+            "x/y/z.txt",
+            "one/two/three.txt",
+            "alpha/beta/gamma.txt",
+            "test/data/result.json",
+            "src/main/app.py",
+            "notes.txt",
+            "my document.pdf",
+            "image.png",
+            "script.sh",
         ]
         attacks = [
-            "../", "..\\", "%2e%2e/", "%2E%2E/", "%252e%252e/",
-            "/../", "/..\\", "c:", "C:", "%2e%2e", "....//", "..../",
-            "....\\", "..%2f", "..%5c", "%2e%2e%2f", "%252e",
+            "../",
+            "..\\",
+            "%2e%2e/",
+            "%2E%2E/",
+            "%252e%252e/",
+            "/../",
+            "/..\\",
+            "c:",
+            "C:",
+            "%2e%2e",
+            "....//",
+            "..../",
+            "....\\",
+            "..%2f",
+            "..%5c",
+            "%2e%2e%2f",
+            "%252e",
         ]
         inputs: list[str] = []
         for base in base_paths:

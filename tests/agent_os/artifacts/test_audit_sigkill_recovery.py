@@ -3,7 +3,7 @@
 Verifies that artifact FS state remains consistent after a process is
 forcibly killed (SIGKILL) at critical points during write operations.
 
-5 scenarios × 20 runs each:
+5 scenarios * 20 runs each:
 1. Mid write — several appends then pause
 2. Post stage pre commit — multi-pid appends
 3. Post commit pre journal — single append then pause
@@ -27,10 +27,11 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
-WORKER_PROGRAM = '''\
+WORKER_PROGRAM = """\
 import sys
 import time
 from pathlib import Path
@@ -93,7 +94,7 @@ elif scenario == "multi_event":
     time.sleep(10)
 
 storage.close()
-'''
+"""
 
 
 def _run_worker(scenario: str, tmpdir: Path, src_path: str) -> Path:
@@ -160,9 +161,7 @@ def _verify_journal_integrity(db_path: Path) -> dict:
 
         if next_offset < len(events):
             result["ok"] = False
-            result["errors"].append(
-                f"next_offset {next_offset} < event count {len(events)}"
-            )
+            result["errors"].append(f"next_offset {next_offset} < event count {len(events)}")
 
         # Check per-pid sequences are gapless
         pids = set(e["pid"] for e in events)
@@ -198,7 +197,7 @@ def _verify_journal_integrity(db_path: Path) -> dict:
 class TestSIGKILLRecovery:
     """5 scenarios x 20 runs = 100 total SIGKILL tests."""
 
-    SCENARIOS = [
+    SCENARIOS: ClassVar[list[str]] = [
         "mid_write",
         "post_stage_pre_commit",
         "post_commit_pre_journal",
@@ -214,7 +213,7 @@ class TestSIGKILLRecovery:
     def test_sigkill_recovery(self, scenario, src_path):
         """Run 20 SIGKILL trials for each scenario and verify integrity."""
         results = []
-        for trial in range(20):
+        for _trial in range(20):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmpdir_path = Path(tmpdir)
                 try:
@@ -229,6 +228,5 @@ class TestSIGKILLRecovery:
         failure_details = json.dumps(failures[:3], indent=2) if failures else ""
 
         assert len(failures) == 0, (
-            f"Scenario '{scenario}': {len(failures)}/20 failures.\n"
-            f"Details: {failure_details}"
+            f"Scenario '{scenario}': {len(failures)}/20 failures.\nDetails: {failure_details}"
         )

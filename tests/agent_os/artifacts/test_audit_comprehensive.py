@@ -22,7 +22,6 @@ from lhos.agent_os.services.journal import JournalService
 from lhos.agent_os.services.lease_service import LeaseService
 from lhos.agent_os.storage.sqlite import SQLiteStorage
 
-
 # ── In-memory capability registry for authorization predicate tests ───────────
 
 _GRANTED: dict[str, list[Capability]] = {}
@@ -31,6 +30,7 @@ _GRANTED: dict[str, list[Capability]] = {}
 def grant_cap(pid: str, pattern: str, ops: list[str]) -> None:
     """Register capability in in-memory registry."""
     from uuid import uuid4
+
     cap = Capability(
         capability_id=f"cap-{uuid4().hex[:8]}",
         resource_pattern=pattern,
@@ -44,6 +44,7 @@ def grant_cap(pid: str, pattern: str, ops: list[str]) -> None:
 def check_cap(pid: str, resource: str, op: str) -> bool:
     """Check capability predicate against in-memory registry."""
     import fnmatch
+
     for cap in _GRANTED.get(pid, []):
         if fnmatch.fnmatch(resource, cap.resource_pattern) and op in cap.operations:
             return True
@@ -67,7 +68,9 @@ def harness():
     lease_service = LeaseService(storage, journal)
     ns_service = NamespaceService(projections, journal)
     service = ArtifactFSService(
-        projections, driver, journal,
+        projections,
+        driver,
+        journal,
         capability_service=cap_service,
         lease_service=lease_service,
     )
@@ -85,7 +88,6 @@ def grant(sdk, pid: str, pattern: str, ops: list[str]) -> None:
 
 
 class TestCapabilityPredicates:
-
     def test_no_grant_denies(self):
         assert not check_cap("p2", "artifact://ns-p1/secret.txt", "read")
 
@@ -112,8 +114,8 @@ class TestCapabilityPredicates:
 
     def test_handle_ownership_predicate(self):
         handle_pid = "p1"
-        assert ("p1" == handle_pid)
-        assert not ("p2" != handle_pid) or ("p2" != handle_pid)
+        assert handle_pid == "p1"
+        assert handle_pid == "p2" or (handle_pid != "p2")
 
     def test_namespace_visibility(self):
         caller_ns, target_ns = "ns-p1", "ns-p1"
@@ -125,7 +127,6 @@ class TestCapabilityPredicates:
 
 
 class TestVersionInvariants:
-
     def test_first_version_is_one(self, harness):
         sdk, _, ns_service, *_ = harness
         ns_service.create_namespace("p1")
@@ -190,7 +191,6 @@ class TestVersionInvariants:
 
 
 class TestConcurrency:
-
     def test_exclusive_writer_sequential(self, harness):
         sdk, _, ns_service, *_ = harness
         ns_service.create_namespace("p1")
@@ -241,7 +241,6 @@ class TestConcurrency:
 
 
 class TestIdempotency:
-
     def test_same_key_same_version(self, harness):
         sdk, _, ns_service, *_ = harness
         ns_service.create_namespace("p1")

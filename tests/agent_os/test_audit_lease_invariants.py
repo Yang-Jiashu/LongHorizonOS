@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -81,9 +81,11 @@ def scan_lease_invariants(kernel) -> list[dict[str, Any]]:
             )
 
     # 4. Expired lease still active
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     for lease in leases:
         expires_at = datetime.fromisoformat(lease["expires_at"])
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
         if expires_at < now:
             violations.append(
                 {
@@ -237,7 +239,7 @@ class TestLeaseLifecycleAudit:
         )
 
         # Reclaim
-        reclaimed = kernel._lease_service.reclaim_expired(datetime.utcnow())
+        reclaimed = kernel._lease_service.reclaim_expired(datetime.now(UTC))
         assert reclaimed == 1
 
         # Verify lease is gone

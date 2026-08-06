@@ -13,9 +13,7 @@ Run with:
 
 from __future__ import annotations
 
-import fnmatch
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -27,13 +25,13 @@ from lhos.agent_os.artifacts.projections import ArtifactProjections
 from lhos.agent_os.artifacts.service import ArtifactFSService
 from lhos.agent_os.artifacts.uri import InvalidArtifactURI, canonicalize_uri
 from lhos.agent_os.drivers.local_artifact_storage import LocalArtifactStorageDriver
-from lhos.agent_os.kernel.models import Capability, CapabilitySet, KernelEvent
+from lhos.agent_os.kernel.errors import CapabilityDenied
+from lhos.agent_os.kernel.models import Capability, KernelEvent
 from lhos.agent_os.sdk.artifact_sdk import ArtifactSDK
 from lhos.agent_os.services.capability_service import CapabilityService
 from lhos.agent_os.services.journal import JournalService
 from lhos.agent_os.services.lease_service import LeaseService
 from lhos.agent_os.storage.sqlite import SQLiteStorage
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -47,7 +45,9 @@ def env(tmp_path):
     driver = LocalArtifactStorageDriver(tmp_path / "cas")
     cap_service = CapabilityService(storage, journal)
     service = ArtifactFSService(
-        projections, driver, journal,
+        projections,
+        driver,
+        journal,
         capability_service=cap_service,
         lease_service=lease_service,
     )
@@ -59,6 +59,7 @@ def env(tmp_path):
         "lease_service": lease_service,
         "projections": projections,
         "driver": driver,
+        "storage_driver": driver,
         "cap_service": cap_service,
         "service": service,
         "ns_service": ns_service,
@@ -128,7 +129,9 @@ class TestGate4_CapabilityAfterCanonicalization:
         ns_svc.create_namespace("p1")
         _grant(env, "p1", "artifact://ns-p1/**", ["read"])
         # Write canonical — capability check used resolved canonical URI
-        result = svc.write_metadata_for_test("p1", "artifact://ns-p1/f.txt") if hasattr(svc, "write_metadata_for_test") else None
+        svc.write_metadata_for_test("p1", "artifact://ns-p1/f.txt") if hasattr(
+            svc, "write_metadata_for_test"
+        ) else None
         # Capability set exists and covers the resource
         cap_set = env["cap_service"].get_capability_set("p1")
         assert cap_set is not None
@@ -154,7 +157,7 @@ class TestGate6_HandleOwnership:
 
     def test_handle_owned_by_creator(self, env):
         env["ns_service"].create_namespace("p1")
-        svc = env["service"]
+        env["service"]
         _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
         sdk = env["sdk"]
         sdk.write("p1", "workspace:///f.txt", b"data", "k1")
@@ -197,14 +200,17 @@ class TestGate9_VersionImmutableIncrement:
         sdk = env["sdk"]
         _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
         for i in range(5):
-            sdk.write("p1", "workspace:///f.txt", f"v{i}".encode(), f"k{i}",
-                      expected_version=i if i > 0 else None)
+            sdk.write(
+                "p1",
+                "workspace:///f.txt",
+                f"v{i}".encode(),
+                f"k{i}",
+                expected_version=i if i > 0 else None,
+            )
         versions = list(sdk.list_versions("p1", "workspace:///f.txt"))
         version_numbers = [v["version"] for v in versions]
         # Sequential: 1, 2, 3, 4, 5
-        assert version_numbers == list(range(1, 6)), (
-            f"Versions not sequential: {version_numbers}"
-        )
+        assert version_numbers == list(range(1, 6)), f"Versions not sequential: {version_numbers}"
 
 
 class TestGate10_OptimisticConcurrency:
@@ -225,7 +231,7 @@ class TestGate11_SingleWriter:
 
     def test_exclusive_lease_blocks_second_write(self, env):
         env["ns_service"].create_namespace("p1")
-        svc = env["service"]
+        env["service"]
         _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
         sdk = env["sdk"]
         sdk.write("p1", "workspace:///f.txt", b"v1", "k1")
@@ -267,8 +273,8 @@ class TestGate14_CrashNoDoubleCommit:
         sdk = env["sdk"]
         _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
         sdk.write("p1", "workspace:///f.txt", b"data", "k1")
-        r1 = sdk.recover()
-        r2 = sdk.recover()
+        sdk.recover()
+        sdk.recover()
         versions = list(sdk.list_versions("p1", "workspace:///f.txt"))
         assert len(versions) == 1
 
@@ -291,9 +297,7 @@ class TestGate16_NoHandleLeak:
     def test_release_all_for_pid(self, env):
         env["ns_service"].create_namespace("p1")
         lease_service = env["lease_service"]
-        lease_service.atomic_acquire(
-            "p1", [{"resource_id": "workspace:p1", "mode": "exclusive"}]
-        )
+        lease_service.atomic_acquire("p1", [{"resource_id": "workspace:p1", "mode": "exclusive"}])
         lease_service.release_all_for_pid("p1")
         leases = lease_service.list_all_leases()
         for lease in leases:
@@ -339,6 +343,7 @@ class TestGate19_ArtifactFSDecoupled:
 
     def test_no_vpg_imports(self):
         import lhos.agent_os.artifacts.service as svc_mod
+
         source = Path(svc_mod.__file__).read_text()
         assert "runtimes" not in source
         assert "harnesses" not in source
@@ -350,6 +355,7 @@ class TestGate20_NoGraphAgentIndependent:
 
     def test_sdk_standalone(self):
         import inspect
+
         source = inspect.getsource(ArtifactSDK)
         assert "VPG" not in source
         assert "NoGraph" not in source or "ArtifactSDK" in source
@@ -360,20 +366,35 @@ class TestGate20_NoGraphAgentIndependent:
 
 class TestGate21_CrossNamespaceMountBypass:
     """Gate 21: Cross-namespace data access properly controlled.
-    Documents mount + capability interaction. After mount grants path
-    resolution, source-namespace write must still succeed.
+    Documents mount + capability interaction after SRV-01 close: a caller
+    mounting a foreign namespace does NOT inherit source-namespace access;
+    reads/writes routed through the mount into that source require the caller
+    to ALSO hold capability on the source namespace.
     """
 
-    def test_cross_namespace_mount_reads_source(self, env):
+    def test_mount_cross_namespace_read_denied_without_source_cap(self, env):
         env["ns_service"].create_namespace("p1")
         env["ns_service"].create_namespace("p2")
         sdk = env["sdk"]
         _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
         _grant(env, "p2", "artifact://ns-p2/**", ["read"])
         sdk.write("p1", "workspace:///shared.txt", b"shared", "k1")
-        # Mount p1's namespace into p2
         env["ns_service"].mount("p2", "data", "ns-p1", mode="shared_readonly")
-        # p2 reads via mount path
+        # SRV-01: without the source-namespace capability, the mount alone
+        # must NOT grant access to the source-side artifact.
+        with pytest.raises(CapabilityDenied):
+            sdk.read("p2", "artifact://ns-p2/data/shared.txt")
+
+    def test_mount_cross_namespace_read_allowed_with_source_cap(self, env):
+        env["ns_service"].create_namespace("p1")
+        env["ns_service"].create_namespace("p2")
+        sdk = env["sdk"]
+        _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
+        _grant(env, "p2", "artifact://ns-p2/**", ["read"])
+        _grant(env, "p2", "artifact://ns-p1/**", ["read"])
+        sdk.write("p1", "workspace:///shared.txt", b"shared", "k1")
+        env["ns_service"].mount("p2", "data", "ns-p1", mode="shared_readonly")
+        # Source capability present — the cross-namespace read succeeds.
         data = sdk.read("p2", "artifact://ns-p2/data/shared.txt")
         assert data == b"shared"
 
@@ -385,13 +406,9 @@ class TestGate22_ConcurrentWriterExclusion:
         env["ns_service"].create_namespace("p1")
         env["ns_service"].create_namespace("p2")
         lease_service = env["lease_service"]
-        lease_service.atomic_acquire(
-            "p1", [{"resource_id": "res:X", "mode": "exclusive"}]
-        )
+        lease_service.atomic_acquire("p1", [{"resource_id": "res:X", "mode": "exclusive"}])
         with pytest.raises(Exception):
-            lease_service.atomic_acquire(
-                "p2", [{"resource_id": "res:X", "mode": "exclusive"}]
-            )
+            lease_service.atomic_acquire("p2", [{"resource_id": "res:X", "mode": "exclusive"}])
 
 
 class TestGate23_QuotaAccounting:
@@ -413,9 +430,7 @@ class TestGate24_JournalEventOrdering:
         storage = SQLiteStorage(":memory:")
         journal = JournalService(storage)
         for i in range(10):
-            journal.append_event(
-                KernelEvent(event_id=f"evt-{i}", pid="p1", event_type="test")
-            )
+            journal.append_event(KernelEvent(event_id=f"evt-{i}", pid="p1", event_type="test"))
         events = journal.read_all()
         offsets = [e.journal_offset for e in events]
         assert offsets == list(range(10)), f"Offsets not sequential: {offsets}"
@@ -457,6 +472,33 @@ class TestGate26_ArtifactDeleteRecreate:
 class TestAll26GatesPass:
     """Verify pass/fail gate summary and write summary artifact."""
 
+    def test_recovery_idempotent_no_duplicate_versions(self, env):
+        """Regression: repeating recovery on a committed-content UNCERTAIN txn
+        must NOT create duplicate ArtifactVersion rows. (C1.1 regression fix.)"""
+        storage_driver = env["storage_driver"]
+        svc = env["service"]
+        projections = env["projections"]
+        ns_svc = env["ns_service"]
+        _grant(env, "p1", "artifact://ns-p1/**", ["read", "write"])
+
+        ns_svc.create_namespace("p1")
+        svc.write("p1", "workspace:///idem.txt", b"v1", "k0")
+        txn = svc.begin_write("p1", "workspace:///idem.txt", "k1", expected_version=1)
+        svc.stage(txn.transaction_id, b"v2")
+        storage_driver.commit(txn.transaction_id)
+        txn = projections.get_transaction(txn.transaction_id)
+        txn.state = "uncertain"
+        txn.finished_at = None
+        projections.upsert_transaction(txn)
+
+        r1 = svc.recover()
+        r2 = svc.recover()
+        versions = list(svc.list_versions("p1", "workspace:///idem.txt"))
+        assert r1["versions_created"] == 1
+        assert r2["versions_created"] == 0
+        assert len(versions) == 2
+        assert svc.read("p1", "workspace:///idem.txt", version=2) == b"v2"
+
     def test_gate_summary_artifact(self):
         """Generate gate summary artifact."""
         summary = {
@@ -472,34 +514,38 @@ class TestAll26GatesPass:
             "original_20_gates": "Phase C1 correctness guarantees",
             "additional_6_gates": "Adversarial security/concurrency/isolation",
             "gate_mapping": {
-                str(i): desc for i, desc in enumerate([
-                    "Process host-path hidden",
-                    "URI canonical uniqueness",
-                    "Path traversal defense",
-                    "Capability after canonicalization",
-                    "Mount AND capability required",
-                    "Handle ownership by creator PID",
-                    "Read handle pins version",
-                    "Reader never sees staged content",
-                    "Versions immutable + monotonic",
-                    "Optimistic concurrency (lost-update prevention)",
-                    "Single active writer (exclusion)",
-                    "Atomic commit",
-                    "Idempotent writes",
-                    "Crash recovery idempotent (no double commit)",
-                    "UNCERTAIN state preserved",
-                    "No handle/lease leak on process exit",
-                    "Projection rebuild from Journal",
-                    "Blob content hash verification",
-                    "Artifact FS decoupled from VPG/Harness",
-                    "NoGraph agent independent",
-                    "Cross-namespace mount access controlled",
-                    "Concurrent writer lease exclusion",
-                    "Quota accounting accurate",
-                    "Journal causal ordering",
-                    "Snapshot point-in-time isolation",
-                    "Artifact delete + re-create",
-                ], start=1)
+                str(i): desc
+                for i, desc in enumerate(
+                    [
+                        "Process host-path hidden",
+                        "URI canonical uniqueness",
+                        "Path traversal defense",
+                        "Capability after canonicalization",
+                        "Mount AND capability required",
+                        "Handle ownership by creator PID",
+                        "Read handle pins version",
+                        "Reader never sees staged content",
+                        "Versions immutable + monotonic",
+                        "Optimistic concurrency (lost-update prevention)",
+                        "Single active writer (exclusion)",
+                        "Atomic commit",
+                        "Idempotent writes",
+                        "Crash recovery idempotent (no double commit)",
+                        "UNCERTAIN state preserved",
+                        "No handle/lease leak on process exit",
+                        "Projection rebuild from Journal",
+                        "Blob content hash verification",
+                        "Artifact FS decoupled from VPG/Harness",
+                        "NoGraph agent independent",
+                        "Cross-namespace mount access controlled",
+                        "Concurrent writer lease exclusion",
+                        "Quota accounting accurate",
+                        "Journal causal ordering",
+                        "Snapshot point-in-time isolation",
+                        "Artifact delete + re-create",
+                    ],
+                    start=1,
+                )
             },
         }
         path = Path(
