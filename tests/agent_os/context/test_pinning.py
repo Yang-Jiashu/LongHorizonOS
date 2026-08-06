@@ -6,10 +6,8 @@ from __future__ import annotations
 
 import pytest
 
-from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
-
 from lhos.agent_os.context.errors import ErrHandleNotOwned
-
+from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,8 +23,7 @@ def _load_with_pages(
     """Build a manifest with ``count`` optional refs and load it.
     Returns (handle, loaded)."""
     artifacts = [
-        (f"artifact://ns-p1/doc{i}.md", content_per_ref, f"idem-{i}")
-        for i in range(count)
+        (f"artifact://ns-p1/doc{i}.md", content_per_ref, f"idem-{i}") for i in range(count)
     ]
     manifest = write_artifacts_and_build_manifest(
         env=env,
@@ -53,18 +50,14 @@ class TestPinBasics:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
         assert len(pages) >= 1
-        pinned = env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        pinned = env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         assert pages[0] in pinned
 
     def test_pinned_page_survives_eviction(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
         assert len(pages) >= 2
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         result = env["ctx_svc"].evict(
             pid="p1",
             working_set_id=handle.working_set_id,
@@ -75,12 +68,8 @@ class TestPinBasics:
     def test_unpin_removes_page_from_pinned_page_ids(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
-        pinned = env["ctx_sdk"].unpin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
+        pinned = env["ctx_sdk"].unpin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         assert pages[0] not in pinned
 
     def test_pin_returns_sorted_unique_page_ids(self, env: dict) -> None:
@@ -122,9 +111,7 @@ class TestRefCountedPinning:
         svc.unpin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         assert svc._pin_counts.get(pages[0], 0) == 1
 
-    def test_unpin_only_truly_unpins_when_count_reaches_zero(
-        self, env: dict
-    ) -> None:
+    def test_unpin_only_truly_unpins_when_count_reaches_zero(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
         svc = env["ctx_svc"]
@@ -136,14 +123,10 @@ class TestRefCountedPinning:
 class TestPinBlocksEviction:
     """Pinned pages must never be evicted regardless of target token pressure."""
 
-    def test_pinned_page_cannot_be_evicted_under_any_target(
-        self, env: dict
-    ) -> None:
+    def test_pinned_page_cannot_be_evicted_under_any_target(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env, count=3)
         pages = _page_ids(loaded)
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         result = env["ctx_svc"].evict(
             pid="p1",
             working_set_id=handle.working_set_id,
@@ -151,21 +134,13 @@ class TestPinBlocksEviction:
         )
         assert pages[0] not in result["evicted_pages"]
 
-    def test_refcounted_pin_blocks_eviction_after_single_unpin(
-        self, env: dict
-    ) -> None:
+    def test_refcounted_pin_blocks_eviction_after_single_unpin(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         # Unpin once — count is still 1, page should survive eviction.
-        env["ctx_sdk"].unpin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].unpin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         result = env["ctx_svc"].evict(
             pid="p1",
             working_set_id=handle.working_set_id,
@@ -189,9 +164,7 @@ class TestPinLifecycle:
     def test_closing_handle_lifts_pin_protection(self, env: dict) -> None:
         handle, loaded = _load_with_pages(env)
         pages = _page_ids(loaded)
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pages[0]])
         env["ctx_sdk"].close(pid="p1", handle_id=handle.handle_id)
         # After closing, the page should be evictable.
         # Re-open a new handle so we have a working_set_id to evict from.

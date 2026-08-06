@@ -15,17 +15,14 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import ContentRef, ContextManifest
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from tests.agent_os.context.conftest import (
     _AllowsAllCaps,
     _ArtifactSupplier,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -96,8 +93,12 @@ class TestSnapshotAtomicPersisted:
             svc = _build_new_service(env)
             sdk = ContextSDK(svc)
             # load
-            env["artifact_sdk"].write(env["pid"], "workspace:///sig_atomic.md", b"atomic-snap-data " * 4, "sig-atomic")
-            ver = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_atomic.md")))
+            env["artifact_sdk"].write(
+                env["pid"], "workspace:///sig_atomic.md", b"atomic-snap-data " * 4, "sig-atomic"
+            )
+            ver = next(
+                iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_atomic.md"))
+            )
             arts = env["artifact_svc"].list_artifacts(env["pid"])
             art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
             ref = ContentRef(
@@ -110,8 +111,10 @@ class TestSnapshotAtomicPersisted:
                 required=True,
             )
             manifest = ContextManifest(
-                owner_pid=env["pid"], refs=(ref,),
-                token_budget=100_000, page_size_bytes=64,
+                owner_pid=env["pid"],
+                refs=(ref,),
+                token_budget=100_000,
+                page_size_bytes=64,
             )
             h, loaded = sdk.load(pid=env["pid"], manifest=manifest)
             snap = sdk.snapshot(pid=env["pid"], context_id=loaded.context_id)
@@ -154,29 +157,51 @@ class TestNoNegativePinCounts:
 class TestNoOrphanHandles:
     def test_idempotent_load_then_cleanup_no_orphans(self, env: dict[str, Any]) -> None:
         """Load several handles via idempotency, then cleanup_process; verify no orphans remain."""
-        env["artifact_sdk"].write(env["pid"], "workspace:///sig_orphan_a.md", b"orphan-a " * 10, "sig-oa")
-        env["artifact_sdk"].write(env["pid"], "workspace:///sig_orphan_b.md", b"orphan-b " * 10, "sig-ob")
-        ver_a = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_orphan_a.md")))
+        env["artifact_sdk"].write(
+            env["pid"], "workspace:///sig_orphan_a.md", b"orphan-a " * 10, "sig-oa"
+        )
+        env["artifact_sdk"].write(
+            env["pid"], "workspace:///sig_orphan_b.md", b"orphan-b " * 10, "sig-ob"
+        )
+        ver_a = next(
+            iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_orphan_a.md"))
+        )
         arts = env["artifact_svc"].list_artifacts(env["pid"])
         art_a = next(a for a in arts if a["artifact_id"] == ver_a["artifact_id"])
-        ver_b = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_orphan_b.md")))
+        ver_b = next(
+            iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_orphan_b.md"))
+        )
         art_b = next(a for a in arts if a["artifact_id"] == ver_b["artifact_id"])
 
         def _iteration() -> None:
-            refs_a = (ContentRef(
-                ref_id="r-oa", canonical_uri= art_a["canonical_uri"],
-                artifact_id=ver_a["artifact_id"], version=ver_a["version"],
-                content_hash=ver_a["content_hash"], media_type="text/markdown",
-                required=True,
-            ),)
-            refs_b = (ContentRef(
-                ref_id="r-ob", canonical_uri=art_b["canonical_uri"],
-                artifact_id=ver_b["artifact_id"], version=ver_b["version"],
-                content_hash=ver_b["content_hash"], media_type="text/markdown",
-                required=True,
-            ),)
-            m_a = ContextManifest(owner_pid=env["pid"], refs=refs_a, token_budget=100_000, page_size_bytes=64)
-            m_b = ContextManifest(owner_pid=env["pid"], refs=refs_b, token_budget=100_000, page_size_bytes=64)
+            refs_a = (
+                ContentRef(
+                    ref_id="r-oa",
+                    canonical_uri=art_a["canonical_uri"],
+                    artifact_id=ver_a["artifact_id"],
+                    version=ver_a["version"],
+                    content_hash=ver_a["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            )
+            refs_b = (
+                ContentRef(
+                    ref_id="r-ob",
+                    canonical_uri=art_b["canonical_uri"],
+                    artifact_id=ver_b["artifact_id"],
+                    version=ver_b["version"],
+                    content_hash=ver_b["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            )
+            m_a = ContextManifest(
+                owner_pid=env["pid"], refs=refs_a, token_budget=100_000, page_size_bytes=64
+            )
+            m_b = ContextManifest(
+                owner_pid=env["pid"], refs=refs_b, token_budget=100_000, page_size_bytes=64
+            )
             # Same idem key each iteration -> idempotent replay.
             sa, _ = env["ctx_sdk"].load(pid=env["pid"], manifest=m_a, idempotency_key="oa-fixed")
             sb, _ = env["ctx_sdk"].load(pid=env["pid"], manifest=m_b, idempotency_key="ob-fixed")
@@ -208,9 +233,7 @@ class TestSnapshotAfterPinCrash:
             new_svc = _build_new_service(env)
             new_sdk = ContextSDK(new_svc)
             new_svc._snaps[snap.snapshot_id] = snap
-            h2, restored = new_sdk.restore_snapshot(
-                pid=env["pid"], snapshot_id=snap.snapshot_id
-            )
+            h2, restored = new_sdk.restore_snapshot(pid=env["pid"], snapshot_id=snap.snapshot_id)
             # The restored pages should cover the same content.
             orig_content = sorted(p.content for p in loaded.ordered_pages)
             rest_content = sorted(p.content for p in restored.ordered_pages)
@@ -229,7 +252,9 @@ class TestCrashBetweenLoadAndSnapshot:
     def test_journal_rebuild_after_midload_failure(self, env: dict[str, Any]) -> None:
         """Simulate a crash mid-load by rebuilding WS from the journal event log.
         Assert graceful state (no malformed hashes)."""
-        env["artifact_sdk"].write(env["pid"], "workspace:///sig_jrnl.md", b"journal-data " * 8, "sig-jrnl")
+        env["artifact_sdk"].write(
+            env["pid"], "workspace:///sig_jrnl.md", b"journal-data " * 8, "sig-jrnl"
+        )
         ver = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_jrnl.md")))
         arts = env["artifact_svc"].list_artifacts(env["pid"])
         art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
@@ -238,8 +263,12 @@ class TestCrashBetweenLoadAndSnapshot:
 
         def _iteration() -> None:
             content = b"crash-journal-data " * 6
-            env["artifact_sdk"].write(env["pid"], "workspace:///sig_jrnl.md", content, f"sig-jrnl-{id(content)}")
-            ver_now = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_jrnl.md")))
+            env["artifact_sdk"].write(
+                env["pid"], "workspace:///sig_jrnl.md", content, f"sig-jrnl-{id(content)}"
+            )
+            ver_now = next(
+                iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///sig_jrnl.md"))
+            )
             arts_now = env["artifact_svc"].list_artifacts(env["pid"])
             art_now = next(a for a in arts_now if a["artifact_id"] == ver_now["artifact_id"])
 
@@ -253,8 +282,10 @@ class TestCrashBetweenLoadAndSnapshot:
                 required=True,
             )
             manifest = ContextManifest(
-                owner_pid=env["pid"], refs=(ref,),
-                token_budget=100_000, page_size_bytes=64,
+                owner_pid=env["pid"],
+                refs=(ref,),
+                token_budget=100_000,
+                page_size_bytes=64,
             )
             h, loaded = env["ctx_sdk"].load(pid=env["pid"], manifest=manifest)
             # Record events to simulate journal.

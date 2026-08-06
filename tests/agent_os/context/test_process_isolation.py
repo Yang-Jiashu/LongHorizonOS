@@ -11,13 +11,12 @@ from typing import Any
 
 import pytest
 
+from lhos.agent_os.context.errors import ErrCapabilityDenied, ErrHandleNotOwned
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import ContentRef, ContextManifest
-from lhos.agent_os.context.errors import ErrHandleNotOwned, ErrCapabilityDenied
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.kernel.models import Capability
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,9 +102,7 @@ class TestPidCanOperateOwnHandles:
     def test_restore_on_own_snapshot_succeeds(self, env: dict[str, Any]) -> None:
         handle, loaded = _load(env, b"restore content " * 10)
         snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
-        h2, restored = env["ctx_sdk"].restore_snapshot(
-            pid="p1", snapshot_id=snap.snapshot_id
-        )
+        h2, restored = env["ctx_sdk"].restore_snapshot(pid="p1", snapshot_id=snap.snapshot_id)
         assert h2.handle_id != handle.handle_id  # distinct handle
         assert restored.materialized_hash == snap.materialized_hash
 
@@ -135,9 +132,7 @@ class TestCrossPidPinDenied:
         page_ids = [p.page_id for p in loaded.ordered_pages]
         assert len(page_ids) > 0
         with pytest.raises(ErrHandleNotOwned):
-            env["ctx_sdk"].pin(
-                pid="p2", handle_id=handle.handle_id, page_ids=[page_ids[0]]
-            )
+            env["ctx_sdk"].pin(pid="p2", handle_id=handle.handle_id, page_ids=[page_ids[0]])
 
 
 class TestCrossPidEvictDenied:
@@ -168,9 +163,7 @@ class TestCrossPidSnapshotRestoreDenied:
         _handle, loaded = _load(env, b"snapshot-boundary " * 10)
         snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         with pytest.raises((ErrHandleNotOwned, ErrCapabilityDenied)):
-            env["ctx_sdk"].restore_snapshot(
-                pid="p2", snapshot_id=snap.snapshot_id
-            )
+            env["ctx_sdk"].restore_snapshot(pid="p2", snapshot_id=snap.snapshot_id)
 
 
 class TestHandleClosedStillScoped:
@@ -210,9 +203,7 @@ class TestListWorkingSetsIsolation:
     def _setup(self, env: dict[str, Any]) -> None:
         _setup_p2(env)
 
-    def test_list_working_sets_empty_for_other_pid(
-        self, env: dict[str, Any]
-    ) -> None:
+    def test_list_working_sets_empty_for_other_pid(self, env: dict[str, Any]) -> None:
         _load(env, b"p1 data " * 10)
         wss = env["ctx_sdk"].list_working_sets(pid="p2")
         assert wss == []

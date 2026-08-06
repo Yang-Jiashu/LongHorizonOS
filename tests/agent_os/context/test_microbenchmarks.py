@@ -10,21 +10,20 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import (
     ContentRef,
     ContextManifest,
     _content_hash_for,
 )
-from lhos.agent_os.context.pager import _stable_page_id, compute_pages_for_ref
-from lhos.agent_os.context.policies import select_pages_v1, RefPages
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
+from lhos.agent_os.context.pager import compute_pages_for_ref
+from lhos.agent_os.context.policies import RefPages, select_pages_v1
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
 from tests.agent_os.context.conftest import (
     _AllowsAllCaps,
     _ArtifactSupplier,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -151,12 +150,20 @@ class TestDeterministicSelectionPerf:
             required=True,
         )
         supplier = _FakeSupplier(content)
-        pages_tuple = tuple(compute_pages_for_ref(
-            ref=ref, content_supplier=supplier, estimator=estimator, page_size=128,
-        ))
+        pages_tuple = tuple(
+            compute_pages_for_ref(
+                ref=ref,
+                content_supplier=supplier,
+                estimator=estimator,
+                page_size=128,
+            )
+        )
         rp = RefPages(ref=ref, pages=pages_tuple)
         manifest = ContextManifest(
-            owner_pid="p1", refs=(ref,), token_budget=100_000, page_size_bytes=128,
+            owner_pid="p1",
+            refs=(ref,),
+            token_budget=100_000,
+            page_size_bytes=128,
         )
         start = time.perf_counter()
         for _ in range(1000):
@@ -175,8 +182,10 @@ class TestCacheHitPerf:
         """Using idempotency key, 1000 loads with same key take < 1s (cached replay)."""
         ref = _ref(env, "workspace:///bench_cache.md", b"cache hit content " * 3)
         manifest = ContextManifest(
-            owner_pid=env["pid"], refs=(ref,),
-            token_budget=100_000, page_size_bytes=64,
+            owner_pid=env["pid"],
+            refs=(ref,),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         # Warm-up (populates cache).
         env["ctx_sdk"].load(pid=env["pid"], manifest=manifest, idempotency_key="bench-cache")
@@ -203,8 +212,10 @@ class TestColdLoadPerf:
         start = time.perf_counter()
         for r in refs_list:
             m = ContextManifest(
-                owner_pid=env["pid"], refs=(r,),
-                token_budget=100_000, page_size_bytes=64,
+                owner_pid=env["pid"],
+                refs=(r,),
+                token_budget=100_000,
+                page_size_bytes=64,
             )
             env["ctx_sdk"].load(pid=env["pid"], manifest=m)
         elapsed = time.perf_counter() - start
@@ -218,10 +229,14 @@ class TestColdLoadPerf:
 
 def _ref_and_load_for_restore(env: dict[str, Any]) -> tuple:
     """Write one artifact and load it; used by TestSnapshotRestorePerf."""
-    ref = _ref(env, "workspace:///bench_restore.md", b"snapshot-restore-bench-data " * 5, required=True)
+    ref = _ref(
+        env, "workspace:///bench_restore.md", b"snapshot-restore-bench-data " * 5, required=True
+    )
     manifest = ContextManifest(
-        owner_pid=env["pid"], refs=(ref,),
-        token_budget=100_000, page_size_bytes=32,
+        owner_pid=env["pid"],
+        refs=(ref,),
+        token_budget=100_000,
+        page_size_bytes=32,
     )
     h, loaded = env["ctx_sdk"].load(pid=env["pid"], manifest=manifest)
     return h, loaded
@@ -238,9 +253,7 @@ class TestSnapshotRestorePerf:
             new_svc = _build_new_service(env)
             new_sdk = ContextSDK(new_svc)
             new_svc._snaps[snap.snapshot_id] = snap
-            h, restored = new_sdk.restore_snapshot(
-                pid=env["pid"], snapshot_id=snap.snapshot_id
-            )
+            h, restored = new_sdk.restore_snapshot(pid=env["pid"], snapshot_id=snap.snapshot_id)
             assert restored.materialized_hash == loaded.materialized_hash
             handles.append((new_sdk, h))
         for sdk, h in handles:
@@ -257,12 +270,15 @@ class TestSnapshotRestorePerf:
 class TestEvictionPerf:
     def test_100_evictions_under_5s(self, env: dict[str, Any]) -> None:
         """Evict a working set 100 times; must take < 5s."""
+
         def _a_load() -> tuple:
             content_bytes = b"eviction-bench-data " * 4
             ref = _ref(env, "workspace:///bench_evict.md", content_bytes, required=True)
             manifest = ContextManifest(
-                owner_pid=env["pid"], refs=(ref,),
-                token_budget=100_000, page_size_bytes=32,
+                owner_pid=env["pid"],
+                refs=(ref,),
+                token_budget=100_000,
+                page_size_bytes=32,
             )
             return env["ctx_sdk"].load(pid=env["pid"], manifest=manifest)
 

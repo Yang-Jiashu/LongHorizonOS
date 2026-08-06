@@ -10,18 +10,15 @@ from __future__ import annotations
 import random
 from typing import Any
 
-import pytest
-
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import ContentRef, ContextManifest
+from lhos.agent_os.context.pager import _stable_page_id
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
-from lhos.agent_os.context.pager import _stable_page_id, _content_hash_for
 from tests.agent_os.context.conftest import (
     _AllowsAllCaps,
     _ArtifactSupplier,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -156,16 +153,16 @@ class TestHundredTimesSameManifest:
 class TestRestartHashEquality:
     def test_20x_after_restart_identical_hash(self, env: dict[str, Any]) -> None:
         """Snapshot, then rebuild WS from snapshot on a new service 20x."""
-        handle, loaded = _load_single(env, "workspace:///det_restart.md", b"restart-det-test " * 6, page_size=32)
+        handle, loaded = _load_single(
+            env, "workspace:///det_restart.md", b"restart-det-test " * 6, page_size=32
+        )
         snap = env["ctx_sdk"].snapshot(pid=env["pid"], context_id=loaded.context_id)
         hashes: set[str] = set()
         for i in range(20):
             new_svc = _build_new_service(env)
             new_sdk = ContextSDK(new_svc)
             new_svc._snaps[snap.snapshot_id] = snap
-            h, restored = new_sdk.restore_snapshot(
-                pid=env["pid"], snapshot_id=snap.snapshot_id
-            )
+            h, restored = new_sdk.restore_snapshot(pid=env["pid"], snapshot_id=snap.snapshot_id)
             hashes.add(restored.materialized_hash)
             new_sdk.close(pid=env["pid"], handle_id=h.handle_id)
         assert len(hashes) == 1
@@ -179,7 +176,9 @@ class TestRestartHashEquality:
 class TestProjectionRebuild:
     def test_20x_inspect_vs_read_same_hash(self, env: dict[str, Any]) -> None:
         """20x on the same handle: read vs inspect return identical manifest_hash."""
-        handle, loaded = _load_single(env, "workspace:///det_proj.md", b"projection-rebuild-det " * 6, page_size=32)
+        handle, loaded = _load_single(
+            env, "workspace:///det_proj.md", b"projection-rebuild-det " * 6, page_size=32
+        )
         info_first = env["ctx_sdk"].inspect(pid=env["pid"], handle_id=handle.handle_id)
         hashes: set[str] = {info_first["manifest_hash"]}
         for _ in range(20):
@@ -206,7 +205,9 @@ class TestShuffledInput:
         for uri, content in zip(uris, base_contents):
             env["artifact_sdk"].write(env["pid"], uri, content, f"det-shuf-{uri}")
         # Build stable refs from pre-written artifacts.
-        stable_refs = [_ref_from_artifact_row(env, uri, ref_id=f"r{idx}") for idx, uri in enumerate(uris)]
+        stable_refs = [
+            _ref_from_artifact_row(env, uri, ref_id=f"r{idx}") for idx, uri in enumerate(uris)
+        ]
         rng = random.Random(99)
         manifest_hashes: set[str] = set()
         materialized_hashes: set[str] = set()
@@ -236,7 +237,9 @@ class TestShuffledInput:
 class TestDeterministicEviction:
     def test_same_ws_evict_same_pages(self, env: dict[str, Any]) -> None:
         """Repeated evictions of the same working set yield the same pages."""
-        handle, _ = _load_single(env, "workspace:///det_evict.md", b"evict-det-test " * 6, page_size=32)
+        handle, _ = _load_single(
+            env, "workspace:///det_evict.md", b"evict-det-test " * 6, page_size=32
+        )
         results = []
         for _ in range(10):
             r = env["ctx_svc"].evict(
@@ -256,7 +259,9 @@ class TestDeterministicEviction:
 
 class TestSnapshotRestoreRoundtrip:
     def test_roundtrip_hash_matches(self, env: dict[str, Any]) -> None:
-        handle, loaded = _load_single(env, "workspace:///det_snapround.md", b"snap-roundtrip-det " * 6, page_size=32)
+        handle, loaded = _load_single(
+            env, "workspace:///det_snapround.md", b"snap-roundtrip-det " * 6, page_size=32
+        )
         snap = env["ctx_sdk"].snapshot(pid=env["pid"], context_id=loaded.context_id)
         handle2, restored = env["ctx_sdk"].restore_snapshot(
             pid=env["pid"], snapshot_id=snap.snapshot_id
@@ -316,12 +321,22 @@ class TestStablePageId:
 
     def test_different_byte_positions_differ(self) -> None:
         a = _stable_page_id(
-            artifact_id="a", version=1, content_hash="x" * 64,
-            byte_start=0, byte_end=64, page_size=64, page_index=0,
+            artifact_id="a",
+            version=1,
+            content_hash="x" * 64,
+            byte_start=0,
+            byte_end=64,
+            page_size=64,
+            page_index=0,
         )
         b = _stable_page_id(
-            artifact_id="a", version=1, content_hash="x" * 64,
-            byte_start=64, byte_end=128, page_size=64, page_index=1,
+            artifact_id="a",
+            version=1,
+            content_hash="x" * 64,
+            byte_start=64,
+            byte_end=128,
+            page_size=64,
+            page_index=1,
         )
         assert a != b
 
@@ -338,13 +353,17 @@ class TestManifestHashOrderInvariance:
         r3 = _ref(env, "workspace:///det_mh_c.md", b"c-content " * 10, priority=0, required=True)
         m1 = ContextManifest(
             manifest_id="det-mh-mid",
-            owner_pid=env["pid"], refs=(r1, r2, r3),
-            token_budget=100_000, page_size_bytes=64,
+            owner_pid=env["pid"],
+            refs=(r1, r2, r3),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         m2 = ContextManifest(
             manifest_id="det-mh-mid",
-            owner_pid=env["pid"], refs=(r3, r1, r2),
-            token_budget=100_000, page_size_bytes=64,
+            owner_pid=env["pid"],
+            refs=(r3, r1, r2),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         assert m1.manifest_hash() == m2.manifest_hash()
 
@@ -368,7 +387,10 @@ class TestMultiRunIdenticalContent:
         for _ in range(30):
             m = ContextManifest(
                 manifest_id="det-multirun-mid",
-                owner_pid=env["pid"], refs=(ref,), token_budget=100_000, page_size_bytes=64,
+                owner_pid=env["pid"],
+                refs=(ref,),
+                token_budget=100_000,
+                page_size_bytes=64,
             )
             h, loaded = env["ctx_sdk"].load(pid=env["pid"], manifest=m)
             hashes.add(loaded.materialized_hash)

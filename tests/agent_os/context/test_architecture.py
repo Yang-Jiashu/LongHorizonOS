@@ -14,8 +14,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from lhos.agent_os.context.estimator import TokenEstimator
 
 # ── paths ──────────────────────────────────────────────────────────────────────
@@ -96,7 +94,13 @@ def _forbidden_strings_present(path: Path) -> list[tuple[int, str, str]]:
     tree = _ast_parse(path)
 
     forbidden_ids = {
-        "tasknode", "goal", "evidence", "vpg", "planner", "prompt", "llm",
+        "tasknode",
+        "goal",
+        "evidence",
+        "vpg",
+        "planner",
+        "prompt",
+        "llm",
     }
     forbidden_substrs = list(forbidden_ids)
 
@@ -183,8 +187,13 @@ class TestTokenEstimatorProtocol:
             def estimator_id(self) -> str:  # type: ignore[override]
                 return "fake"
 
-            def estimate(self, *, content: bytes, media_type: str,  # type: ignore[override]
-                         encoding: str) -> int:
+            def estimate(
+                self,
+                *,
+                content: bytes,
+                media_type: str,  # type: ignore[override]
+                encoding: str,
+            ) -> int:
                 return 1
 
         fake = _Fake()

@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import pytest
 
-from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
-
-from lhos.agent_os.context.models import ContextManifest
 from lhos.agent_os.context.errors import ErrInvalidManifest
-
+from lhos.agent_os.context.models import ContextManifest
+from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,9 +37,7 @@ def _page_ids(loaded) -> list[str]:
 
 
 def _evict(env: dict, ws_id: str, target: int) -> dict:
-    return env["ctx_svc"].evict(
-        pid="p1", working_set_id=ws_id, target_tokens=target
-    )
+    return env["ctx_svc"].evict(pid="p1", working_set_id=ws_id, target_tokens=target)
 
 
 # ── tests ────────────────────────────────────────────────────────────────────
@@ -50,23 +46,19 @@ def _evict(env: dict, ws_id: str, target: int) -> dict:
 class TestEvictionWithAllPinned:
     """When every optional page is pinned, nothing can be evicted."""
 
-    def test_evict_returns_empty_evicted_pages_if_all_pinned(
-        self, env: dict
-    ) -> None:
+    def test_evict_returns_empty_evicted_pages_if_all_pinned(self, env: dict) -> None:
         artifacts = [
             ("artifact://ns-p1/a.md", b"A" * 64, "idem-a"),
             ("artifact://ns-p1/b.md", b"B" * 64, "idem-b"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/a.md": False,
-                          "artifact://ns-p1/b.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/a.md": False, "artifact://ns-p1/b.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         pages = _page_ids(loaded)
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=pages
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=pages)
         result = _evict(env, handle.working_set_id, 100_000)
         assert result["evicted_pages"] == []
         assert result["tokens_freed"] == 0
@@ -80,7 +72,8 @@ class TestEvictionFreesTokens:
             ("artifact://ns-p1/c.md", b"C" * 64, "idem-c"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
+            env,
+            artifacts=artifacts,
             required_map={"artifact://ns-p1/c.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
@@ -93,7 +86,8 @@ class TestEvictionFreesTokens:
             ("artifact://ns-p1/d.md", b"D" * 64, "idem-d"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
+            env,
+            artifacts=artifacts,
             required_map={"artifact://ns-p1/d.md": False},
         )
         handle, _loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
@@ -111,9 +105,9 @@ class TestRequiredPagesPreserved:
             ("artifact://ns-p1/opt.md", b"O" * 64, "idem-o"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/req.md": True,
-                          "artifact://ns-p1/opt.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/req.md": True, "artifact://ns-p1/opt.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         page_map = {p.canonical_uri: p for p in loaded.ordered_pages}
@@ -128,7 +122,8 @@ class TestRequiredPagesPreserved:
             ("artifact://ns-p1/o1.md", b"Z" * 64, "idem-o1"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
+            env,
+            artifacts=artifacts,
             required_map={
                 "artifact://ns-p1/r1.md": True,
                 "artifact://ns-p1/r2.md": True,
@@ -136,11 +131,7 @@ class TestRequiredPagesPreserved:
             },
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
-        optional_ids = {
-            p.page_id
-            for p in loaded.ordered_pages
-            if not p.required
-        }
+        optional_ids = {p.page_id for p in loaded.ordered_pages if not p.required}
         result = _evict(env, handle.working_set_id, 100_000)
         # Only optional pages were evicted.
         assert set(result["evicted_pages"]) <= optional_ids
@@ -155,15 +146,13 @@ class TestEvictionAndSnapshotRestore:
             ("artifact://ns-p1/e2.md", b"F" * 64, "idem-e2"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/e1.md": False,
-                          "artifact://ns-p1/e2.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/e1.md": False, "artifact://ns-p1/e2.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         _evict(env, handle.working_set_id, 100_000)
-        snap = env["ctx_sdk"].snapshot(
-            pid="p1", context_id=loaded.context_id
-        )
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.snapshot_id
         new_handle, new_loaded = env["ctx_sdk"].restore_snapshot(
             pid="p1", snapshot_id=snap.snapshot_id
@@ -193,17 +182,15 @@ class TestPinDuringEviction:
             ("artifact://ns-p1/y.md", b"Y" * 64, "idem-y"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/x.md": False,
-                          "artifact://ns-p1/y.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/x.md": False, "artifact://ns-p1/y.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         page_map = {p.canonical_uri: p for p in loaded.ordered_pages}
         pinned_page = page_map["artifact://ns-p1/x.md"].page_id
         other_page = page_map["artifact://ns-p1/y.md"].page_id
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pinned_page]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pinned_page])
         result = _evict(env, handle.working_set_id, 100_000)
         assert pinned_page not in result["evicted_pages"]
         assert other_page in result["evicted_pages"]
@@ -212,17 +199,15 @@ class TestPinDuringEviction:
 class TestEvictionTargetPressure:
     """Target tokens beyond available evicts everything evictable."""
 
-    def test_target_exceeding_available_evicts_all_non_pinned(
-        self, env: dict
-    ) -> None:
+    def test_target_exceeding_available_evicts_all_non_pinned(self, env: dict) -> None:
         artifacts = [
             ("artifact://ns-p1/m1.md", b"A" * 64, "idem-m1"),
             ("artifact://ns-p1/m2.md", b"B" * 64, "idem-m2"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/m1.md": False,
-                          "artifact://ns-p1/m2.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/m1.md": False, "artifact://ns-p1/m2.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         pages = _page_ids(loaded)
@@ -233,24 +218,20 @@ class TestEvictionTargetPressure:
 class TestPinnedBlockedReporting:
     """Eviction result must include the ``pinned_blocked`` field."""
 
-    def test_pinned_pages_listed_separately_in_pinned_blocked(
-        self, env: dict
-    ) -> None:
+    def test_pinned_pages_listed_separately_in_pinned_blocked(self, env: dict) -> None:
         artifacts = [
             ("artifact://ns-p1/p.md", b"P" * 64, "idem-p"),
             ("artifact://ns-p1/q.md", b"Q" * 64, "idem-q"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
-            required_map={"artifact://ns-p1/p.md": False,
-                          "artifact://ns-p1/q.md": False},
+            env,
+            artifacts=artifacts,
+            required_map={"artifact://ns-p1/p.md": False, "artifact://ns-p1/q.md": False},
         )
         handle, loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         page_map = {p.canonical_uri: p for p in loaded.ordered_pages}
         pinned_page = page_map["artifact://ns-p1/p.md"].page_id
-        env["ctx_sdk"].pin(
-            pid="p1", handle_id=handle.handle_id, page_ids=[pinned_page]
-        )
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[pinned_page])
         result = _evict(env, handle.working_set_id, 100_000)
         assert "pinned_blocked" in result
         # The pinned page is reported as blocked and is NOT in evicted_pages.
@@ -268,7 +249,8 @@ class TestEvictionDeterminism:
             ("artifact://ns-p1/d3.md", b"O" * 64, "idem-d3"),
         ]
         manifest = _build_manifest(
-            env, artifacts=artifacts,
+            env,
+            artifacts=artifacts,
             required_map={u: False for u, _, _ in artifacts},
         )
         handle, _loaded = env["ctx_sdk"].load(pid="p1", manifest=manifest)

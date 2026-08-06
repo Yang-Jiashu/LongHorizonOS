@@ -99,7 +99,7 @@ class ContextService:
         self._handles_by_pid: dict[str, dict[str, _HandleRec]] = {}
         self._snaps: dict[str, ContextSnapshot] = {}
         # global pin counts — refcounted
-        self._pin_counts: dict[str[int, int]] = {}
+        self._pin_counts: dict[str, int] = {}
 
         # Idempotency: keyed by (pid, manifest_hash, idempotency_key)
         self._idem_load: dict[tuple[str, str, str], str] = {}
@@ -342,9 +342,7 @@ class ContextService:
         # Possibly cross-PID access: surface ErrHandleNotOwned
         owner = self._find_handle_owner(handle_id)
         if owner is not None and owner != pid:
-            raise ErrHandleNotOwned(
-                f"handle {handle_id} belongs to {owner}, not {pid}"
-            )
+            raise ErrHandleNotOwned(f"handle {handle_id} belongs to {owner}, not {pid}")
         raise ErrInvalidManifest(f"handle {handle_id} not found")
 
     def load(
@@ -700,9 +698,7 @@ class ContextService:
         if snap is None:
             raise ErrSnapshotCorrupt(f"snapshot {snapshot_id} not found")
         if snap.pid != pid:
-            raise ErrCapabilityDenied(
-                f"snapshot {snapshot_id} owned by {snap.pid}, not {pid}"
-            )
+            raise ErrCapabilityDenied(f"snapshot {snapshot_id} owned by {snap.pid}, not {pid}")
         # re-verify each materialized binding against ArtifactVersion
         for b in snap.page_bindings:
             try:

@@ -9,6 +9,15 @@ from __future__ import annotations
 
 import pytest
 
+from lhos.agent_os.context.errors import (
+    ErrInvalidPolicy,
+    ErrRequiredBudgetExceeded,
+)
+from lhos.agent_os.context.models import (
+    ContentRef,
+    ContextManifest,
+    ContextPage,
+)
 from lhos.agent_os.context.policies import (
     RefPages,
     _ref_sort_key,
@@ -16,18 +25,6 @@ from lhos.agent_os.context.policies import (
     select_pages_v1,
     sort_refs_deterministic,
 )
-from lhos.agent_os.context.models import (
-    ContentRef,
-    ContextManifest,
-    ContextPage,
-)
-from lhos.agent_os.context.pager import compute_pages_for_ref
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
-from lhos.agent_os.context.errors import (
-    ErrInvalidPolicy,
-    ErrRequiredBudgetExceeded,
-)
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -194,16 +191,13 @@ class TestSortRefsDeterministic:
         """A mixed set exercising all six tie-breakers yields the
         expected global order."""
         refs = (
-            _ref("opt_z", required=False, priority=5,
-                 canonical_uri="artifact://ns/z", version=1),
-            _ref("req_low", required=True, priority=0,
-                 canonical_uri="artifact://ns/z", version=2),
-            _ref("opt_a", required=False, priority=10,
-                 canonical_uri="artifact://ns/a", version=1),
-            _ref("req_hi", required=True, priority=100,
-                 canonical_uri="artifact://ns/a", version=1),
-            _ref("opt_dup", required=False, priority=10,
-                 canonical_uri="artifact://ns/a", version=1),
+            _ref("opt_z", required=False, priority=5, canonical_uri="artifact://ns/z", version=1),
+            _ref("req_low", required=True, priority=0, canonical_uri="artifact://ns/z", version=2),
+            _ref("opt_a", required=False, priority=10, canonical_uri="artifact://ns/a", version=1),
+            _ref("req_hi", required=True, priority=100, canonical_uri="artifact://ns/a", version=1),
+            _ref(
+                "opt_dup", required=False, priority=10, canonical_uri="artifact://ns/a", version=1
+            ),
         )
         ids = [r.ref_id for r in sort_refs_deterministic(refs)]
         # Required first: req_hi (pri=100, uri=a) before req_low (pri=0, uri=z).
@@ -254,9 +248,7 @@ class TestSelectPagesV1:
             _page("p1", estimated_tokens=20, size_bytes=30),
             _page("p2", estimated_tokens=20, size_bytes=30),
         )
-        selected, omitted, tokens_used, _ = select_pages_v1(
-            manifest=manifest, ref_pages=[rp]
-        )
+        selected, omitted, tokens_used, _ = select_pages_v1(manifest=manifest, ref_pages=[rp])
         assert selected == []
         assert omitted == ["opt"]
         assert tokens_used == 0
@@ -282,9 +274,7 @@ class TestSelectPagesV1:
         manifest = _manifest(token_budget=10_000, byte_budget=50)
         ref = _ref("opt", required=False)
         rp = _rp(ref, _page("p1", estimated_tokens=1, size_bytes=200))
-        selected, omitted, _, _ = select_pages_v1(
-            manifest=manifest, ref_pages=[rp]
-        )
+        selected, omitted, _, _ = select_pages_v1(manifest=manifest, ref_pages=[rp])
         assert selected == []
         assert omitted == ["opt"]
 
@@ -331,18 +321,17 @@ class TestSelectPagesV1:
         """Passing the same manifest + same pre-sorted ref_pages always
         returns an identical (pages, omitted, totals) tuple."""
         manifest = _manifest(token_budget=60)
-        refs = sort_refs_deterministic((
-            _ref("r1", required=True, priority=0),
-            _ref("r2", required=False, priority=10),
-            _ref("r3", required=False, priority=5),
-        ))
+        refs = sort_refs_deterministic(
+            (
+                _ref("r1", required=True, priority=0),
+                _ref("r2", required=False, priority=10),
+                _ref("r3", required=False, priority=5),
+            )
+        )
         ref_pages = [
-            _rp(refs[0],
-                 _page("p_r1", estimated_tokens=20, required=True, priority=0)),
-            _rp(refs[1],
-                 _page("p_r2", estimated_tokens=20, required=False, priority=10)),
-            _rp(refs[2],
-                 _page("p_r3", estimated_tokens=20, required=False, priority=5)),
+            _rp(refs[0], _page("p_r1", estimated_tokens=20, required=True, priority=0)),
+            _rp(refs[1], _page("p_r2", estimated_tokens=20, required=False, priority=10)),
+            _rp(refs[2], _page("p_r3", estimated_tokens=20, required=False, priority=5)),
         ]
         a = select_pages_v1(manifest=manifest, ref_pages=ref_pages)
         b = select_pages_v1(manifest=manifest, ref_pages=ref_pages)

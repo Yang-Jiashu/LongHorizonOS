@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import pytest
 
-from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
-
 from lhos.agent_os.context.errors import (
     ErrHandleClosed,
     ErrHandleNotOwned,
 )
-
+from tests.agent_os.context.conftest import write_artifacts_and_build_manifest
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -101,9 +99,7 @@ class TestCloseLifecycle:
         result = env["ctx_sdk"].close(pid="p1", handle_id=handle.handle_id)
         assert result is True
 
-    def test_read_from_closed_handle_raises_err_handle_closed(
-        self, env: dict
-    ) -> None:
+    def test_read_from_closed_handle_raises_err_handle_closed(self, env: dict) -> None:
         handle, _loaded = _load_single_ref(env)
         env["ctx_sdk"].close(pid="p1", handle_id=handle.handle_id)
         with pytest.raises(ErrHandleClosed):
@@ -167,9 +163,7 @@ class TestProcessScoping:
 class TestHandleIdentity:
     """Loading the same manifest twice yields distinct handles (no idem key)."""
 
-    def test_same_manifest_two_loads_produce_different_handles(
-        self, env: dict
-    ) -> None:
+    def test_same_manifest_two_loads_produce_different_handles(self, env: dict) -> None:
         manifest = write_artifacts_and_build_manifest(
             env=env,
             pid="p1",
@@ -183,9 +177,7 @@ class TestHandleIdentity:
         h2, _ = env["ctx_sdk"].load(pid="p1", manifest=manifest)
         assert h1.handle_id != h2.handle_id
 
-    def test_two_handles_share_pid_and_ws_but_are_distinct(
-        self, env: dict
-    ) -> None:
+    def test_two_handles_share_pid_and_ws_but_are_distinct(self, env: dict) -> None:
         manifest = write_artifacts_and_build_manifest(
             env=env,
             pid="p1",

@@ -16,9 +16,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
-
-import pytest
 
 _ROOT = "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos"
 
@@ -33,8 +30,7 @@ def _run(script: str) -> dict:
         timeout=30,
     )
     assert r.returncode == 0, (
-        f"demo {script} failed (rc={r.returncode}): "
-        f"stdout={r.stdout!r} stderr={r.stderr!r}"
+        f"demo {script} failed (rc={r.returncode}): stdout={r.stdout!r} stderr={r.stderr!r}"
     )
     return json.loads(r.stdout)
 

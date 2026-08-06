@@ -11,10 +11,9 @@ Provides:
 
 from __future__ import annotations
 
-import sqlite3
 import tempfile
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -86,15 +85,12 @@ def env(tmp_cas: Path):
     driver = LocalArtifactStorageDriver(tmp_cas / "cas")
     cap_svc = CapabilityService(storage, journal)
     ns_svc = NamespaceService(projections, journal)
-    artifact_svc = ArtifactFSService(
-        projections, driver, journal, capability_service=cap_svc
-    )
+    artifact_svc = ArtifactFSService(projections, driver, journal, capability_service=cap_svc)
     artifact_svc._ns_resolver = ns_svc  # type: ignore[attr-defined]
     ns_svc.create_namespace("p1")
     cap_svc.grant(
         "p1",
-        Capability(resource_pattern="artifact://ns-p1/**",
-                   operations={"read", "write"}),
+        Capability(resource_pattern="artifact://ns-p1/**", operations={"read", "write"}),
     )
     artifact_sdk = ArtifactSDK(artifact_svc, ns_svc)
     ctx_svc = ContextService(
@@ -185,9 +181,9 @@ def write_artifacts_and_build_manifest(
 
 __all__ = [
     "_AllowsAllCaps",
-    "_DenyAllCaps",
     "_ArtifactSupplier",
-    "tmp_cas",
+    "_DenyAllCaps",
     "env",
+    "tmp_cas",
     "write_artifacts_and_build_manifest",
 ]

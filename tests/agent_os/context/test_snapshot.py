@@ -10,8 +10,8 @@ from typing import Any
 
 import pytest
 
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.errors import ErrSnapshotCorrupt
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import (
     ContentRef,
     ContextManifest,
@@ -23,7 +23,6 @@ from tests.agent_os.context.conftest import (
     _AllowsAllCaps,
     _ArtifactSupplier,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -180,9 +179,14 @@ class TestSnapshotImmutability:
         with pytest.raises((TypeError, AttributeError)):
             snap.page_bindings.append(  # type: ignore[attr-defined]
                 PageBinding(
-                    page_id="x", canonical_uri="y", artifact_id="z",
-                    version=1, content_hash="a", page_hash="b",
-                    byte_start=0, byte_end=1,
+                    page_id="x",
+                    canonical_uri="y",
+                    artifact_id="z",
+                    version=1,
+                    content_hash="a",
+                    page_hash="b",
+                    byte_start=0,
+                    byte_end=1,
                 )
             )
 
@@ -233,9 +237,7 @@ class TestSnapshotIntegrity:
         env["ctx_svc"]._snaps[bad_snap.snapshot_id] = bad_snap
 
         with pytest.raises(ErrSnapshotCorrupt):
-            env["ctx_sdk"].restore_snapshot(
-                pid=env["pid"], snapshot_id=bad_snap.snapshot_id
-            )
+            env["ctx_sdk"].restore_snapshot(pid=env["pid"], snapshot_id=bad_snap.snapshot_id)
 
 
 class TestSnapshotServiceRestart:
@@ -261,9 +263,7 @@ class TestSnapshotServiceRestart:
         # Re-inject snapshot into the new service
         new_svc._snaps[snap.snapshot_id] = snap
 
-        handle2, restored = new_sdk.restore_snapshot(
-            pid=env["pid"], snapshot_id=snap.snapshot_id
-        )
+        handle2, restored = new_sdk.restore_snapshot(pid=env["pid"], snapshot_id=snap.snapshot_id)
         assert restored.materialized_hash == loaded.materialized_hash
         new_sdk.close(pid=env["pid"], handle_id=handle2.handle_id)
 
@@ -285,9 +285,7 @@ class TestSnapshotServiceRestart:
         # Restore three times; all must produce identical materialized_hash
         hashes = []
         for _ in range(3):
-            h, r = new_sdk.restore_snapshot(
-                pid=env["pid"], snapshot_id=snap.snapshot_id
-            )
+            h, r = new_sdk.restore_snapshot(pid=env["pid"], snapshot_id=snap.snapshot_id)
             hashes.append(r.materialized_hash)
             new_sdk.close(pid=env["pid"], handle_id=h.handle_id)
 

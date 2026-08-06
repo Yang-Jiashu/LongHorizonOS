@@ -12,23 +12,22 @@ from typing import Any
 
 import pytest
 
-from lhos.agent_os.context.models import ContentRef, ContextManifest
 from lhos.agent_os.context.errors import (
-    ErrRequiredBudgetExceeded,
+    ErrCapabilityDenied,
     ErrInvalidContentHash,
     ErrInvalidRange,
+    ErrRequiredBudgetExceeded,
     ErrSnapshotCorrupt,
-    ErrCapabilityDenied,
 )
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
+from lhos.agent_os.context.models import ContentRef, ContextManifest
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from tests.agent_os.context.conftest import (
     _AllowsAllCaps,
     _ArtifactSupplier,
     _DenyAllCaps,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -285,21 +284,27 @@ class TestNegativeTokenEdge:
 class TestHugeEstimate:
     def test_token_budget_one_required_fails(self, env: dict[str, Any]) -> None:
         """With token_budget=1 and a non-empty required ref, load must fail."""
-        env["artifact_sdk"].write(env["pid"], "workspace:///adv_big_est.md", b"some content here", "adv-big-est")
-        ver = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_big_est.md")))
+        env["artifact_sdk"].write(
+            env["pid"], "workspace:///adv_big_est.md", b"some content here", "adv-big-est"
+        )
+        ver = next(
+            iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_big_est.md"))
+        )
         arts = env["artifact_svc"].list_artifacts(env["pid"])
         art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
         manifest = ContextManifest(
             owner_pid=env["pid"],
-            refs=(ContentRef(
-                ref_id="r-big",
-                canonical_uri=art["canonical_uri"],
-                artifact_id=ver["artifact_id"],
-                version=ver["version"],
-                content_hash=ver["content_hash"],
-                media_type="text/markdown",
-                required=True,
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-big",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=ver["artifact_id"],
+                    version=ver["version"],
+                    content_hash=ver["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            ),
             token_budget=1,
             page_size_bytes=64,
         )
@@ -319,10 +324,14 @@ class TestDuplicateRefId:
         content_b = b"beta content"
         env["artifact_sdk"].write(env["pid"], "workspace:///adv_dup_a.md", content_a, "adv-dup-a")
         env["artifact_sdk"].write(env["pid"], "workspace:///adv_dup_b.md", content_b, "adv-dup-b")
-        ver_a = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_dup_a.md")))
+        ver_a = next(
+            iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_dup_a.md"))
+        )
         arts = env["artifact_svc"].list_artifacts(env["pid"])
         art_a = next(a for a in arts if a["artifact_id"] == ver_a["artifact_id"])
-        ver_b = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_dup_b.md")))
+        ver_b = next(
+            iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_dup_b.md"))
+        )
         art_b = next(a for a in arts if a["artifact_id"] == ver_b["artifact_id"])
         shared_id = "r-shared-duplicate"
         manifest = ContextManifest(
@@ -351,6 +360,7 @@ class TestDuplicateRefId:
             page_size_bytes=64,
         )
         from lhos.agent_os.context.errors import ErrDuplicateRefId
+
         with pytest.raises(ErrDuplicateRefId):
             env["ctx_sdk"].load(pid=env["pid"], manifest=manifest)
 
@@ -385,7 +395,9 @@ class TestRangeOverbound:
     def test_start_byte_exceeds_content_raises(self, env: dict[str, Any]) -> None:
         """start_byte > content length must raise ErrInvalidRange."""
         content = b"hello"
-        ref = _ref(env, "workspace:///adv_range.md", content, required=True, start_byte=999, end_byte=1000)
+        ref = _ref(
+            env, "workspace:///adv_range.md", content, required=True, start_byte=999, end_byte=1000
+        )
         manifest = ContextManifest(
             owner_pid=env["pid"],
             refs=(ref,),
@@ -404,7 +416,7 @@ class TestRangeOverbound:
 class TestUtf8TruncationBoundary:
     def test_3byte_utf8_split_across_page_works(self, env: dict[str, Any]) -> None:
         """A 3-byte UTF-8 char split across a page boundary: loading succeeds."""
-        content = b"a" * 63 + "é".encode("utf-8") + b"b" * 63
+        content = b"a" * 63 + "é".encode() + b"b" * 63
         handle, loaded = _load(env, content, page_size=64)
         assert loaded.materialized_hash
         assert len(loaded.ordered_pages) >= 2
@@ -487,15 +499,17 @@ class TestAllRequiredLowBudget:
         art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
         manifest = ContextManifest(
             owner_pid=env["pid"],
-            refs=(ContentRef(
-                ref_id="r-low",
-                canonical_uri=art["canonical_uri"],
-                artifact_id=ver["artifact_id"],
-                version=ver["version"],
-                content_hash=ver["content_hash"],
-                media_type="text/markdown",
-                required=True,
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-low",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=ver["artifact_id"],
+                    version=ver["version"],
+                    content_hash=ver["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            ),
             token_budget=1,
             page_size_bytes=64,
         )
@@ -514,10 +528,16 @@ class TestMultiHandlePin:
         ref_a = _ref(env, "workspace:///adv_mh_a.md", b"A" * 64, required=True)
         ref_b = _ref(env, "workspace:///adv_mh_b.md", b"B" * 64, required=True)
         m_a = ContextManifest(
-            owner_pid=env["pid"], refs=(ref_a,), token_budget=100_000, page_size_bytes=64,
+            owner_pid=env["pid"],
+            refs=(ref_a,),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         m_b = ContextManifest(
-            owner_pid=env["pid"], refs=(ref_b,), token_budget=100_000, page_size_bytes=64,
+            owner_pid=env["pid"],
+            refs=(ref_b,),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         h_a, l_a = env["ctx_sdk"].load(pid=env["pid"], manifest=m_a)
         h_b, l_b = env["ctx_sdk"].load(pid=env["pid"], manifest=m_b)
@@ -583,21 +603,25 @@ class TestCorruptSnapshotBlob:
 class TestManifestOwnerPidMismatch:
     def test_owner_pid_mismatch_vs_caller_denied(self, env: dict[str, Any]) -> None:
         """Manifest with owner_pid != caller pid fails capability check."""
-        env["artifact_sdk"].write(env["pid"], "workspace:///adv_owner.md", b"owner-mismatch-content", "adv-owner")
+        env["artifact_sdk"].write(
+            env["pid"], "workspace:///adv_owner.md", b"owner-mismatch-content", "adv-owner"
+        )
         ver = next(iter(env["artifact_sdk"].list_versions(env["pid"], "workspace:///adv_owner.md")))
         arts = env["artifact_svc"].list_artifacts(env["pid"])
         art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
         manifest = ContextManifest(
             owner_pid="p_invalid",
-            refs=(ContentRef(
-                ref_id="r-owner",
-                canonical_uri=art["canonical_uri"],
-                artifact_id=ver["artifact_id"],
-                version=ver["version"],
-                content_hash=ver["content_hash"],
-                media_type="text/markdown",
-                required=True,
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-owner",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=ver["artifact_id"],
+                    version=ver["version"],
+                    content_hash=ver["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            ),
             token_budget=100_000,
             page_size_bytes=64,
         )
@@ -621,7 +645,9 @@ class TestCapabilityRevokedAfterLoad:
         env["ctx_sdk"].close(pid=pid, handle_id=handle.handle_id)
 
         # Build a fresh artifact for the second load attempt.
-        env["artifact_sdk"].write(pid, "workspace:///adv_revoke2.md", b"cap-revoke-adv-B " * 5, "adv-revoke-B")
+        env["artifact_sdk"].write(
+            pid, "workspace:///adv_revoke2.md", b"cap-revoke-adv-B " * 5, "adv-revoke-B"
+        )
         ver = next(iter(env["artifact_sdk"].list_versions(pid, "workspace:///adv_revoke2.md")))
         arts = env["artifact_svc"].list_artifacts(pid)
         art = next(a for a in arts if a["artifact_id"] == ver["artifact_id"])
@@ -635,15 +661,17 @@ class TestCapabilityRevokedAfterLoad:
         deny_sdk = ContextSDK(deny_svc)
         manifest = ContextManifest(
             owner_pid=pid,
-            refs=(ContentRef(
-                ref_id="r-revoke",
-                canonical_uri=art["canonical_uri"],
-                artifact_id=ver["artifact_id"],
-                version=ver["version"],
-                content_hash=ver["content_hash"],
-                media_type="text/markdown",
-                required=True,
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-revoke",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=ver["artifact_id"],
+                    version=ver["version"],
+                    content_hash=ver["content_hash"],
+                    media_type="text/markdown",
+                    required=True,
+                ),
+            ),
             token_budget=100_000,
             page_size_bytes=64,
         )

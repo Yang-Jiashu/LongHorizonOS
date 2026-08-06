@@ -44,19 +44,11 @@ class ContextSDK:
     def inspect(self, *, pid: str, handle_id: str) -> dict[str, Any]:
         return self._service.inspect(pid=pid, handle_id=handle_id)
 
-    def pin(
-        self, *, pid: str, handle_id: str, page_ids: list[str]
-    ) -> list[str]:
-        return self._service.pin(
-            pid=pid, handle_id=handle_id, page_ids=page_ids
-        )
+    def pin(self, *, pid: str, handle_id: str, page_ids: list[str]) -> list[str]:
+        return self._service.pin(pid=pid, handle_id=handle_id, page_ids=page_ids)
 
-    def unpin(
-        self, *, pid: str, handle_id: str, page_ids: list[str]
-    ) -> list[str]:
-        return self._service.unpin(
-            pid=pid, handle_id=handle_id, page_ids=page_ids
-        )
+    def unpin(self, *, pid: str, handle_id: str, page_ids: list[str]) -> list[str]:
+        return self._service.unpin(pid=pid, handle_id=handle_id, page_ids=page_ids)
 
     def evict(
         self,

@@ -18,32 +18,25 @@ FS across all tests in the directory).
 
 from __future__ import annotations
 
-import math
-from typing import Any
-from unittest.mock import PropertyMock, patch
-
 import pytest
 
-from tests.agent_os.context.conftest import (
-    _AllowsAllCaps,
-    _ArtifactSupplier,
-    write_artifacts_and_build_manifest,
-)
-
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.errors import (
     ErrCapabilityDenied,
     ErrHandleNotOwned,
     ErrInvalidContentHash,
     ErrRequiredBudgetExceeded,
 )
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import (
     ContentRef,
     ContextManifest,
 )
-from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-
+from tests.agent_os.context.conftest import (
+    _AllowsAllCaps,
+    _ArtifactSupplier,
+    write_artifacts_and_build_manifest,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -92,6 +85,7 @@ def _fresh_two_ref_manifest(env: dict) -> ContextManifest:
     """Same layout as ``_build_two_ref_manifest`` but writes through
     UUID-salted URIs so no other test can overwrite those versions."""
     from uuid import uuid4
+
     tag = uuid4().hex[:8]
     req_uri = f"artifact://ns-p1/mut-req-{tag}.md"
     opt_uri = f"artifact://ns-p1/mut-opt-{tag}.md"
@@ -149,50 +143,56 @@ class TestMutation01_VersionCheckIntegrity:
         uri = "workspace:///mut-v-a.md"
         env["artifact_sdk"].write(pid, uri, b"v1-contents\n", "v1")
         env["artifact_sdk"].write(pid, uri, b"v2-contents-different\n", "v2")
-        v1 = next(v for v in env["artifact_sdk"].list_versions(pid, uri)
-                  if v["version"] == 1)
-        v2 = next(v for v in env["artifact_sdk"].list_versions(pid, uri)
-                  if v["version"] == 2)
+        v1 = next(v for v in env["artifact_sdk"].list_versions(pid, uri) if v["version"] == 1)
+        v2 = next(v for v in env["artifact_sdk"].list_versions(pid, uri) if v["version"] == 2)
         arts = env["artifact_svc"].list_artifacts(pid)
         art = next(a for a in arts if a["artifact_id"] == v1["artifact_id"])
         m1 = ContextManifest(
             owner_pid=pid,
-            refs=(ContentRef(
-                ref_id="d", canonical_uri=art["canonical_uri"],
-                artifact_id=v1["artifact_id"], version=v1["version"],
-                content_hash=v1["content_hash"], media_type="text/plain",
-                required=True),),
-            token_budget=10_000, page_size_bytes=64,
+            refs=(
+                ContentRef(
+                    ref_id="d",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=v1["artifact_id"],
+                    version=v1["version"],
+                    content_hash=v1["content_hash"],
+                    media_type="text/plain",
+                    required=True,
+                ),
+            ),
+            token_budget=10_000,
+            page_size_bytes=64,
         )
         m2 = ContextManifest(
             owner_pid=pid,
-            refs=(ContentRef(
-                ref_id="d", canonical_uri=art["canonical_uri"],
-                artifact_id=v2["artifact_id"], version=v2["version"],
-                content_hash=v2["content_hash"], media_type="text/plain",
-                required=True),),
-            token_budget=10_000, page_size_bytes=64,
+            refs=(
+                ContentRef(
+                    ref_id="d",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=v2["artifact_id"],
+                    version=v2["version"],
+                    content_hash=v2["content_hash"],
+                    media_type="text/plain",
+                    required=True,
+                ),
+            ),
+            token_budget=10_000,
+            page_size_bytes=64,
         )
         _, l1 = env["ctx_sdk"].load(pid=pid, manifest=m1)
         _, l2 = env["ctx_sdk"].load(pid=pid, manifest=m2)
         assert l1.materialized_hash != l2.materialized_hash
 
-    def test_mutation_collapsing_version_makes_hashes_equal(
-        self, env: dict
-    ) -> None:
+    def test_mutation_collapsing_version_makes_hashes_equal(self, env: dict) -> None:
         """Mutation artifact: if the pager ignores version (and content_hash),
         the v1 and v2 loads produce identical pages — the test fails
         because materialized hashes would no longer differ."""
-        from lhos.agent_os.context import pager as _pmod
-        from lhos.agent_os.context.models import _content_hash_for
         pid = env["pid"]
         uri = "workspace:///mut-v-b.md"
         env["artifact_sdk"].write(pid, uri, b"V1\n", "vm1")
         env["artifact_sdk"].write(pid, uri, b"V2\n", "vm2")
-        v1 = next(v for v in env["artifact_sdk"].list_versions(pid, uri)
-                  if v["version"] == 1)
-        v2 = next(v for v in env["artifact_sdk"].list_versions(pid, uri)
-                  if v["version"] == 2)
+        v1 = next(v for v in env["artifact_sdk"].list_versions(pid, uri) if v["version"] == 1)
+        v2 = next(v for v in env["artifact_sdk"].list_versions(pid, uri) if v["version"] == 2)
         arts = env["artifact_svc"].list_artifacts(pid)
         art = next(a for a in arts if a["artifact_id"] == v1["artifact_id"])
         # Construct manifests pinned to v1 and v2 but with SAME content_hash
@@ -202,21 +202,35 @@ class TestMutation01_VersionCheckIntegrity:
         # KILLS this mutation.
         m_v1 = ContextManifest(
             owner_pid=pid,
-            refs=(ContentRef(
-                ref_id="d", canonical_uri=art["canonical_uri"],
-                artifact_id=art["artifact_id"], version=v1["version"],
-                content_hash=v1["content_hash"], media_type="text/plain",
-                required=True),),
-            token_budget=10_000, page_size_bytes=64,
+            refs=(
+                ContentRef(
+                    ref_id="d",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=art["artifact_id"],
+                    version=v1["version"],
+                    content_hash=v1["content_hash"],
+                    media_type="text/plain",
+                    required=True,
+                ),
+            ),
+            token_budget=10_000,
+            page_size_bytes=64,
         )
         m_v2_same_hash = ContextManifest(
             owner_pid=pid,
-            refs=(ContentRef(
-                ref_id="d", canonical_uri=art["canonical_uri"],
-                artifact_id=art["artifact_id"], version=v2["version"],
-                content_hash=v1["content_hash"],  # HONEST MUTATION: wrong hash
-                media_type="text/plain", required=True),),
-            token_budget=10_000, page_size_bytes=64,
+            refs=(
+                ContentRef(
+                    ref_id="d",
+                    canonical_uri=art["canonical_uri"],
+                    artifact_id=art["artifact_id"],
+                    version=v2["version"],
+                    content_hash=v1["content_hash"],  # HONEST MUTATION: wrong hash
+                    media_type="text/plain",
+                    required=True,
+                ),
+            ),
+            token_budget=10_000,
+            page_size_bytes=64,
         )
         # Baseline: v1 load works.
         env["ctx_sdk"].load(pid=pid, manifest=m_v1)
@@ -237,16 +251,12 @@ class TestMutation02_CacheKeyIncludesContentHash:
     system must keep them distinct.
     """
 
-    def test_baseline_distinct_content_distinct_pages(
-        self, env: dict
-    ) -> None:
+    def test_baseline_distinct_content_distinct_pages(self, env: dict) -> None:
         handle, loaded = _load(env)
         page_ids = [p.page_id for p in loaded.ordered_pages]
         assert len(page_ids) == len(set(page_ids))
 
-    def test_mutation_content_hash_required_for_distinctness(
-        self, env: dict
-    ) -> None:
+    def test_mutation_content_hash_required_for_distinctness(self, env: dict) -> None:
         """Build two refs with different content but same-length payload,
         same self-pinned version. The honest system produces different
         page_ids. If content_hash were dropped, they'd differ only by
@@ -255,14 +265,29 @@ class TestMutation02_CacheKeyIncludesContentHash:
         same auto-increment `artifact_id`, they'd collide. Practically we
         check that the page_id input includes content_hash."""
         from lhos.agent_os.context.pager import _stable_page_id
+
         a = _stable_page_id(
-            artifact_id="x", version=1, content_hash="h" * 64,
-            byte_start=0, byte_end=10, page_size=64, page_index=0)
+            artifact_id="x",
+            version=1,
+            content_hash="h" * 64,
+            byte_start=0,
+            byte_end=10,
+            page_size=64,
+            page_index=0,
+        )
         b = _stable_page_id(
-            artifact_id="x", version=1, content_hash="H" * 64,
-            byte_start=0, byte_end=10, page_size=64, page_index=0)
-        assert a != b, ("Mutation: dropping content_hash from page_id would "
-                        "collapse these two onto the same identity")
+            artifact_id="x",
+            version=1,
+            content_hash="H" * 64,
+            byte_start=0,
+            byte_end=10,
+            page_size=64,
+            page_index=0,
+        )
+        assert a != b, (
+            "Mutation: dropping content_hash from page_id would "
+            "collapse these two onto the same identity"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -287,10 +312,12 @@ class TestMutation03_RequiredNeverSilentlyDropped:
         omit the required ref."""
         pid = env["pid"]
         m = write_artifacts_and_build_manifest(
-            env=env, pid="p1",
-            artifacts=[("artifact://ns-p1/r.md", b"REQUIRED-CONTENT" * 100,
-                        "idem-mut3")],
-            token_budget=1, byte_budget=None, page_size_bytes=64,
+            env=env,
+            pid="p1",
+            artifacts=[("artifact://ns-p1/r.md", b"REQUIRED-CONTENT" * 100, "idem-mut3")],
+            token_budget=1,
+            byte_budget=None,
+            page_size_bytes=64,
             required_map={"artifact://ns-p1/r.md": True},
         )
         with pytest.raises(ErrRequiredBudgetExceeded):
@@ -314,9 +341,12 @@ class TestMutation04_BudgetRespected:
         """Required ref larger than budget must raise ErrRequiredBudgetExceeded."""
         pid = env["pid"]
         m = write_artifacts_and_build_manifest(
-            env=env, pid=pid,  # ← USE pid consistently
+            env=env,
+            pid=pid,  # ← USE pid consistently
             artifacts=[("artifact://ns-p1/big.md", b"B" * 4096, "idem-mut4")],
-            token_budget=5, byte_budget=None, page_size_bytes=64,
+            token_budget=5,
+            byte_budget=None,
+            page_size_bytes=64,
             required_map={"artifact://ns-p1/big.md": True},
         )
         with pytest.raises(ErrRequiredBudgetExceeded):
@@ -363,22 +393,17 @@ class TestMutation06_PinRefcountSemantics:
     def test_baseline_pin_increments_refcount(self, env: dict) -> None:
         handle, loaded = _load(env)
         page = loaded.ordered_pages[0]
-        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id,
-                           page_ids=[page.page_id])
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[page.page_id])
         assert env["ctx_svc"]._pin_counts.get(page.page_id, 0) >= 1
 
-    def test_mutation_pin_without_refcount_breaks_unpin(
-        self, env: dict
-    ) -> None:
+    def test_mutation_pin_without_refcount_breaks_unpin(self, env: dict) -> None:
         """Baseline: after pin → unpin, pin count is 0. A mutation that
         forgets to increment would make unpin silently decrement below 0,
         or remove a pinned flag incorrectly."""
         handle, loaded = _load(env)
         page = loaded.ordered_pages[0]
-        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id,
-                           page_ids=[page.page_id])
-        env["ctx_sdk"].unpin(pid="p1", handle_id=handle.handle_id,
-                             page_ids=[page.page_id])
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[page.page_id])
+        env["ctx_sdk"].unpin(pid="p1", handle_id=handle.handle_id, page_ids=[page.page_id])
         # Honest: pin count is 0 after unpin.
         assert env["ctx_svc"]._pin_counts.get(page.page_id, 0) == 0
 
@@ -396,17 +421,14 @@ class TestMutation07_PinnedPageNeverEvicted:
         optional_pages = [p for p in loaded.ordered_pages if not p.required]
         assert optional_pages, "Expected an optional page to pin"
         page = optional_pages[-1]
-        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id,
-                           page_ids=[page.page_id])
-        result = env["ctx_svc"].evict(pid="p1",
-                                      working_set_id=handle.working_set_id,
-                                      target_tokens=100_000)
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[page.page_id])
+        result = env["ctx_svc"].evict(
+            pid="p1", working_set_id=handle.working_set_id, target_tokens=100_000
+        )
         assert page.page_id not in result["evicted_pages"]
         assert page.page_id in result.get("pinned_blocked", [])
 
-    def test_mutation_pinned_page_evictable_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_pinned_page_evictable_detected(self, env: dict) -> None:
         """If eviction ignored pin counts, pinned pages would appear in
         evicted_pages. The honest system must include them in
         `pinned_blocked` instead."""
@@ -414,14 +436,12 @@ class TestMutation07_PinnedPageNeverEvicted:
         optional_pages = [p for p in loaded.ordered_pages if not p.required]
         assert optional_pages
         page = optional_pages[-1]
-        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id,
-                           page_ids=[page.page_id])
-        result = env["ctx_svc"].evict(pid="p1",
-                                      working_set_id=handle.working_set_id,
-                                      target_tokens=100_000)
+        env["ctx_sdk"].pin(pid="p1", handle_id=handle.handle_id, page_ids=[page.page_id])
+        result = env["ctx_svc"].evict(
+            pid="p1", working_set_id=handle.working_set_id, target_tokens=100_000
+        )
         # The honest system reports pinned_blocked non-empty.
-        assert result.get("pinned_blocked"), (
-            "Mutation: pin protection appears broken")
+        assert result.get("pinned_blocked"), "Mutation: pin protection appears broken"
 
 
 # ---------------------------------------------------------------------------
@@ -432,25 +452,18 @@ class TestMutation07_PinnedPageNeverEvicted:
 class TestMutation08_RestoreIntegrityVerify:
     def test_baseline_restore_reverifies_page_hashes(self, env: dict) -> None:
         handle, loaded = _load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.page_bindings[0].page_hash
 
-    def test_mutation_restore_skipping_hash_check_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_restore_skipping_hash_check_detected(self, env: dict) -> None:
         """If restore skipped re-verification, a tampered content_hash would
         be accepted. The honest system re-reads artifact bytes and checks
         hashes → would raise ErrSnapshotCorrupt."""
-        from lhos.agent_os.context.models import ContextSnapshot, PageBinding
         handle, loaded = _load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         # Tamper with the page binding — should trigger integrity failure.
-        tampered = snap.page_bindings[0].model_copy(
-            update={"content_hash": "0" * 64})
-        bad_snap = snap.model_copy(
-            update={"page_bindings": (tampered,)})
+        tampered = snap.page_bindings[0].model_copy(update={"content_hash": "0" * 64})
+        bad_snap = snap.model_copy(update={"page_bindings": (tampered,)})
         bad_snap_id = bad_snap.snapshot_id
 
         # New service, inject the tampered snapshot, attempt restore.
@@ -461,6 +474,7 @@ class TestMutation08_RestoreIntegrityVerify:
         )
         new_svc._snaps[bad_snap_id] = bad_snap
         from lhos.agent_os.context.errors import ErrSnapshotCorrupt
+
         with pytest.raises(ErrSnapshotCorrupt):
             new_svc.restore_snapshot(pid="p1", snapshot_id=bad_snap_id)
 
@@ -476,16 +490,13 @@ class TestMutation09_CrossPidReadDenied:
         with pytest.raises(ErrHandleNotOwned):
             env["ctx_sdk"].inspect(pid="p2", handle_id=handle.handle_id)
 
-    def test_mutation_disable_owner_check_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_disable_owner_check_detected(self, env: dict) -> None:
         """If cross-PID check were disabled, p2 would succeed. We verify the
         honest system denies both read AND inspect for cross-PID."""
         handle, _ = _load(env)
         for op in ("read", "inspect"):
             with pytest.raises(ErrHandleNotOwned):
-                getattr(env["ctx_sdk"], op)(pid="p2",
-                                            handle_id=handle.handle_id)
+                getattr(env["ctx_sdk"], op)(pid="p2", handle_id=handle.handle_id)
 
 
 # ---------------------------------------------------------------------------
@@ -501,9 +512,7 @@ class TestMutation10_DeterministicTieBreak:
         ids2 = [p.page_id for p in l2.ordered_pages]
         assert ids1 == ids2
 
-    def test_mutation_would_introduce_randomness_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_would_introduce_randomness_detected(self, env: dict) -> None:
         """If the policy used random shuffling instead of lexical ordering,
         two independent loads of the same manifest could differ. We verify
         the honest policy is stable across 20 independent loads."""
@@ -511,8 +520,7 @@ class TestMutation10_DeterministicTieBreak:
         for _ in range(20):
             _, l = _cached_load(env)
             ids_per_run.append(tuple(p.page_id for p in l.ordered_pages))
-        assert len(set(ids_per_run)) == 1, (
-            "Mutation: tie-break is non-deterministic")
+        assert len(set(ids_per_run)) == 1, "Mutation: tie-break is non-deterministic"
 
 
 # ---------------------------------------------------------------------------
@@ -521,27 +529,20 @@ class TestMutation10_DeterministicTieBreak:
 
 
 class TestMutation11_SnapshotRestoreHashVerified:
-    def test_baseline_snapshot_materialized_hash_matches_loaded(
-        self, env: dict
-    ) -> None:
+    def test_baseline_snapshot_materialized_hash_matches_loaded(self, env: dict) -> None:
         _, loaded = _cached_load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.materialized_hash == loaded.materialized_hash
 
-    def test_mutation_skip_hash_verify_then_tampered_accepted_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_skip_hash_verify_then_tampered_accepted_detected(self, env: dict) -> None:
         """If restore did not re-verify page_hash, a tampered snapshot would
         silently succeed. The honest system rejects it via integrity check."""
         from lhos.agent_os.context.errors import ErrSnapshotCorrupt
+
         _, loaded = _cached_load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
-        tampered = snap.page_bindings[0].model_copy(
-            update={"page_hash": "deadbeef" * 8})
-        bad_snap = snap.model_copy(
-            update={"page_bindings": (tampered,)})
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
+        tampered = snap.page_bindings[0].model_copy(update={"page_hash": "deadbeef" * 8})
+        bad_snap = snap.model_copy(update={"page_bindings": (tampered,)})
 
         new_svc = ContextService(
             content_supplier=_ArtifactSupplier(env["artifact_svc"], pid="p1"),
@@ -550,8 +551,7 @@ class TestMutation11_SnapshotRestoreHashVerified:
         )
         new_svc._snaps[bad_snap.snapshot_id] = bad_snap
         with pytest.raises(ErrSnapshotCorrupt):
-            new_svc.restore_snapshot(pid="p1",
-                                    snapshot_id=bad_snap.snapshot_id)
+            new_svc.restore_snapshot(pid="p1", snapshot_id=bad_snap.snapshot_id)
 
 
 # ---------------------------------------------------------------------------
@@ -562,19 +562,14 @@ class TestMutation11_SnapshotRestoreHashVerified:
 class TestMutation12_SnapshotRestoreOwnerPidEnforced:
     def test_baseline_snapshot_has_pid(self, env: dict) -> None:
         _, loaded = _cached_load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.pid == "p1"
 
-    def test_mutation_cross_pid_restore_denied_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_cross_pid_restore_denied_detected(self, env: dict) -> None:
         """If restore ignored owner_pid, p2 could restore p1's snapshot.
         The honest system enforces owner_pid."""
-        from lhos.agent_os.context.errors import ErrCapabilityDenied
         _, loaded = _cached_load(env)
-        snap = env["ctx_sdk"].snapshot(pid="p1",
-                                       context_id=loaded.context_id)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         new_svc = ContextService(
             content_supplier=_ArtifactSupplier(env["artifact_svc"], pid="p1"),
             capability_checker=_AllowsAllCaps(),
@@ -593,18 +588,16 @@ class TestMutation12_SnapshotRestoreOwnerPidEnforced:
 class TestMutation13_TokenEstimateNonZeroForNonEmpty:
     def test_baseline_non_empty_has_positive_estimate(self, env: dict) -> None:
         est = DeterministicByteTokenEstimator()
-        assert est.estimate(content=b"hello", media_type="text/plain",
-                            encoding="utf-8") > 0
+        assert est.estimate(content=b"hello", media_type="text/plain", encoding="utf-8") > 0
 
     def test_mutation_zero_estimate_detected(self, env: dict) -> None:
         """If the estimator returned 0 for non-empty content, budget math
         would silently ignore actual cost — overflowing budgets."""
         est = DeterministicByteTokenEstimator()
-        mutated = est.estimate(content=b"anything", media_type="text/plain",
-                               encoding="utf-8")
+        mutated = est.estimate(content=b"anything", media_type="text/plain", encoding="utf-8")
         assert mutated > 0, (
-            "Mutation: zero estimate for non-empty content would cause "
-            "budget overflows")
+            "Mutation: zero estimate for non-empty content would cause budget overflows"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -622,14 +615,13 @@ class TestMutation14_RequiredFirstOrdering:
         if opt_idxs:
             assert req_idxs[0] < opt_idxs[0]
 
-    def test_baseline_optional_can_never_precede_required(
-        self, env: dict
-    ) -> None:
+    def test_baseline_optional_can_never_precede_required(self, env: dict) -> None:
         """Even when the manifest lists optional before required, the honest
         system sorts required first."""
         pid = env["pid"]
         m = write_artifacts_and_build_manifest(
-            env=env, pid="p1",
+            env=env,
+            pid="p1",
             artifacts=[
                 ("artifact://ns-p1/opt-first.md", b"O" * 512, "id1"),
                 ("artifact://ns-p1/req-second.md", b"R" * 64, "id2"),
@@ -648,13 +640,12 @@ class TestMutation14_RequiredFirstOrdering:
         _, loaded = env["ctx_sdk"].load(pid=pid, manifest=m)
         uris = [p.canonical_uri for p in loaded.ordered_pages]
         # Required comes from req-second.md; optional comes from opt-first.md
-        req_idxs = [i for i, uri in enumerate(uris)
-                    if uri.endswith("/req-second.md")]
-        opt_idxs = [i for i, uri in enumerate(uris)
-                    if uri.endswith("/opt-first.md")]
+        req_idxs = [i for i, uri in enumerate(uris) if uri.endswith("/req-second.md")]
+        opt_idxs = [i for i, uri in enumerate(uris) if uri.endswith("/opt-first.md")]
         if opt_idxs:
             assert req_idxs[0] < opt_idxs[0], (
-                "Mutation: required not-first ordering indicates policy bypass")
+                "Mutation: required not-first ordering indicates policy bypass"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -666,9 +657,9 @@ class TestMutation15_TinyPageSizeDoesNotUndercountTokens:
     def test_baseline_tiny_pages_each_count_tokens(self, env: dict) -> None:
         pid = env["pid"]
         m = write_artifacts_and_build_manifest(
-            env=env, pid="p1",
-            artifacts=[("artifact://ns-p1/big.md",
-                        b"ABCDEFGHIJKLMNOP" * 16, "idb")],
+            env=env,
+            pid="p1",
+            artifacts=[("artifact://ns-p1/big.md", b"ABCDEFGHIJKLMNOP" * 16, "idb")],
             token_budget=1_000_000,
             page_size_bytes=4,
             required_map={"artifact://ns-p1/big.md": True},
@@ -678,17 +669,18 @@ class TestMutation15_TinyPageSizeDoesNotUndercountTokens:
         # but with 4-byte pages each ~ceil(4/4)=1 token per page → 64+ pages.
         assert loaded.tokens_used >= 1
 
-    def test_mutation_missing_perpage_estimate_detected(
-        self, env: dict
-    ) -> None:
+    def test_mutation_missing_perpage_estimate_detected(self, env: dict) -> None:
         """If the per-page token estimate were dropped (always 0), the
         materialized hash would be correct but tokens_used would be 0.
         Budget could then be silently violated."""
         pid = env["pid"]
         m = write_artifacts_and_build_manifest(
-            env=env, pid="p1",
+            env=env,
+            pid="p1",
             artifacts=[("artifact://ns-p1/tok.md", b"a" * 200, "idt")],
-            token_budget=10, byte_budget=None, page_size_bytes=64,
+            token_budget=10,
+            byte_budget=None,
+            page_size_bytes=64,
         )
         try:
             _, loaded = env["ctx_sdk"].load(pid=pid, manifest=m)

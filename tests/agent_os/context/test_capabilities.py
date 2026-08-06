@@ -11,8 +11,8 @@ from typing import Any
 
 import pytest
 
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.errors import ErrCapabilityDenied
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import ContentRef, ContextManifest
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
@@ -21,7 +21,6 @@ from tests.agent_os.context.conftest import (
     _ArtifactSupplier,
     _DenyAllCaps,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,8 +70,7 @@ class _ExplicitCaps:
         # Construct a synthetic resource URI that mimics cap_svc conventions
         resource = f"artifact://ns-{pid}/**"
         return any(
-            fnmatch.fnmatch(resource, cap.resource_pattern)
-            and "read" in cap.operations
+            fnmatch.fnmatch(resource, cap.resource_pattern) and "read" in cap.operations
             for cap in self._caps
         )
 
@@ -261,9 +259,7 @@ class TestCapabilityDeny:
             page_size_bytes=64,
         )
 
-        checker = _ExplicitCaps(
-            [Capability(resource_pattern="", operations={"read"})]
-        )
+        checker = _ExplicitCaps([Capability(resource_pattern="", operations={"read"})])
         svc = ContextService(
             content_supplier=_ArtifactSupplier(env["artifact_svc"], pid=pid),
             capability_checker=checker,

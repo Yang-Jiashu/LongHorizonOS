@@ -7,20 +7,17 @@ CtxSDK.inspect output.
 
 from __future__ import annotations
 
-from typing import Any
-
 import hashlib
 import random
+from typing import Any
 
 import pytest
 
+from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.context.models import ContentRef, ContextManifest
-from lhos.agent_os.context.errors import ErrHandleNotOwned, ErrCapabilityDenied
 from lhos.agent_os.context.sdk import ContextSDK
 from lhos.agent_os.context.service import ContextService
-from lhos.agent_os.context.estimator import DeterministicByteTokenEstimator
 from lhos.agent_os.kernel.models import Capability
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -93,9 +90,7 @@ class TestInspectAfterLoad:
         # version_bindings is a tuple on loaded, check page_id/version relation
         for vb in loaded.version_bindings:
             # Each binding attaches to a page
-            matching_pages = [
-                p for p in loaded.ordered_pages if p.page_id == vb.page_id
-            ]
+            matching_pages = [p for p in loaded.ordered_pages if p.page_id == vb.page_id]
             assert len(matching_pages) == 1
             assert matching_pages[0].artifact_id == vb.artifact_id
             assert matching_pages[0].version == vb.version
@@ -125,10 +120,16 @@ class TestManifestHashStability:
     def test_different_budget_different_hash(self, env: dict[str, Any]) -> None:
         refs = [_ref(env, "workspace:///doc0.md", b"budget-test " * 10)]
         m1 = ContextManifest(
-            owner_pid="p1", refs=tuple(refs), token_budget=100_000, page_size_bytes=64,
+            owner_pid="p1",
+            refs=tuple(refs),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         m2 = ContextManifest(
-            owner_pid="p1", refs=tuple(refs), token_budget=50_000, page_size_bytes=64,
+            owner_pid="p1",
+            refs=tuple(refs),
+            token_budget=50_000,
+            page_size_bytes=64,
         )
         _, l1 = env["ctx_sdk"].load(pid="p1", manifest=m1)
         _, l2 = env["ctx_sdk"].load(pid="p1", manifest=m2)
@@ -157,9 +158,7 @@ class TestMaterializedHashDeterminism:
         digest2 = hashlib.sha256(content_blob2).hexdigest()
         assert digest1 == digest2
 
-    def test_independent_loads_same_materialized_hash(
-        self, env: dict[str, Any]
-    ) -> None:
+    def test_independent_loads_same_materialized_hash(self, env: dict[str, Any]) -> None:
         _h1, l1 = _load(env, b"independent-load " * 10)
         _h2, l2 = _load(env, b"independent-load " * 10)
         # Same manifest metadata -> same materialized_hash despite different handles
@@ -176,7 +175,6 @@ class TestInspectKeys:
             "context_id",
             "handle_id",
             "pid",
-            "context_id",
             "manifest_id",
             "manifest_hash",
             "working_set_id",
@@ -192,13 +190,9 @@ class TestInspectKeys:
 class TestSnapshotMaterializedHashMatches:
     """Snapshot's materialized_hash matches loaded's."""
 
-    def test_snapshot_materialized_hash_equals_loaded(
-        self, env: dict[str, Any]
-    ) -> None:
+    def test_snapshot_materialized_hash_equals_loaded(self, env: dict[str, Any]) -> None:
         _handle, loaded = _load(env, b"snap-match " * 10)
-        snap = env["ctx_sdk"].snapshot(
-            pid="p1", context_id=loaded.context_id
-        )
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.materialized_hash == loaded.materialized_hash
 
 
@@ -239,12 +233,8 @@ class TestManifestHashDifferentOwnerPid:
 
         # Write one artifact under p1 and one under p_owner_alt (same bytes,
         # different namespace/artifact-id so each load can read its own).
-        env["artifact_sdk"].write(
-            "p1", "workspace:///p1_doc.md", content, "idem-owner-p1"
-        )
-        ver1 = next(
-            iter(env["artifact_sdk"].list_versions("p1", "workspace:///p1_doc.md"))
-        )
+        env["artifact_sdk"].write("p1", "workspace:///p1_doc.md", content, "idem-owner-p1")
+        ver1 = next(iter(env["artifact_sdk"].list_versions("p1", "workspace:///p1_doc.md")))
         arts1 = env["artifact_svc"].list_artifacts("p1")
         art1 = next(a for a in arts1 if a["artifact_id"] == ver1["artifact_id"])
 
@@ -252,8 +242,7 @@ class TestManifestHashDifferentOwnerPid:
             "p_owner_alt", "workspace:///p_owner_doc.md", content, "idem-owner-alt"
         )
         ver2 = next(
-            iter(env["artifact_sdk"].list_versions(
-                "p_owner_alt", "workspace:///p_owner_doc.md"))
+            iter(env["artifact_sdk"].list_versions("p_owner_alt", "workspace:///p_owner_doc.md"))
         )
         arts2 = env["artifact_svc"].list_artifacts("p_owner_alt")
         art2 = next(a for a in arts2 if a["artifact_id"] == ver2["artifact_id"])
@@ -263,28 +252,32 @@ class TestManifestHashDifferentOwnerPid:
         m1 = ContextManifest(
             manifest_id="fixed-mid-ownerdiff",
             owner_pid="p1",
-            refs=(ContentRef(
-                ref_id="r-p1_doc",
-                canonical_uri=art1["canonical_uri"],
-                artifact_id=ver1["artifact_id"],
-                version=ver1["version"],
-                content_hash=ver1["content_hash"],
-                media_type="text/markdown",
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-p1_doc",
+                    canonical_uri=art1["canonical_uri"],
+                    artifact_id=ver1["artifact_id"],
+                    version=ver1["version"],
+                    content_hash=ver1["content_hash"],
+                    media_type="text/markdown",
+                ),
+            ),
             token_budget=100_000,
             page_size_bytes=64,
         )
         m2 = ContextManifest(
             manifest_id="fixed-mid-ownerdiff",
             owner_pid="p_owner_alt",
-            refs=(ContentRef(
-                ref_id="r-p_owner_doc",
-                canonical_uri=art2["canonical_uri"],
-                artifact_id=ver2["artifact_id"],
-                version=ver2["version"],
-                content_hash=ver2["content_hash"],
-                media_type="text/markdown",
-            ),),
+            refs=(
+                ContentRef(
+                    ref_id="r-p_owner_doc",
+                    canonical_uri=art2["canonical_uri"],
+                    artifact_id=ver2["artifact_id"],
+                    version=ver2["version"],
+                    content_hash=ver2["content_hash"],
+                    media_type="text/markdown",
+                ),
+            ),
             token_budget=100_000,
             page_size_bytes=64,
         )
@@ -338,9 +331,7 @@ class TestManifestHashUniqueness:
 class TestContextIdStability:
     """context_id must be stable for identical content+binding across independent loads."""
 
-    def test_same_manifest_metadata_same_materialized_hash(
-        self, env: dict[str, Any]
-    ) -> None:
+    def test_same_manifest_metadata_same_materialized_hash(self, env: dict[str, Any]) -> None:
         _h1, l1 = _load(env, b"context-stable " * 10)
         _h2, l2 = _load(env, b"context-stable " * 10)
         # The two materialized hashes are equal (same content, same bindings)
@@ -353,13 +344,14 @@ class TestContextIdStability:
         # context_id is fresh UUID each load
         assert l1.context_id != l2.context_id
 
-    def test_fresh_load_vs_cached_load_same_materialized_hash(
-        self, env: dict[str, Any]
-    ) -> None:
+    def test_fresh_load_vs_cached_load_same_materialized_hash(self, env: dict[str, Any]) -> None:
         """Fresh load vs load with idempotency key yield same materialized_hash."""
         refs = [_ref(env, "workspace:///doc0.md", b"cached-load " * 10)]
         m = ContextManifest(
-            owner_pid="p1", refs=tuple(refs), token_budget=100_000, page_size_bytes=64,
+            owner_pid="p1",
+            refs=tuple(refs),
+            token_budget=100_000,
+            page_size_bytes=64,
         )
         _, l1 = env["ctx_sdk"].load(pid="p1", manifest=m)
         _, l2 = env["ctx_sdk"].load(pid="p1", manifest=m, idempotency_key="idem-cache")
