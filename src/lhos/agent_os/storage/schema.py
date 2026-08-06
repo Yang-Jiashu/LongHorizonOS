@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 CREATE_CAPABILITY_SETS = """
 CREATE TABLE IF NOT EXISTS capability_sets (
     set_id TEXT PRIMARY KEY,
-    pid TEXT NOT NULL,
+    pid TEXT NOT NULL UNIQUE,
     capabilities_json TEXT NOT NULL DEFAULT '[]'
 )
 """

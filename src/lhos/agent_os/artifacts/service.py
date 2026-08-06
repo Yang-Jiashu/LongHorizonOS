@@ -218,22 +218,41 @@ class ArtifactFSService:
         if open_count >= _DEFAULT_MAX_OPEN_HANDLES:
             raise QuotaExceeded(f"max_open_handles={_DEFAULT_MAX_OPEN_HANDLES}")
 
+        # SRV-05: for writes to a non-existent artifact, acquire the lease
+        # BEFORE inserting the artifact record; if acquisition fails, no empty
+        # record is left behind to pollute the namespace.
         artifact = self._projections.get_artifact_by_uri(canonical.canonical)
+        leases_preacquired: list = []
+        if artifact is None and mode in ("write", "append") and self._lease_service is not None:
+            placeholder = ArtifactRecord(
+                namespace_id=canonical.namespace_id,
+                canonical_uri=canonical.canonical,
+                created_by_pid=pid,
+            )
+            resource_id = f"artifact:{placeholder.artifact_id}"
+            leases_preacquired = self._lease_service.atomic_acquire(
+                pid,
+                [{"resource_id": resource_id, "mode": "exclusive"}],
+            )
+
         if artifact is None:
             if mode == "read":
                 raise ArtifactNotFound(canonical.canonical)
             # Write/append can create new artifact
             artifact = self._create_artifact_record(canonical, pid)
 
-        # Acquire lease for write/append
+        # Acquire lease for write/append (reuse preacquired lease for new artifacts)
         lease_id: str | None = None
         if mode in ("write", "append") and self._lease_service:
-            resource_id = f"artifact:{artifact.artifact_id}"
-            leases = self._lease_service.atomic_acquire(
-                pid,
-                [{"resource_id": resource_id, "mode": "exclusive"}],
-            )
-            lease_id = leases[0].lease_id if leases else None
+            if leases_preacquired:
+                lease_id = leases_preacquired[0].lease_id
+            else:
+                resource_id = f"artifact:{artifact.artifact_id}"
+                leases = self._lease_service.atomic_acquire(
+                    pid,
+                    [{"resource_id": resource_id, "mode": "exclusive"}],
+                )
+                lease_id = leases[0].lease_id if leases else None
 
         handle = ArtifactHandle(
             pid=pid,
@@ -438,6 +457,16 @@ class ArtifactFSService:
         # Step 3: Commit content to storage CAS
         commit_result = self._storage_driver.commit(transaction_id)
 
+        # SRV-03: the authoritative content hash is the one the driver
+        # returns after the CAS move; fall back to the staged hash only when
+        # the driver did not supply a recomputed value. This prevents
+        # ArtifactVersion.content_hash from diverging from the on-disk
+        # content if the staging path was tampered with pre-commit.
+        result_hash = getattr(commit_result, "content_hash", "") or ""
+        result_ref = commit_result.content_ref or ""
+        committed_hash = result_hash or txn.staged_content_hash
+        committed_ref = result_ref or txn.staged_content_ref
+
         if (
             not commit_result.committed
             and not commit_result.content_ref
@@ -460,8 +489,8 @@ class ArtifactFSService:
         ver = ArtifactVersion(
             artifact_id=artifact.artifact_id,
             version=new_version,
-            content_ref=txn.staged_content_ref,
-            content_hash=txn.staged_content_hash,
+            content_ref=committed_ref,
+            content_hash=committed_hash,
             size_bytes=txn.staged_size_bytes,
             parent_version=artifact.current_version if artifact.current_version > 0 else None,
             committed_by_pid=txn.pid,
@@ -575,30 +604,42 @@ class ArtifactFSService:
         rows = self._projections._storage.query_all(
             "SELECT * FROM write_transactions_projection WHERE state = 'uncertain'"
         )
+        # Snapshot the version count so a crash mid-recovery cannot silently
+        # duplicate versions on the next recovery run (idempotency guard).
         for row in rows:
             txn = ArtifactProjections._row_to_transaction(row)
             if self._storage_driver.exists(txn.staged_content_ref):
-                # Content was committed — resolve as committed
+                # Content was committed — resolve as committed.
                 artifact = self._projections.get_artifact(txn.artifact_id)
                 if artifact:
-                    new_version = artifact.current_version
-                    ver = ArtifactVersion(
-                        artifact_id=artifact.artifact_id,
-                        version=new_version,
-                        content_ref=txn.staged_content_ref,
-                        content_hash=txn.staged_content_hash,
-                        size_bytes=txn.staged_size_bytes,
-                        parent_version=artifact.current_version
-                        if artifact.current_version > 0
-                        else None,
-                        committed_by_pid=txn.pid,
-                        committed_action_id=txn.transaction_id,
+                    # Idempotency guard: if a version already exists for this
+                    # transaction_id, skip creation. Prevents duplicate versions
+                    # when recovery is re-run after a crash between version
+                    # insert and transaction state update.
+                    existing = self._projections._storage.query_one(
+                        "SELECT version FROM artifact_versions_projection"
+                        " WHERE committed_action_id = ?",
+                        (txn.transaction_id,),
                     )
-                    self._projections.insert_version(ver)
-                    artifact.current_version = new_version
-                    artifact.updated_at = datetime.now(UTC)
-                    self._projections.upsert_artifact(artifact)
-                    results["versions_created"] += 1
+                    if existing is None:
+                        new_version = artifact.current_version + 1
+                        ver = ArtifactVersion(
+                            artifact_id=artifact.artifact_id,
+                            version=new_version,
+                            content_ref=txn.staged_content_ref,
+                            content_hash=txn.staged_content_hash,
+                            size_bytes=txn.staged_size_bytes,
+                            parent_version=artifact.current_version
+                            if artifact.current_version > 0
+                            else None,
+                            committed_by_pid=txn.pid,
+                            committed_action_id=txn.transaction_id,
+                        )
+                        self._projections.insert_version(ver)
+                        artifact.current_version = new_version
+                        artifact.updated_at = datetime.now(UTC)
+                        self._projections.upsert_artifact(artifact)
+                        results["versions_created"] += 1
 
                 txn.state = "committed"
                 txn.finished_at = datetime.now(UTC)
@@ -619,8 +660,10 @@ class ArtifactFSService:
             )
         }
         orphan_report = self._storage_driver.recover(known_txns)
-        orphaned = self._storage_driver.list_orphaned_staging()
-        results["orphaned_cleaned"] = len(orphaned) - len(orphan_report)
+        # SRV-06: count orphans by the recovery report; do NOT subtract the
+        # remaining count after cleanup (that's a post-decrement snapshot and
+        # can be negative / misleading).
+        results["orphaned_cleaned"] = len(orphan_report)
 
         return results
 
@@ -828,7 +871,7 @@ class ArtifactFSService:
         namespace_id = f"ns-{pid}"
         canonical = resolve_workspace_uri(uri, namespace_id)
 
-        # Capability check
+        # Capability check against the (caller-namespace) resource.
         if self._capability_service:
             resource = f"artifact://{canonical.namespace_id}/**"
             op_map = {"read": "read", "write": "write", "append": "write"}
@@ -840,25 +883,48 @@ class ArtifactFSService:
             # First: check if artifact exists locally (COW copy may have been created)
             local_artifact = self._projections.get_artifact_by_uri(canonical.canonical)
             if local_artifact is None or local_artifact.deleted:
-                # Not local — check mounts
+                # Not local — pick the LONGEST matching prefix mount (NS-01),
+                # not the first one in iteration order.
                 mounts = self._projections.list_mounts(namespace_id)
+                best_mount = None
+                best_len = -1
                 for mnt in mounts:
                     mp = mnt.mount_point
-                    if canonical.path == mp or canonical.path.startswith(mp + "/"):
-                        relative = canonical.path[len(mp) :].lstrip("/")
-                        resolved_path = (
-                            f"{mnt.source_prefix}/{relative}".strip("/")
-                            if mnt.source_prefix
-                            else relative
-                        )
-                        if mnt.mode in ("shared_readonly", "copy_on_write", "shared_readwrite"):
-                            # Resolve to source namespace
-                            canonical.namespace_id = mnt.source_namespace_id
-                            canonical.path = resolved_path
-                            canonical.canonical = (
-                                f"artifact://{mnt.source_namespace_id}/{resolved_path}"
-                            )
-                        break
+                    if (canonical.path == mp or canonical.path.startswith(mp + "/")) and len(
+                        mp
+                    ) > best_len:
+                        best_mount = mnt
+                        best_len = len(mp)
+                if best_mount is not None and best_mount.mode in (
+                    "shared_readonly",
+                    "copy_on_write",
+                    "shared_readwrite",
+                ):
+                    mp = best_mount.mount_point
+                    relative = canonical.path[len(mp) :].lstrip("/")
+                    resolved_path = (
+                        f"{best_mount.source_prefix}/{relative}".strip("/")
+                        if best_mount.source_prefix
+                        else relative
+                    )
+                    # Resolve to source namespace
+                    canonical.namespace_id = best_mount.source_namespace_id
+                    canonical.path = resolved_path
+                    canonical.canonical = (
+                        f"artifact://{best_mount.source_namespace_id}/{resolved_path}"
+                    )
+
+        # SRV-01: when resolution routed through a mount into a foreign source
+        # namespace, the caller must ALSO hold capability on that source
+        # namespace. Without this re-check, a caller with only its own-namespace
+        # capability could read every mounted artifact (the mount bypass).
+        if self._capability_service and canonical.namespace_id != namespace_id:
+            source_resource = f"artifact://{canonical.namespace_id}/**"
+            op_map = {"read": "read", "write": "write", "append": "write"}
+            if not self._capability_service.check(
+                pid, source_resource, op_map.get(operation, operation)
+            ):
+                raise CapabilityDenied(pid, canonical.canonical, operation)
 
         return canonical
 

@@ -14,6 +14,9 @@ Namespace isolation rules:
 
 from __future__ import annotations
 
+import fnmatch
+from uuid import uuid4
+
 from lhos.agent_os.kernel.errors import CapabilityDenied
 from lhos.agent_os.kernel.models import Capability, CapabilitySet, KernelEvent
 from lhos.agent_os.services.journal import JournalService
@@ -59,6 +62,34 @@ class CapabilityService:
         self._storage = storage
         self._journal = journal
 
+    def grant(
+        self,
+        pid: str,
+        capability: Capability,
+    ) -> None:
+        # CAP-02: concurrent grants on the same pid must not lose one of the
+        # two granted capabilities. Read-append-write runs under BEGIN
+        # IMMEDIATE so callers are serialized and the final row is the union.
+        with self._storage.transaction(immediate=True) as tx:
+            row = tx.query_one(
+                "SELECT capabilities_json FROM capability_sets WHERE pid = ?",
+                (pid,),
+            )
+            if row is None:
+                merged: list[Capability] = [capability]
+            else:
+                existing = [Capability(**c) for c in SQLiteStorage.loads(row["capabilities_json"])]
+                key = (capability.resource_pattern, frozenset(capability.operations))
+                if any((c.resource_pattern, frozenset(c.operations)) == key for c in existing):
+                    return  # idempotent: same cap already granted
+                merged = [*existing, capability]
+            caps_json = SQLiteStorage.dumps([c.model_dump(mode="json") for c in merged])
+            tx.execute(
+                "INSERT INTO capability_sets (set_id, pid, capabilities_json) VALUES (?, ?, ?) "
+                "ON CONFLICT(pid) DO UPDATE SET capabilities_json = excluded.capabilities_json",
+                (str(uuid4().hex), pid, caps_json),
+            )
+
     def create_capability_set(
         self,
         pid: str,
@@ -74,24 +105,6 @@ class CapabilityService:
         )
         self._journal.append_event(ev)
         return cap_set
-
-    def grant(
-        self,
-        pid: str,
-        capability: Capability,
-    ) -> None:
-        cap_set = self.get_capability_set(pid)
-        if cap_set is None:
-            cap_set = self.create_capability_set(pid)
-        cap_set.capabilities.append(capability)
-        self._upsert_capability_set(cap_set)
-
-        ev = KernelEvent(
-            pid=pid,
-            event_type="CAPABILITY_GRANTED",
-            payload={"pid": pid, "capability": capability.model_dump(mode="json")},
-        )
-        self._journal.append_event(ev)
 
     def check(
         self,
@@ -159,7 +172,15 @@ class CapabilityService:
         )
 
     def verify_child_subset(self, parent_pid: str, child_pid: str) -> bool:
-        """Verify child capabilities are a subset of parent."""
+        """Verify child capabilities are a subset of parent.
+
+        CAP-01: a child capability must be *covered* by at least one parent
+        capability whose pattern matches the child's pattern and whose
+        operations are a superset of the child's. The previous exact
+        (pattern, frozenset(ops)) tuple match rejected legitimate
+        delegations (narrower pattern, fewer operations, or a strict
+        subset of a broader grant).
+        """
         parent = self.get_capability_set(parent_pid)
         child = self.get_capability_set(child_pid)
         if parent is None:
@@ -167,11 +188,13 @@ class CapabilityService:
         if child is None:
             return True
 
-        parent_patterns = {
-            (c.resource_pattern, frozenset(c.operations)) for c in parent.capabilities
-        }
-        for c in child.capabilities:
-            if (c.resource_pattern, frozenset(c.operations)) not in parent_patterns:
+        for cc in child.capabilities:
+            covered = any(
+                fnmatch.fnmatch(cc.resource_pattern, pc.resource_pattern)
+                and set(cc.operations) <= set(pc.operations)
+                for pc in parent.capabilities
+            )
+            if not covered:
                 return False
         return True
 
@@ -191,18 +214,12 @@ class CapabilityService:
             self._upsert_capability_set(existing)
 
     def _upsert_capability_set(self, cap_set: CapabilitySet) -> None:
+        # Plain replace: the caller passes the full desired capability set.
+        # Atomicity for concurrent grants lives in grant() (CAP-02).
         caps_json = SQLiteStorage.dumps([c.model_dump(mode="json") for c in cap_set.capabilities])
         with self._storage.transaction() as tx:
             tx.execute(
-                """INSERT INTO capability_sets (set_id, pid, capabilities_json)
-                   VALUES (?, ?, ?)
-                   ON CONFLICT(set_id) DO UPDATE SET capabilities_json = excluded.capabilities_json""",
-                (cap_set.set_id, cap_set.pid, caps_json),
-            )
-            # Also upsert by pid
-            tx.execute(
-                """INSERT INTO capability_sets (set_id, pid, capabilities_json)
-                   VALUES (?, ?, ?)
-                   ON CONFLICT(set_id) DO NOTHING""",
+                "INSERT INTO capability_sets (set_id, pid, capabilities_json) VALUES (?, ?, ?) "
+                "ON CONFLICT(pid) DO UPDATE SET capabilities_json = excluded.capabilities_json",
                 (cap_set.set_id, cap_set.pid, caps_json),
             )

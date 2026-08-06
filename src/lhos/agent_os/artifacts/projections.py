@@ -6,7 +6,7 @@ All projection tables can be rebuilt from the Journal.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from lhos.agent_os.artifacts.models import (
@@ -359,7 +359,7 @@ class ArtifactProjections:
                     transaction_id,
                     result_state,
                     result_version,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(UTC).isoformat(),
                 ),
             )
 

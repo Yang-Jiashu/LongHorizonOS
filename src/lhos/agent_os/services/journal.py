@@ -96,6 +96,64 @@ class JournalService:
 
             return results
 
+    # ── Mutate injection socket for LeaseService atomic_acquire ─────────────
+    # LEASE-01 downstream: LeaseService must coalesce the lease INSERT + the
+    # LEASE_ACQUIRED journal INSERT inside ONE BEGIN IMMEDIATE, otherwise the
+    # side-effect transaction races concurrent acquisitions and inserts
+    # duplicate journal rows, desyncing event-sourcing. append_events_tx
+    # writes through an already-open _Tx (no BEGIN/COMMIT wrapper).
+
+    def append_events_tx(self, tx: Any, events: list[KernelEvent]) -> list[KernelEvent]:
+        """Append journal events *inside* an already-open transaction."""
+        if not events:
+            return []
+        results: list[KernelEvent] = []
+        for ev in events:
+            existing = tx.query_one(
+                "SELECT journal_offset, process_sequence FROM journal_events WHERE event_id = ?",
+                (ev.event_id,),
+            )
+            if existing:
+                ev.journal_offset = existing["journal_offset"]
+                ev.process_sequence = existing["process_sequence"]
+                results.append(ev)
+                continue
+
+            meta = tx.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
+            assert meta is not None
+            offset = meta["value"]
+
+            seq_row = tx.query_one(
+                "SELECT MAX(process_sequence) AS max_seq FROM journal_events WHERE pid = ?",
+                (ev.pid,),
+            )
+            seq = (seq_row["max_seq"] + 1) if (seq_row and seq_row["max_seq"] is not None) else 0
+
+            ev.journal_offset = offset
+            ev.process_sequence = seq
+
+            tx.execute(
+                """INSERT INTO journal_events
+                   (event_id, journal_offset, pid, process_sequence,
+                    event_type, causation_id, correlation_id,
+                    payload_json, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    ev.event_id,
+                    ev.journal_offset,
+                    ev.pid,
+                    ev.process_sequence,
+                    ev.event_type,
+                    ev.causation_id,
+                    ev.correlation_id,
+                    SQLiteStorage.dumps(ev.payload),
+                    ev.created_at.isoformat(),
+                ),
+            )
+            tx.execute("UPDATE journal_meta SET value = value + 1 WHERE key = 'next_offset'")
+            results.append(ev)
+        return results
+
     # ── Read ───────────────────────────────────────────────────────────────
 
     def read_from_offset(self, offset: int, limit: int = 10000) -> list[KernelEvent]:

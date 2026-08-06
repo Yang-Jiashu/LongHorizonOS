@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -28,9 +29,20 @@ class SQLiteStorage:
             isolation_level=None,  # autocommit; we manage transactions explicitly
             check_same_thread=False,
         )
+        # A single sqlite3.Connection permits only one in-flight write txn at a
+        # time even with check_same_thread=False. Begin an immediate txn from
+        # two threads concurrently raises "cannot start a transaction within a
+        # transaction", which is indistinguishable from a real programming error.
+        # Serialize write-txn entry so BEGIN IMMEDIATE/COMMIT pairs never overlap
+        # across threads. (LEASE-01 downstream.)
+        self._write_lock = threading.Lock()
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
+        # Allow concurrent writers to wait for a held write lock instead of
+        # failing immediately with SQLITE_BUSY. Required so N concurrent
+        # `BEGIN IMMEDIATE` txns serialize cleanly (LEASE-01 downstream).
+        self.conn.execute("PRAGMA busy_timeout = 5000")
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -47,8 +59,8 @@ class SQLiteStorage:
                 "INSERT OR IGNORE INTO journal_meta(key, value) VALUES ('next_pid_seq', 0)"
             )
 
-    def transaction(self) -> _Tx:
-        return _Tx(self.conn)
+    def transaction(self, immediate: bool = False) -> _Tx:
+        return _Tx(self.conn, immediate=immediate, write_lock=self._write_lock)
 
     def execute(self, sql: str, params: tuple[Any, ...] | list[Any] = ()) -> sqlite3.Cursor:
         return self.conn.execute(sql, params)
@@ -80,18 +92,36 @@ class SQLiteStorage:
 class _Tx:
     """Explicit transaction context manager."""
 
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        immediate: bool = False,
+        write_lock: threading.Lock | None = None,
+    ):
         self.conn = conn
+        self.immediate = immediate
+        self.write_lock = write_lock
 
     def __enter__(self) -> _Tx:
-        self.conn.execute("BEGIN")
+        # For write (IMMEDIATE) txns, acquire the storage-level lock first so
+        # concurrent threads cannot race through BEGIN IMMEDIATE. Readers and
+        # DEFERRED txns can proceed without the OS lock.
+        if self.immediate and self.write_lock is not None:
+            self.write_lock.acquire()
+        # BEGIN IMMEDIATE takes a write lock up front, blocking concurrent writers
+        # so that a check-then-insert sequence inside the txn is serializable.
+        self.conn.execute("BEGIN IMMEDIATE" if self.immediate else "BEGIN")
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        if exc_type is None:
-            self.conn.execute("COMMIT")
-        else:
-            self.conn.execute("ROLLBACK")
+        try:
+            if exc_type is None:
+                self.conn.execute("COMMIT")
+            else:
+                self.conn.execute("ROLLBACK")
+        finally:
+            if self.immediate and self.write_lock is not None:
+                self.write_lock.release()
 
     def execute(self, sql: str, params: tuple[Any, ...] = ()) -> sqlite3.Cursor:
         return self.conn.execute(sql, params)

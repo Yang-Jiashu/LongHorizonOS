@@ -17,7 +17,7 @@ Key invariants:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from lhos.agent_os.kernel.errors import LeaseAcquisitionFailed
@@ -69,32 +69,35 @@ class LeaseService:
         if not claims:
             return []
 
-        now = datetime.utcnow()
-        expires_at = now + ttl
-
-        # Check all claims first
-        for claim in claims:
-            resource_id = claim["resource_id"]
-            mode = claim.get("mode", "exclusive")
-            if not self._is_available(resource_id, mode, exclude_pid=None):
-                # Record waiter
-                self._add_waiter(pid, resource_id)
-                # Journal the failure
-                ev = KernelEvent(
-                    pid=pid,
-                    event_type="LEASE_ACQUIRE_FAILED",
-                    payload={
-                        "resource_id": resource_id,
-                        "mode": mode,
-                        "reason": "resource_busy",
-                    },
-                )
-                self._journal.append_event(ev)
-                raise LeaseAcquisitionFailed(pid, resource_id)
-
-        # All available — acquire all atomically
+        # Phase 1: Acquire-or-fail inside ONE BEGIN IMMEDIATE transaction.
+        # The write lock is taken up front so the check-then-insert is
+        # serializable (closes the LEASE-01 TOCTOU window). Side effects
+        # (_add_waiter, journal) MUST stay out of this txn: the storage uses
+        # isolation_level=None, which forbids nested BEGINs.
+        pending_waiters: list[tuple[str, str]] = []
         leases: list[ResourceLease] = []
-        with self._storage.transaction() as tx:
+        with self._storage.transaction(immediate=True) as tx:
+            # Re-check availability within the write-locked txn.  SELECT→check→INSERT
+            # run under _write_lock so concurrent callers are serialized and two
+            # threads cannot both observe 'no holding row' and both INSERT, which
+            # would break the exclusive invariant (LEASE-01).
+            for claim in claims:
+                resource_id = claim["resource_id"]
+                mode = claim.get("mode", "exclusive")
+                rows = tx.query_all(
+                    "SELECT owner_pid, mode FROM leases_projection WHERE resource_id = ?",
+                    (resource_id,),
+                )
+                for row in rows:
+                    row["owner_pid"]
+                    existing_mode = row["mode"]
+                    if mode == "exclusive" or existing_mode == "exclusive":
+                        pending_waiters.append((pid, resource_id))
+                        raise LeaseAcquisitionFailed(pid, resource_id)
+
+            # All still available under the write lock — acquire atomically.
+            now = datetime.now(UTC)
+            expires_at = now + ttl
             for claim in claims:
                 resource_id = claim["resource_id"]
                 mode = claim.get("mode", "exclusive")
@@ -122,23 +125,40 @@ class LeaseService:
                         int(lease.revocable),
                     ),
                 )
-            # Remove waiters for acquired resources
+            # Remove waiters for acquired resources.
             for claim in claims:
                 tx.execute(
                     "DELETE FROM lease_waiters WHERE pid = ? AND resource_id = ?",
                     (pid, claim["resource_id"]),
                 )
+            # LEASE-01: coalesce the journal INSERT of LEASE_ACQUIRED events into
+            # the SAME BEGIN IMMEDIATE txn; otherwise the post-txn side-effect
+            # transaction races concurrent acquisitions.
+            if leases:
+                acq_events = [
+                    KernelEvent(
+                        pid=pid,
+                        event_type="LEASE_ACQUIRED",
+                        payload=lease.model_dump(mode="json"),
+                    )
+                    for lease in leases
+                ]
+                self._journal.append_events_tx(tx, acq_events)
 
-        # Journal each lease
-        events = [
-            KernelEvent(
-                pid=pid,
-                event_type="LEASE_ACQUIRED",
-                payload=lease.model_dump(mode="json"),
+        # Phase 2: Side effects AFTER the write lock is released.
+        for waiter_pid, waiter_resource in pending_waiters:
+            self._add_waiter(waiter_pid, waiter_resource)
+            self._journal.append_event(
+                KernelEvent(
+                    pid=waiter_pid,
+                    event_type="LEASE_ACQUIRE_FAILED",
+                    payload={
+                        "resource_id": waiter_resource,
+                        "mode": claims[0].get("mode", "exclusive") if claims else "exclusive",
+                        "reason": "resource_busy",
+                    },
+                )
             )
-            for lease in leases
-        ]
-        self._journal.append_events_atomically(events)
 
         return leases
 
@@ -186,18 +206,24 @@ class LeaseService:
     # ── Renew ──────────────────────────────────────────────────────────────
 
     def renew(self, lease_id: str, ttl: timedelta = DEFAULT_LEASE_TTL) -> ResourceLease | None:
-        row = self._storage.query_one(
-            "SELECT * FROM leases_projection WHERE lease_id = ?",
-            (lease_id,),
-        )
-        if not row:
-            return None
-        new_expiry = datetime.utcnow() + ttl
-        with self._storage.transaction() as tx:
-            tx.execute(
+        # LEASE-02: SELECT → UPDATE run inside BEGIN IMMEDIATE so a concurrent
+        # release cannot land between the check and the UPDATE. We then inspect
+        # rowcount: 0 means the lease was concurrently released, and we
+        # signal that to the caller (returns None).
+        new_expiry = datetime.now(UTC) + ttl
+        with self._storage.transaction(immediate=True) as tx:
+            cur = tx.execute(
                 "UPDATE leases_projection SET expires_at = ? WHERE lease_id = ?",
                 (new_expiry.isoformat(), lease_id),
             )
+            if cur.rowcount == 0:
+                return None
+            row = tx.query_one(
+                "SELECT * FROM leases_projection WHERE lease_id = ?",
+                (lease_id,),
+            )
+            assert row is not None
+
         lease = self._row_to_lease(row)
         lease.expires_at = new_expiry
 
@@ -370,24 +396,12 @@ class LeaseService:
 
     # ── Internal ───────────────────────────────────────────────────────────
 
-    def _is_available(self, resource_id: str, mode: str, exclude_pid: str | None = None) -> bool:
-        existing = self._storage.query_all(
-            "SELECT * FROM leases_projection WHERE resource_id = ?",
-            (resource_id,),
-        )
-        for row in existing:
-            if exclude_pid and row["owner_pid"] == exclude_pid:
-                continue
-            if mode == "exclusive" or row["mode"] == "exclusive":
-                return False
-        return True
-
     def _add_waiter(self, pid: str, resource_id: str) -> None:
         with self._storage.transaction() as tx:
             tx.execute(
                 """INSERT OR IGNORE INTO lease_waiters (pid, resource_id, wait_since)
                    VALUES (?, ?, ?)""",
-                (pid, resource_id, datetime.utcnow().isoformat()),
+                (pid, resource_id, datetime.now(UTC).isoformat()),
             )
 
     @staticmethod

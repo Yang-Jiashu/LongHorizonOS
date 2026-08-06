@@ -18,6 +18,12 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+def _require_expires_at() -> datetime:
+    """Force callers to supply an expiry — leases must never default to
+    already-expired (MOD-02)."""
+    raise TypeError("ResourceLease.expires_at must be supplied explicitly; there is no default.")
+
+
 def _uuid() -> str:
     return uuid4().hex
 
@@ -286,7 +292,7 @@ class ResourceLease(BaseModel):
     mode: Literal["shared", "exclusive"] = "exclusive"
 
     acquired_at: datetime = Field(default_factory=_utcnow)
-    expires_at: datetime = Field(default_factory=_utcnow)
+    expires_at: datetime = Field(default_factory=_require_expires_at)
 
     renewable: bool = True
     revocable: bool = True

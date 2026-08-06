@@ -63,11 +63,31 @@ class NamespaceService:
         return self._projections.get_namespace(f"ns-{pid}")
 
     def delete_namespace(self, pid: str) -> bool:
-        """Delete a process's namespace (on process exit)."""
+        """Delete a process's namespace (on process exit).
+
+        NS-02: this now *actually* removes the namespace row, the associated
+        mounts, and the recorded artifacts from the projections, so that the
+        deleted namespace is no longer queryable. The deletion is journaled
+        so rebuilds after a crash reproduce it.
+        """
         namespace_id = f"ns-{pid}"
         ns = self._projections.get_namespace(namespace_id)
         if not ns:
             return False
+
+        with self._projections._storage.transaction() as tx:
+            tx.execute(
+                "DELETE FROM artifacts_projection WHERE namespace_id = ?",
+                (namespace_id,),
+            )
+            tx.execute(
+                "DELETE FROM mounts_projection WHERE target_namespace_id = ?",
+                (namespace_id,),
+            )
+            tx.execute(
+                "DELETE FROM namespaces_projection WHERE namespace_id = ?",
+                (namespace_id,),
+            )
 
         ev = KernelEvent(
             pid=pid,
@@ -160,6 +180,23 @@ class NamespaceService:
         """List all mounts in a process's namespace."""
         return self._projections.list_mounts(f"ns-{pid}")
 
+    @staticmethod
+    def _pick_mount_longest_prefix(
+        mounts: list[NamespaceMount], path: str
+    ) -> NamespaceMount | None:
+        """Pick the mount with the longest matching mount_point (NS-01).
+
+        Returns None if no mount applies.
+        """
+        best: NamespaceMount | None = None
+        best_len = -1
+        for mnt in mounts:
+            mp = mnt.mount_point
+            if (path == mp or path.startswith(mp + "/")) and len(mp) > best_len:
+                best = mnt
+                best_len = len(mp)
+        return best
+
     def resolve_mount(self, target_namespace_id: str, path: str) -> tuple[str, str, str]:
         """Resolve a path through mounts.
 
@@ -167,15 +204,14 @@ class NamespaceService:
         If no mount matches, returns (target_namespace_id, path, "private").
         """
         mounts = self._projections.list_mounts(target_namespace_id)
-        for mnt in mounts:
-            if path == mnt.mount_point or path.startswith(mnt.mount_point + "/"):
-                # Path is under this mount
-                relative = path[len(mnt.mount_point) :].lstrip("/")
-                resolved_path = (
-                    f"{mnt.source_prefix}/{relative}".strip("/") if mnt.source_prefix else relative
-                )
-                return mnt.source_namespace_id, resolved_path, mnt.mode
-        return target_namespace_id, path, "private"
+        mnt = self._pick_mount_longest_prefix(mounts, path)
+        if mnt is None:
+            return target_namespace_id, path, "private"
+        relative = path[len(mnt.mount_point) :].lstrip("/")
+        resolved_path = (
+            f"{mnt.source_prefix}/{relative}".strip("/") if mnt.source_prefix else relative
+        )
+        return mnt.source_namespace_id, resolved_path, mnt.mode
 
     # ── Snapshots ──────────────────────────────────────────────────────────
 
@@ -247,6 +283,20 @@ class NamespaceService:
                 tx.execute(
                     "DELETE FROM mounts_projection WHERE mount_id = ?",
                     (ev.payload["mount_id"],),
+                )
+        elif ev.event_type == "ARTIFACT_NAMESPACE_DELETED":
+            with self._projections._storage.transaction() as tx:
+                tx.execute(
+                    "DELETE FROM artifacts_projection WHERE namespace_id = ?",
+                    (ev.payload["namespace_id"],),
+                )
+                tx.execute(
+                    "DELETE FROM mounts_projection WHERE target_namespace_id = ?",
+                    (ev.payload["namespace_id"],),
+                )
+                tx.execute(
+                    "DELETE FROM namespaces_projection WHERE namespace_id = ?",
+                    (ev.payload["namespace_id"],),
                 )
         elif ev.event_type == "ARTIFACT_SNAPSHOT_CREATED":
             snap = NamespaceSnapshot(**ev.payload)

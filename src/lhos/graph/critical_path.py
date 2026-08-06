@@ -47,8 +47,8 @@ def criticality(graph: ProgressGraph, node_id: str) -> float:
 def unlock_score(graph: ProgressGraph, node_id: str) -> float:
     """blocked descendant count / total remaining nodes (spec 11.2)."""
     dag = remaining_dag(graph)
-    total = dag.number_of_nodes()
+    total = float(dag.number_of_nodes())
     if total == 0 or node_id not in dag:
         return 0.0
     descendants = nx.descendants(dag, node_id)
-    return len(descendants) / total
+    return float(len(descendants)) / total
