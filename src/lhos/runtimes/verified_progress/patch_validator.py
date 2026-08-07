@@ -94,9 +94,7 @@ def _node_type_from_string(s: str) -> Any:
     return mapping[s]
 
 
-def _build_add_node(
-    op: AddNodeOp, graph_id: str, version: int
-) -> AnyNode:
+def _build_add_node(op: AddNodeOp, graph_id: str, version: int) -> AnyNode:
     """PTranslate AddNodeOp into a typed VPGNode.  Node validity defaults set."""
     if op.node_type == "goal":
         return GoalNode(
@@ -190,9 +188,7 @@ def _build_add_node(
     raise VPGError(VPGCode.INVALID_NODE_TYPE, f"unknown node_type: {op.node_type}")
 
 
-def _check_edge_type_combination(
-    edge: VPGEdge, nodes: dict[str, AnyNode]
-) -> None:
+def _check_edge_type_combination(edge: VPGEdge, nodes: dict[str, AnyNode]) -> None:
     """Validate that the edge type is allowed between source targetType."""
     src = nodes.get(edge.source_node_id)
     tgt = nodes.get(edge.target_node_id)
@@ -330,9 +326,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
 
     # Deep-copy baseline so result.candidate_nodes are independent objects —
     # derived-state mutations (VERIFIED/CLOSED) must not alias the snapshot.
-    cand_nodes: dict[str, AnyNode] = {
-        nid: copy.deepcopy(n) for nid, n in req.current_nodes.items()
-    }
+    cand_nodes: dict[str, AnyNode] = {nid: copy.deepcopy(n) for nid, n in req.current_nodes.items()}
     cand_edges: list[VPGEdge] = [copy.deepcopy(e) for e in req.current_edges]
     pending_dep_edges: list[VPGEdge] = []
 
@@ -445,9 +439,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
                     f"attach_artifact: task_node_id {op.task_node_id} not found",
                 )
             binding = op.artifact
-            _validate_artifact_binding_against_sdk(
-                binding, op.created_by_pid, req.facts_artifact
-            )
+            _validate_artifact_binding_against_sdk(binding, op.created_by_pid, req.facts_artifact)
             art, edge = _attach_artifact_produces(
                 op.task_node_id,
                 op.created_by_pid,
@@ -491,9 +483,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
                     VPGCode.NODE_NOT_FOUND,
                     f"verification node {op.verification_node_id} not found",
                 )
-            evidence = _evidence_node_from_existing(
-                op.evidence_node_id, cand_nodes
-            )
+            evidence = _evidence_node_from_existing(op.evidence_node_id, cand_nodes)
             if evidence is None:
                 raise VPGError(
                     VPGCode.NODE_NOT_FOUND,
@@ -508,6 +498,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
                 existing_edges=[
                     *cand_edges,
                     VPGEdge(
+                        edge_id=op.edge_id,
                         graph_id=graph_id,
                         edge_type=EdgeType.PRODUCES,
                         source_node_id=verification.node_id,
@@ -527,6 +518,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
             # and its producing verification edge will be created.
 
             edge = VPGEdge(
+                edge_id=op.edge_id,
                 graph_id=graph_id,
                 edge_type=EdgeType.PRODUCES,
                 source_node_id=verification.node_id,

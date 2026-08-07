@@ -148,7 +148,9 @@ def validate_evidence(
         evidence_versions = {(b.canonical_uri, b.version) for b in evidence.artifact_bindings}
         # D1: evidence artifact versions must EXACTLY match the task's
         # currently-pinned versions — no silent cross-version validation.
-        if evidence_versions and evidence_versions != pinned:
+        # Empty-evidence case: if the task pins artifacts and evidence names
+        # none, set inequality holds (∅ != pinned) and reject.
+        if evidence_versions != pinned:
             return _fail(
                 VPGCode.EVIDENCE_ARTIFACT_HASH_MISMATCH,
                 "evidence artifact versions no longer match task pins",
