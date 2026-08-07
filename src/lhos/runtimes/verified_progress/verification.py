@@ -67,16 +67,22 @@ def validate_evidence(
             "evidence.source_action_id is empty",
         )
 
-    if (
-        facts_kernel is None
-        or facts_kernel.get_action(evidence.source_action_id) is None
-    ):
+    if facts_kernel is None or facts_kernel.get_action(evidence.source_action_id) is None:
         return _fail(
             VPGCode.EVIDENCE_SOURCE_ACTION_NOT_FOUND,
             f"action {evidence.source_action_id} not in kernel journal",
         )
 
     action = facts_kernel.get_action(evidence.source_action_id)
+
+    # D1-I? : Action PID must match evidence.produced_by_pid.
+    # Without this, a committed action in process P_X can fabricate a VERIFIED
+    # Task for process P_Y — breaking process isolation at the semantic layer.
+    if getattr(action, 'pid', None) != evidence.produced_by_pid:
+        return _fail(
+            VPGCode.EVIDENCE_SOURCE_ACTION_WRONG_PID,
+            f"action.pid={getattr(action, 'pid', None)!r} != produced_by_pid={evidence.produced_by_pid!r}",
+        )
 
     if action.state not in ALLOWED_ACTION_TERMINAL_STATES:  # type: ignore[union-attr]
         return _fail(
@@ -138,12 +144,8 @@ def validate_evidence(
 
     task_node = existing_nodes.get(target_task_id)
     if isinstance(task_node, TaskNode):
-        pinned = _task_current_artifact_versions(
-            task_node.node_id, existing_nodes, existing_edges
-        )
-        evidence_versions = {
-            (b.canonical_uri, b.version) for b in evidence.artifact_bindings
-        }
+        pinned = _task_current_artifact_versions(task_node.node_id, existing_nodes, existing_edges)
+        evidence_versions = {(b.canonical_uri, b.version) for b in evidence.artifact_bindings}
         # D1: evidence artifact versions must EXACTLY match the task's
         # currently-pinned versions — no silent cross-version validation.
         if evidence_versions and evidence_versions != pinned:
