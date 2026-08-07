@@ -110,8 +110,7 @@ def rebuild_projection(
 
 def _is_evidence_edge_going_to_verification(n, edges) -> bool:
     return n.node_type == "evidence" and any(
-        e.edge_type == EdgeType.PRODUCES and e.source_node_id == n.node_id
-        for e in edges
+        e.edge_type == EdgeType.PRODUCES and e.source_node_id == n.node_id for e in edges
     )
 
 
@@ -133,13 +132,11 @@ def _recompute_all_validity(
     rely on the *state* not changing, not event-list equality).
     """
     # mark tasks STALE when their pinned output artifact version has moved on
-    _apply_task_local_invalidation(nodes, edges)
+    _apply_task_local_invalidation(nodes, edges, graph_version)
 
     for n in list(nodes.values()):
         if isinstance(n, TaskNode):
-            new_validity = _compute_task_validity(
-                n, nodes, edges, facts_artifact, facts_kernel
-            )
+            new_validity = _compute_task_validity(n, nodes, edges, facts_artifact, facts_kernel)
             if new_validity is not None and new_validity != n.validity:
                 n.validity = new_validity
                 n.updated_in_version = graph_version
@@ -194,6 +191,7 @@ def _recompute_all_validity(
             was_closed = n.lifecycle == NodeLifecycle.CLOSED
             if closed_now and not was_closed:
                 n.lifecycle = NodeLifecycle.CLOSED
+                n.updated_in_version = graph_version
                 out_events.append(
                     GraphEvent(
                         graph_id=graph_id,
@@ -205,6 +203,7 @@ def _recompute_all_validity(
                 )
             elif not closed_now and was_closed:
                 n.lifecycle = NodeLifecycle.ACTIVE
+                n.updated_in_version = graph_version
                 out_events.append(
                     GraphEvent(
                         graph_id=graph_id,
@@ -219,6 +218,7 @@ def _recompute_all_validity(
 def _apply_task_local_invalidation(
     nodes: dict[str, AnyNode],
     edges: list[VPGEdge],
+    graph_version: int,
 ) -> None:
     """For each Task already VERIFIED, if its currently-produced ArtifactRef
     versions differ from the versions that were verified, mark the Task STALE.
@@ -237,11 +237,9 @@ def _apply_task_local_invalidation(
                 else []
             )
         )
-        if (
-            pinned_at_verification
-            and pinned_now != pinned_at_verification
-        ):
+        if pinned_at_verification and pinned_now != pinned_at_verification:
             n.validity = NodeValidity.STALE
+            n.updated_in_version = graph_version
             if n.lifecycle == NodeLifecycle.CLOSED:
                 n.lifecycle = NodeLifecycle.ACTIVE
 
