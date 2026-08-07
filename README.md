@@ -5,11 +5,18 @@
 A Verified Progress Graph runtime for long-horizon agents. The trusted
 execution plane (process/action journal, capability/lease/signal, versioned
 Artifact FS, namespace isolation) guarantees crash-consistent execution.
-The semantic control plane (Verified Progress Runtime, graph-derived
-multi-agent scheduling) coordinates multi-agent work through
-evidence-backed progress.
+The semantic control plane coordinates multi-agent work through
+evidence-backed progress:
 
-## Current Status (Phase D1 — Verified Progress Runtime implemented; multi-agent scheduler TBD)
+- **Verified Progress Runtime** — deterministic semantically-closed Task/Goal
+  state graph; evidence-backed VERIFIED derivation.
+- **Graph-derived Multi-Agent Scheduler** — eligibility, deterministic matching,
+  kernel-backed exclusive TaskClaims, projection, reconciliation (IN PROGRESS).
+
+## Current Status (Phase D2 — Graph-derived Multi-Agent Scheduler in progress)
+
+Verified Progress Runtime — implemented
+Graph-derived Multi-Agent Scheduler — in progress
 
 Implemented:
 
