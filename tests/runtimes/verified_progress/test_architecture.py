@@ -24,9 +24,7 @@ AGENT_OS = SRC / "lhos" / "agent_os"
 
 # Forbidden import patterns that VPG must NOT contain.
 FORBIDDEN_VPG_IMPORTS = [
-    re.compile(
-        r"^\s*(?:from\s+lhos\.agent_os|import\s+lhos\.agent_os)\b"
-    ),
+    re.compile(r"^\s*(?:from\s+lhos\.agent_os|import\s+lhos\.agent_os)\b"),
 ]
 
 # Forbidden import patterns that agent_os must NOT contain.
@@ -68,9 +66,8 @@ class TestVpgDoesNotImportAgentOs:
                 hits = _grep(p, pat)
                 if hits:
                     offenders.append((p, hits))
-        assert not offenders, (
-            "VPG runtime must NOT import lhos.agent_os.*:\n"
-            + "\n".join(f"  {p.relative_to(PROJECT_ROOT)}: {h}" for p, hs in offenders for h in hs)
+        assert not offenders, "VPG runtime must NOT import lhos.agent_os.*:\n" + "\n".join(
+            f"  {p.relative_to(PROJECT_ROOT)}: {h}" for p, hs in offenders for h in hs
         )
 
     def test_vpg_no_kernel_import(self):
@@ -125,7 +122,9 @@ class TestVpgIsSelfContainedLayer:
     def test_vpg_does_not_import_lhos_kernels(self):
         if not VP.exists():
             pytest.skip("VPG package missing")
-        pat = re.compile(r"^\s*(?:from|import)\s+lhos\.(?!runtimes\.verified_progress)", re.MULTILINE)
+        pat = re.compile(
+            r"^\s*(?:from|import)\s+lhos\.(?!runtimes\.verified_progress)", re.MULTILINE
+        )
         offenders: list[str] = []
         for p in _py_files(VP):
             text = p.read_text(encoding="utf-8")
@@ -133,6 +132,5 @@ class TestVpgIsSelfContainedLayer:
                 if pat.search(line) and not line.strip().startswith("#"):
                     offenders.append(f"  {p.name}: {line.strip()}")
         assert not offenders, (
-            "VPG runtime must not reach out to other lhos subpackages:\n"
-            + "\n".join(offenders)
+            "VPG runtime must not reach out to other lhos subpackages:\n" + "\n".join(offenders)
         )

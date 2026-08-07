@@ -72,7 +72,11 @@ def fake_facts():
             self.state = state
             self.result = result or {}
             self.artifact_refs = tuple(
-                a if isinstance(a, dict) else a.model_dump() if isinstance(a, ArtifactVersionBinding) else a
+                a
+                if isinstance(a, dict)
+                else a.model_dump()
+                if isinstance(a, ArtifactVersionBinding)
+                else a
                 for a in artifact_refs
             )
 
@@ -109,7 +113,11 @@ def patch(rt, graph_id, kid, ops, expected_graph_version=None):
     """Helper to build + commit a patch, advancing cur_version tracking."""
     from lhos.runtimes.verified_progress.patches import GraphPatchProposal
 
-    ver = expected_graph_version if expected_graph_version is not None else rt.get_graph(graph_id).current_version
+    ver = (
+        expected_graph_version
+        if expected_graph_version is not None
+        else rt.get_graph(graph_id).current_version
+    )
     p = GraphPatchProposal(
         graph_id=graph_id,
         expected_graph_version=ver,

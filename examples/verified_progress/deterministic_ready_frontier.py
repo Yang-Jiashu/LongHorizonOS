@@ -28,13 +28,15 @@ def main() -> int:
     gid = rt.create_graph(owner_pid="agent-1").graph_id
 
     def patch(ops, key):
-        return rt.submit_patch(GraphPatchProposal(
-            graph_id=gid,
-            expected_graph_version=rt.get_graph(gid).current_version,
-            author_pid="agent-1",
-            operations=ops,
-            idempotency_key=key,
-        ))
+        return rt.submit_patch(
+            GraphPatchProposal(
+                graph_id=gid,
+                expected_graph_version=rt.get_graph(gid).current_version,
+                author_pid="agent-1",
+                operations=ops,
+                idempotency_key=key,
+            )
+        )
 
     # DAG (deps point from child -> parents so READY requires parents done):
     #   t_a (priority=5,  no deps)     t_b (priority=10, no deps)
@@ -52,30 +54,73 @@ def main() -> int:
     # Tie-break t_b vs t_e: same priority/depth/created -> node_id.
     # Expected order: ["t_b", "t_e", "t_a", "t_c"].
 
-    patch((
-        AddNodeOp(node_id="t_a", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", metadata={"priority": 5}),
-        AddNodeOp(node_id="t_b", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", metadata={"priority": 10}),
-        AddNodeOp(node_id="t_c", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", metadata={"priority": 0}),
-        AddNodeOp(node_id="t_d", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", metadata={"priority": 5}),
-        AddNodeOp(node_id="t_e", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", metadata={"priority": 10}),
-    ), "n1")
+    patch(
+        (
+            AddNodeOp(
+                node_id="t_a",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                metadata={"priority": 5},
+            ),
+            AddNodeOp(
+                node_id="t_b",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                metadata={"priority": 10},
+            ),
+            AddNodeOp(
+                node_id="t_c",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                metadata={"priority": 0},
+            ),
+            AddNodeOp(
+                node_id="t_d",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                metadata={"priority": 5},
+            ),
+            AddNodeOp(
+                node_id="t_e",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                metadata={"priority": 10},
+            ),
+        ),
+        "n1",
+    )
 
-    patch((
-        AddEdgeOp(edge_id="e-ac", edge_type="depends_on",
-                  source_node_id="t_c", target_node_id="t_a",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="e-bc", edge_type="depends_on",
-                  source_node_id="t_c", target_node_id="t_b",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="e-cd", edge_type="depends_on",
-                  source_node_id="t_d", target_node_id="t_c",
-                  created_by_pid="agent-1"),
-    ), "e1")
+    patch(
+        (
+            AddEdgeOp(
+                edge_id="e-ac",
+                edge_type="depends_on",
+                source_node_id="t_c",
+                target_node_id="t_a",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="e-bc",
+                edge_type="depends_on",
+                source_node_id="t_c",
+                target_node_id="t_b",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="e-cd",
+                edge_type="depends_on",
+                source_node_id="t_d",
+                target_node_id="t_c",
+                created_by_pid="agent-1",
+            ),
+        ),
+        "e1",
+    )
 
     f1 = rt.query_ready_frontier(gid)
     ids1 = [c.task_id for c in f1]
@@ -105,7 +150,9 @@ def main() -> int:
     print("  priority DESC | topo_depth ASC | created ASC | node_id ASC")
     for c in f1:
         md = rt.inspect_node(gid, c.task_id).metadata or {}
-        print(f"   {c.task_id}  priority={md.get('priority')}  depth={c.readiness_proof.graph_version}")
+        print(
+            f"   {c.task_id}  priority={md.get('priority')}  depth={c.readiness_proof.graph_version}"
+        )
 
     return 0
 

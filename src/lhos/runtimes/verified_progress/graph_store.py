@@ -203,9 +203,7 @@ class GraphStore:
 
     # ── read helpers ───────────────────────────────────────────────────────
     def get_record(self, graph_id: str) -> GraphRecord | None:
-        r = self.conn.execute(
-            "SELECT * FROM graphs WHERE graph_id = ?", (graph_id,)
-        ).fetchone()
+        r = self.conn.execute("SELECT * FROM graphs WHERE graph_id = ?", (graph_id,)).fetchone()
         return _row_to_record(r) if r else None
 
     def get_version(self, graph_id: str, version: int) -> GraphVersion | None:
@@ -254,9 +252,7 @@ class GraphStore:
             for r in rows
         ]
 
-    def get_events(
-        self, graph_id: str, since_version: int | None = None
-    ) -> list[GraphEvent]:
+    def get_events(self, graph_id: str, since_version: int | None = None) -> list[GraphEvent]:
         if since_version is None:
             rows = self.conn.execute(
                 "SELECT * FROM graph_events WHERE graph_id = ? ORDER BY recorded_at, event_id",
@@ -288,9 +284,7 @@ class GraphStore:
     def create_graph(self, record: GraphRecord) -> GraphRecord:
         existing = self.get_record(record.graph_id)
         if existing is not None:
-            raise VPGError(
-                VPGCode.GRAPH_ALREADY_EXISTS, record.graph_id
-            )
+            raise VPGError(VPGCode.GRAPH_ALREADY_EXISTS, record.graph_id)
         with self.conn:
             self.conn.execute(
                 "INSERT INTO graphs "
@@ -476,7 +470,12 @@ class GraphStore:
                         ev.to_validity,
                         _json_dumps(list(ev.verification_ids)),
                         _json_dumps(list(ev.evidence_ids)),
-                        _json_dumps([b if isinstance(b, dict) else b.model_dump() for b in ev.artifact_bindings]),
+                        _json_dumps(
+                            [
+                                b if isinstance(b, dict) else b.model_dump()
+                                for b in ev.artifact_bindings
+                            ]
+                        ),
                         _json_dumps(list(ev.dependency_task_ids)),
                         _json_dumps(list(ev.ready_frontier)),
                         ev.graph_version,
@@ -528,9 +527,7 @@ class GraphStore:
         """Drop the materialized projection (keeps patch/event history) so it
         can be rebuilt via projection replay."""
         with self.conn:
-            placeholders = ",".join(
-                "?" * len(_graph_node_ids(self.conn, graph_id))
-            ) or "''"
+            placeholders = ",".join("?" * len(_graph_node_ids(self.conn, graph_id))) or "''"
             node_ids = _graph_node_ids(self.conn, graph_id)
             if node_ids:
                 self.conn.execute(

@@ -69,24 +69,35 @@ class _Facts:
 
 
 def _patch(rt, graph_id, kid, ops):
-    return rt.submit_patch(GraphPatchProposal(
-        graph_id=graph_id,
-        expected_graph_version=rt.get_graph(graph_id).current_version,
-        author_pid="p1",
-        idempotency_key=kid,
-        operations=ops,
-    ))
+    return rt.submit_patch(
+        GraphPatchProposal(
+            graph_id=graph_id,
+            expected_graph_version=rt.get_graph(graph_id).current_version,
+            author_pid="p1",
+            idempotency_key=kid,
+            operations=ops,
+        )
+    )
 
 
-def _inject_evidence(rt, graph_id, evidence_node_id, verification_id, action_id,
-                     artifact_bindings=(), version=None):
+def _inject_evidence(
+    rt, graph_id, evidence_node_id, verification_id, action_id, artifact_bindings=(), version=None
+):
     evi = EvidenceNode(
-        graph_id=graph_id, node_id=evidence_node_id, node_type=NodeType.EVIDENCE,
-        evidence_kind="command_result", result="pass",
-        source_verification_id=verification_id, source_action_id=action_id,
+        graph_id=graph_id,
+        node_id=evidence_node_id,
+        node_type=NodeType.EVIDENCE,
+        evidence_kind="command_result",
+        result="pass",
+        source_verification_id=verification_id,
+        source_action_id=action_id,
         produced_by_pid="p1",
-        created_in_version=version if version is not None else rt.get_graph(graph_id).current_version,
-        updated_in_version=version if version is not None else rt.get_graph(graph_id).current_version,
+        created_in_version=version
+        if version is not None
+        else rt.get_graph(graph_id).current_version,
+        updated_in_version=version
+        if version is not None
+        else rt.get_graph(graph_id).current_version,
         created_by_pid="p1",
         artifact_bindings=tuple(artifact_bindings),
     )
@@ -110,20 +121,35 @@ class TestNoFactsPath:
 
         gid, rt = graph
         evi = EvidenceNode(
-            graph_id=gid, node_id="evi1", node_type=NodeType.EVIDENCE,
-            evidence_kind="command_result", result="pass",
-            source_verification_id="v1", source_action_id="act1",
-            produced_by_pid="p1", created_in_version=0, updated_in_version=0,
+            graph_id=gid,
+            node_id="evi1",
+            node_type=NodeType.EVIDENCE,
+            evidence_kind="command_result",
+            result="pass",
+            source_verification_id="v1",
+            source_action_id="act1",
+            produced_by_pid="p1",
+            created_in_version=0,
+            updated_in_version=0,
             created_by_pid="p1",
         )
-        v1 = __import__("lhos.runtimes.verified_progress.models", fromlist=["VerificationNode"]).VerificationNode(
-            graph_id=gid, node_id="v1", node_type=NodeType.VERIFICATION,
+        v1 = __import__(
+            "lhos.runtimes.verified_progress.models", fromlist=["VerificationNode"]
+        ).VerificationNode(
+            graph_id=gid,
+            node_id="v1",
+            node_type=NodeType.VERIFICATION,
             verification_kind="command_result",
-            created_in_version=0, updated_in_version=0, created_by_pid="p1",
+            created_in_version=0,
+            updated_in_version=0,
+            created_by_pid="p1",
         )
         res = validate_evidence(
-            evi, existing_nodes={"v1": v1}, existing_edges=[],
-            facts_artifact=None, facts_kernel=None,
+            evi,
+            existing_nodes={"v1": v1},
+            existing_edges=[],
+            facts_artifact=None,
+            facts_kernel=None,
         )
         assert res.valid is False
         assert res.code == VPGCode.EVIDENCE_SOURCE_ACTION_NOT_FOUND
@@ -135,21 +161,67 @@ class TestFactsPathVerifiedClosed:
         facts = _Facts(_Action())
         rt.facts_artifact = facts
         rt.facts_kernel = facts
-        _patch(rt, gid, "setup", (
-            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"),
-            AddNodeOp(node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"),
-            AddEdgeOp(edge_id="dep", edge_type="depends_on", source_node_id="g1", target_node_id="t1", created_by_pid="p1"),
-            AddNodeOp(node_id="v1", graph_id=gid, node_type="verification", created_by_pid="p1", verification_kind="command_result"),
-            AddEdgeOp(edge_id="vfy", edge_type="verifies", source_node_id="v1", target_node_id="t1", created_by_pid="p1"),
-        ))
-        bind = ArtifactVersionBinding(canonical_uri="u", artifact_id="a", version=1, content_hash="h")
+        _patch(
+            rt,
+            gid,
+            "setup",
+            (
+                AddNodeOp(
+                    node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"
+                ),
+                AddNodeOp(
+                    node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"
+                ),
+                AddEdgeOp(
+                    edge_id="dep",
+                    edge_type="depends_on",
+                    source_node_id="g1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+                AddNodeOp(
+                    node_id="v1",
+                    graph_id=gid,
+                    node_type="verification",
+                    created_by_pid="p1",
+                    verification_kind="command_result",
+                ),
+                AddEdgeOp(
+                    edge_id="vfy",
+                    edge_type="verifies",
+                    source_node_id="v1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+            ),
+        )
+        bind = ArtifactVersionBinding(
+            canonical_uri="u", artifact_id="a", version=1, content_hash="h"
+        )
         _inject_evidence(rt, gid, "evi1", "v1", "act1", artifact_bindings=(bind,))
-        _patch(rt, gid, "art", (
-            AttachArtifactOp(task_node_id="t1", artifact=bind, created_by_pid="p1", edge_id="prod"),
-        ))
-        _patch(rt, gid, "attachev", (
-            AttachEvidenceOp(verification_node_id="v1", evidence_node_id="evi1", created_by_pid="p1", edge_id="pe"),
-        ))
+        _patch(
+            rt,
+            gid,
+            "art",
+            (
+                AttachArtifactOp(
+                    task_node_id="t1", artifact=bind, created_by_pid="p1", edge_id="prod"
+                ),
+            ),
+        )
+        _patch(
+            rt,
+            gid,
+            "attachev",
+            (
+                AttachEvidenceOp(
+                    verification_node_id="v1",
+                    evidence_node_id="evi1",
+                    created_by_pid="p1",
+                    edge_id="pe",
+                ),
+            ),
+        )
         evts = _event_types(rt, gid)
         assert GraphEventType.TASK_VERIFIED_DERIVED in evts
         assert GraphEventType.TASK_CLOSED_DERIVED in evts
@@ -166,19 +238,55 @@ class TestFactsPathVerifiedClosed:
         facts_mismatch.verify_binding = lambda pid, binding: False
         rt.facts_artifact = facts_mismatch
         rt.facts_kernel = _Facts(_Action())
-        _patch(rt, gid, "setup", (
-            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"),
-            AddNodeOp(node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"),
-            AddEdgeOp(edge_id="dep", edge_type="depends_on", source_node_id="g1", target_node_id="t1", created_by_pid="p1"),
-            AddNodeOp(node_id="v1", graph_id=gid, node_type="verification", created_by_pid="p1", verification_kind="command_result"),
-            AddEdgeOp(edge_id="vfy", edge_type="verifies", source_node_id="v1", target_node_id="t1", created_by_pid="p1"),
-        ))
-        bind = ArtifactVersionBinding(canonical_uri="u", artifact_id="a", version=1, content_hash="h")
+        _patch(
+            rt,
+            gid,
+            "setup",
+            (
+                AddNodeOp(
+                    node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"
+                ),
+                AddNodeOp(
+                    node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"
+                ),
+                AddEdgeOp(
+                    edge_id="dep",
+                    edge_type="depends_on",
+                    source_node_id="g1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+                AddNodeOp(
+                    node_id="v1",
+                    graph_id=gid,
+                    node_type="verification",
+                    created_by_pid="p1",
+                    verification_kind="command_result",
+                ),
+                AddEdgeOp(
+                    edge_id="vfy",
+                    edge_type="verifies",
+                    source_node_id="v1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+            ),
+        )
+        bind = ArtifactVersionBinding(
+            canonical_uri="u", artifact_id="a", version=1, content_hash="h"
+        )
         _inject_evidence(rt, gid, "evi1", "v1", "act1", artifact_bindings=(bind,))
         with pytest.raises(VPGError) as ei:
-            _patch(rt, gid, "art", (
-                AttachArtifactOp(task_node_id="t1", artifact=bind, created_by_pid="p1", edge_id="prod"),
-            ))
+            _patch(
+                rt,
+                gid,
+                "art",
+                (
+                    AttachArtifactOp(
+                        task_node_id="t1", artifact=bind, created_by_pid="p1", edge_id="prod"
+                    ),
+                ),
+            )
         assert ei.value.code == VPGCode.ARTIFACT_HASH_MISMATCH
         evts = _event_types(rt, gid)
         assert GraphEventType.TASK_VERIFIED_DERIVED not in evts

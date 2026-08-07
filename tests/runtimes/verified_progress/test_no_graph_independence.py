@@ -113,12 +113,13 @@ def _kernel_blocked(prefixes):
 class TestS24a_ImportWithKernelBlocked:
     def test_import_succeeds_with_kernel_modules_blocked(self):
         # Verify that the VPG runtime does not import kernel-reserved
-        # prefixes AT ALL when a meta_path blocker rejects them.  We do NOT
-        # clear sys.modules here — doing so would re-trigger imports and
-        # break class-identity assumptions in `sdk.py` that other tests
-        # depend on.  Instead we use ``importlib.util.find_spec`` which
-        # routes through the meta_path finders without actually executing
-        # any import side effects.
+        # prefixes AT ALL when a meta_path blocker rejects them.  The probe
+        # must be order-independent: we move any *already cached* (by earlier
+        # suite tests) kernel-reserved ``sys.modules`` entries aside for the
+        # probe's duration and restore them afterwards, so ``find_spec``
+        # genuinely exercises the fresh-blocker path rather than short-
+        # circuiting on a cache hit.  This neither re-executes other tests'
+        # imports nor breaks ``sdk.py`` class-identity assumptions.
         import importlib.util
 
         # First: confirm the VPG runtime is importable cleanly.
@@ -128,28 +129,51 @@ class TestS24a_ImportWithKernelBlocked:
         # Second: confirm a fresh attempt to import from a kernel-reserved
         # prefix is rejected by the blocker.  We install the blocker
         # temporarily and use find_spec to probe.
-        with _kernel_blocked(_KERNEL_RESERVED_PREFIXES):
-            for reserved in (
-                "lhos.agent_os",
-                "lhos.kernel",
-                "lhos.orchestrator",
-                "lhos.planner",
-                "lhos.llm",
-            ):
-                spec = importlib.util.find_spec(reserved)
-                # find_spec should NOT find it, or should find it but
-                # load_module should raise.  Either way, importing must
-                # fail.
-                if spec is not None:
-                    # If a spec was found, attempting to load should fail.
-                    try:
-                        mod = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(mod)
-                        pytest.fail(
-                            f"kernel module {reserved!r} unexpectedly importable under blocker"
-                        )
-                    except (ImportError, Exception):
-                        pass  # Rejection confirmed
+        #
+        # IMPORTANT: ``importlib.util.find_spec`` short-circuits on
+        # ``sys.modules`` cache hits — cached modules return a spec WITHOUT
+        # consulting ``sys.meta_path``.  When other tests in the full suite
+        # have already imported kernel-reserved modules, those sit in
+        # ``sys.modules`` and this probe would wrongly conclude a kernel
+        # module is importable under a blocker.  We therefore move the cached
+        # entries aside for the probe's duration (restored in ``finally``)
+        # so ``find_spec`` genuinely exercises the blocker.  This keeps the
+        # check order-independent.
+        _popped: dict[str, Any] = {}
+        for name in list(sys.modules):
+            if any(
+                name == p.rstrip(".") or name.startswith(p)
+                for p in _KERNEL_RESERVED_PREFIXES
+            ) and name not in _popped:
+                _popped[name] = sys.modules.pop(name)
+        try:
+            with _kernel_blocked(_KERNEL_RESERVED_PREFIXES):
+                for reserved in (
+                    "lhos.agent_os",
+                    "lhos.kernel",
+                    "lhos.orchestrator",
+                    "lhos.planner",
+                    "lhos.llm",
+                ):
+                    spec = importlib.util.find_spec(reserved)
+                    # find_spec should NOT find it, or should find it but
+                    # load_module should raise.  Either way, importing must
+                    # fail.
+                    if spec is not None:
+                        # If a spec was found, attempting to load should fail.
+                        try:
+                            mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(mod)
+                            pytest.fail(
+                                f"kernel module {reserved!r} unexpectedly "
+                                f"importable under blocker"
+                            )
+                        except (ImportError, Exception):
+                            pass  # Rejection confirmed
+        finally:
+            # Restore any cached kernel modules we moved aside, so the rest
+            # of the test suite sees them exactly as before.
+            sys.modules.update(_popped)
 
         _record(
             "S24a", "import_with_kernel_blocked", "PASS", "PASS",

@@ -79,14 +79,8 @@ def admit(node: AnyNode, graph_id: str) -> AdmissionResult:
         if node.required_verification_count < 1:
             msgs.append("TaskNode.required_verification_count must be >= 1")
     elif isinstance(node, ArtifactRefNode):
-        if (
-            not node.canonical_uri
-            or not node.artifact_id
-            or not node.content_hash
-        ):
-            msgs.append(
-                "ArtifactRefNode requires canonical_uri/artifact_id/content_hash"
-            )
+        if not node.canonical_uri or not node.artifact_id or not node.content_hash:
+            msgs.append("ArtifactRefNode requires canonical_uri/artifact_id/content_hash")
         if node.version is None or node.version < 0:
             msgs.append("ArtifactRefNode.version must be set")
     elif isinstance(node, VerificationNode):
@@ -119,8 +113,6 @@ def admit(node: AnyNode, graph_id: str) -> AdmissionResult:
     )
 
 
-def admit_each(
-    nodes: Iterable[AnyNode], graph_id: str
-) -> list[AdmissionResult]:
+def admit_each(nodes: Iterable[AnyNode], graph_id: str) -> list[AdmissionResult]:
     """Admit each node in deterministic order."""
     return [admit(n, graph_id) for n in nodes]

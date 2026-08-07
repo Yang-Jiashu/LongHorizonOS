@@ -125,6 +125,7 @@ class TestPatchProposalValidation:
 
     def test_empty_ops_rejected_at_submit(self, graph):
         from lhos.runtimes.verified_progress.errors import VPGError
+
         gid, rt = graph
         p = GraphPatchProposal(
             graph_id=gid,

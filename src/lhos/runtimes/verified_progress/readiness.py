@@ -25,9 +25,7 @@ from .models import (
 )
 
 
-def _task_deps_all_verified(
-    task_id: str, nodes: dict[str, AnyNode], edges: list[VPGEdge]
-) -> bool:
+def _task_deps_all_verified(task_id: str, nodes: dict[str, AnyNode], edges: list[VPGEdge]) -> bool:
     for e in edges:
         if (
             e.edge_type == EdgeType.DEPENDS_ON
@@ -68,9 +66,7 @@ def _compute_topo_depth(
             and e.target_node_id in nodes
             and isinstance(nodes[e.target_node_id], TaskNode)
         ):
-            child_depth = _compute_topo_depth(
-                e.target_node_id, nodes, edges, memo, visiting
-            )
+            child_depth = _compute_topo_depth(e.target_node_id, nodes, edges, memo, visiting)
             max_child = max(max_child, 1 + child_depth)
     visiting.discard(task_id)
     memo[task_id] = max_child
@@ -146,9 +142,7 @@ def _priority_of(task_id: str, nodes: dict[str, AnyNode]) -> int:
     return int(p) if isinstance(p, (int, float)) else 0
 
 
-def _depth_of(
-    task_id: str, nodes: dict[str, AnyNode], edges: list[VPGEdge]
-) -> int:
+def _depth_of(task_id: str, nodes: dict[str, AnyNode], edges: list[VPGEdge]) -> int:
     memo: dict[str, int] = {}
     return _compute_topo_depth(task_id, nodes, edges, memo, set())
 

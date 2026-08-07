@@ -15,7 +15,9 @@ def _p(graph_id, expected_version, kid, nid):
         expected_graph_version=expected_version,
         author_pid="p1",
         idempotency_key=kid,
-        operations=(AddNodeOp(node_id=nid, graph_id=graph_id, node_type="task", created_by_pid="p1"),),
+        operations=(
+            AddNodeOp(node_id=nid, graph_id=graph_id, node_type="task", created_by_pid="p1"),
+        ),
     )
 
 

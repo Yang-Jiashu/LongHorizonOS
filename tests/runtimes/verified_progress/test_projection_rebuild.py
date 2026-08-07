@@ -43,23 +43,46 @@ from lhos.runtimes.verified_progress.projections import rebuild_projection
 
 class _Action:
     def __init__(self, aid="act1"):
-        self.action_id = aid; self.pid = "p1"; self.state = "committed"; self.result = {}; self.artifact_refs = ()
+        self.action_id = aid
+        self.pid = "p1"
+        self.state = "committed"
+        self.result = {}
+        self.artifact_refs = ()
 
 
 class _Facts:
-    def get_action(self, aid): return _Action(aid)
-    def has_event(self, eid): return False
-    def list_events_for_pid(self, p): return []
-    def artifact_exists(self, p, u, v): return True
-    def read_hash(self, p, u, v): return None
-    def verify_binding(self, p, b): return True
-    def can_read(self, p, a, v): return True
+    def get_action(self, aid):
+        return _Action(aid)
+
+    def has_event(self, eid):
+        return False
+
+    def list_events_for_pid(self, p):
+        return []
+
+    def artifact_exists(self, p, u, v):
+        return True
+
+    def read_hash(self, p, u, v):
+        return None
+
+    def verify_binding(self, p, b):
+        return True
+
+    def can_read(self, p, a, v):
+        return True
 
 
 def _patch(rt, gid, kid, ops):
-    return rt.submit_patch(GraphPatchProposal(
-        graph_id=gid, expected_graph_version=rt.get_graph(gid).current_version,
-        author_pid="p1", idempotency_key=kid, operations=ops))
+    return rt.submit_patch(
+        GraphPatchProposal(
+            graph_id=gid,
+            expected_graph_version=rt.get_graph(gid).current_version,
+            author_pid="p1",
+            idempotency_key=kid,
+            operations=ops,
+        )
+    )
 
 
 @pytest.fixture
@@ -68,28 +91,71 @@ def ready_graph():
     rt = VerifiedProgressRuntime(":memory:", facts_artifact=facts, facts_kernel=facts)
     rec = rt.create_graph(owner_pid="p1")
     gid = rec.graph_id
-    _patch(rt, gid, "setup", (
-        AddNodeOp(node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"),
-        AddNodeOp(node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"),
-        AddEdgeOp(edge_id="d1", edge_type="depends_on", source_node_id="g1", target_node_id="t1", created_by_pid="p1"),
-        AddNodeOp(node_id="v1", graph_id=gid, node_type="verification", created_by_pid="p1"),
-        AddEdgeOp(edge_id="vf1", edge_type="verifies", source_node_id="v1", target_node_id="t1", created_by_pid="p1"),
-    ))
+    _patch(
+        rt,
+        gid,
+        "setup",
+        (
+            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"),
+            AddNodeOp(
+                node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"
+            ),
+            AddEdgeOp(
+                edge_id="d1",
+                edge_type="depends_on",
+                source_node_id="g1",
+                target_node_id="t1",
+                created_by_pid="p1",
+            ),
+            AddNodeOp(node_id="v1", graph_id=gid, node_type="verification", created_by_pid="p1"),
+            AddEdgeOp(
+                edge_id="vf1",
+                edge_type="verifies",
+                source_node_id="v1",
+                target_node_id="t1",
+                created_by_pid="p1",
+            ),
+        ),
+    )
     b = ArtifactVersionBinding(canonical_uri="u", artifact_id="a", version=1, content_hash="h")
     evi = EvidenceNode(
-        graph_id=gid, node_id="evi1", node_type=NodeType.EVIDENCE,
-        evidence_kind="command_result", result="pass",
-        source_verification_id="v1", source_action_id="act1",
+        graph_id=gid,
+        node_id="evi1",
+        node_type=NodeType.EVIDENCE,
+        evidence_kind="command_result",
+        result="pass",
+        source_verification_id="v1",
+        source_action_id="act1",
         produced_by_pid="p1",
         created_in_version=rt.get_graph(gid).current_version,
-        updated_in_version=rt.get_graph(gid).current_version, created_by_pid="p1",
+        updated_in_version=rt.get_graph(gid).current_version,
+        created_by_pid="p1",
         artifact_bindings=(b,),
     )
     rt.store.conn.execute(
         "INSERT INTO graph_nodes_projection (node_id,graph_id,node_type,payload_json) VALUES (?,?,?,?)",
-        ("evi1", gid, "evidence", evi.model_dump_json())); rt.store.conn.commit()
-    _patch(rt, gid, "art1", (AttachArtifactOp(task_node_id="t1", artifact=b, created_by_pid="p1", edge_id="p1"),))
-    _patch(rt, gid, "att", (AttachEvidenceOp(verification_node_id="v1", evidence_node_id="evi1", created_by_pid="p1", edge_id="pe"),))
+        ("evi1", gid, "evidence", evi.model_dump_json()),
+    )
+    rt.store.conn.commit()
+    _patch(
+        rt,
+        gid,
+        "art1",
+        (AttachArtifactOp(task_node_id="t1", artifact=b, created_by_pid="p1", edge_id="p1"),),
+    )
+    _patch(
+        rt,
+        gid,
+        "att",
+        (
+            AttachEvidenceOp(
+                verification_node_id="v1",
+                evidence_node_id="evi1",
+                created_by_pid="p1",
+                edge_id="pe",
+            ),
+        ),
+    )
     return rt, gid
 
 
@@ -115,7 +181,8 @@ class TestPublicRebuildAPISurface:
 class TestProjectionReplayCorrectness:
     def _histories(self, rt, gid):
         rows = rt.store.conn.execute(
-            "SELECT patch_id, committed_version FROM graph_patches WHERE graph_id=? ORDER BY applied_at", (gid,)
+            "SELECT patch_id, committed_version FROM graph_patches WHERE graph_id=? ORDER BY applied_at",
+            (gid,),
         ).fetchall()
         ver2pid = {r[1]: r[0] for r in rows}
         n_hist = {r[0]: [] for r in rows}
@@ -135,20 +202,37 @@ class TestProjectionReplayCorrectness:
             pid = ver2pid.get(e.created_in_version)
             if pid in e_hist:
                 e_hist[pid].append(e)
-        patches = [GraphPatchProposal(**json.loads(r[0])) for r in rt.store.conn.execute(
-            "SELECT operations_json FROM graph_patches WHERE graph_id=? ORDER BY applied_at", (gid,)).fetchall()]
+        patches = [
+            GraphPatchProposal(**json.loads(r[0]))
+            for r in rt.store.conn.execute(
+                "SELECT operations_json FROM graph_patches WHERE graph_id=? ORDER BY applied_at",
+                (gid,),
+            ).fetchall()
+        ]
         return patches, e_hist, n_hist
 
     def test_full_replay_reconstructs_nodes_edges(self, ready_graph):
         rt, gid = ready_graph
         patches, e_hist, n_hist = self._histories(rt, gid)
-        rn, re_, ev = rebuild_projection(gid, patches, e_hist, n_hist,
-                                         facts_artifact=rt.facts_artifact, facts_kernel=rt.facts_kernel)
+        rn, re_, ev = rebuild_projection(
+            gid,
+            patches,
+            e_hist,
+            n_hist,
+            facts_artifact=rt.facts_artifact,
+            facts_kernel=rt.facts_kernel,
+        )
         node_ids = sorted(rn.keys())
         # replay 3x -> identical node id lists
         for _ in range(3):
-            rn2, _, _ = rebuild_projection(gid, patches, e_hist, n_hist,
-                                           facts_artifact=rt.facts_artifact, facts_kernel=rt.facts_kernel)
+            rn2, _, _ = rebuild_projection(
+                gid,
+                patches,
+                e_hist,
+                n_hist,
+                facts_artifact=rt.facts_artifact,
+                facts_kernel=rt.facts_kernel,
+            )
             assert sorted(rn2.keys()) == node_ids
         assert "g1" in rn and "t1" in rn and "v1" in rn and "evi1" in rn
         assert len(re_) == 4
@@ -156,8 +240,14 @@ class TestProjectionReplayCorrectness:
     def test_full_replay_emits_derived_events(self, ready_graph):
         rt, gid = ready_graph
         patches, e_hist, n_hist = self._histories(rt, gid)
-        rn, re_, ev = rebuild_projection(gid, patches, e_hist, n_hist,
-                                         facts_artifact=rt.facts_artifact, facts_kernel=rt.facts_kernel)
+        rn, re_, ev = rebuild_projection(
+            gid,
+            patches,
+            e_hist,
+            n_hist,
+            facts_artifact=rt.facts_artifact,
+            facts_kernel=rt.facts_kernel,
+        )
         etypes = [e.event_type for e in ev]
         assert GraphEventType.TASK_VERIFIED_DERIVED in etypes
         assert GraphEventType.TASK_CLOSED_DERIVED in etypes
@@ -166,8 +256,14 @@ class TestProjectionReplayCorrectness:
     def test_full_replay_sets_lifecycle_validity(self, ready_graph):
         rt, gid = ready_graph
         patches, e_hist, n_hist = self._histories(rt, gid)
-        rn, re_, ev = rebuild_projection(gid, patches, e_hist, n_hist,
-                                         facts_artifact=rt.facts_artifact, facts_kernel=rt.facts_kernel)
+        rn, re_, ev = rebuild_projection(
+            gid,
+            patches,
+            e_hist,
+            n_hist,
+            facts_artifact=rt.facts_artifact,
+            facts_kernel=rt.facts_kernel,
+        )
         assert rn["t1"].validity.value == "verified"
         assert rn["t1"].lifecycle.value == "closed"
         assert rn["g1"].lifecycle.value == "closed"

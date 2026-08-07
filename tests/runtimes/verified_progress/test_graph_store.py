@@ -83,10 +83,17 @@ class TestIdempotency:
         rt = VerifiedProgressRuntime(store)
         rec = rt.create_graph(owner_pid="p1")
         gid = rec.graph_id
-        rt.submit_patch(GraphPatchProposal(
-            graph_id=gid, expected_graph_version=0, author_pid="p1",
-            idempotency_key="k1",
-            operations=(AddNodeOp(node_id="n1", graph_id=gid, node_type="task", created_by_pid="p1"),)))
+        rt.submit_patch(
+            GraphPatchProposal(
+                graph_id=gid,
+                expected_graph_version=0,
+                author_pid="p1",
+                idempotency_key="k1",
+                operations=(
+                    AddNodeOp(node_id="n1", graph_id=gid, node_type="task", created_by_pid="p1"),
+                ),
+            )
+        )
         assert store.has_idempotency(("p1", gid, "k1")) is not None
         assert store.has_idempotency(("p1", gid, "missing")) is None
 

@@ -40,12 +40,19 @@ def main() -> int:
         expected_graph_version=0,
         author_pid="agent-1",
         operations=(
-            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal",
-                      created_by_pid="agent-1", title="Close the graph"),
-            AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                      created_by_pid="agent-1", title="T1"),
-            AddNodeOp(node_id="t2", graph_id=gid, node_type="task",
-                      created_by_pid="agent-1", title="T2"),
+            AddNodeOp(
+                node_id="g1",
+                graph_id=gid,
+                node_type="goal",
+                created_by_pid="agent-1",
+                title="Close the graph",
+            ),
+            AddNodeOp(
+                node_id="t1", graph_id=gid, node_type="task", created_by_pid="agent-1", title="T1"
+            ),
+            AddNodeOp(
+                node_id="t2", graph_id=gid, node_type="task", created_by_pid="agent-1", title="T2"
+            ),
         ),
         idempotency_key="init_nodes",
     )
@@ -64,15 +71,27 @@ def main() -> int:
         expected_graph_version=1,
         author_pid="agent-1",
         operations=(
-            AddEdgeOp(edge_id="e-g1-t1", edge_type="depends_on",
-                      source_node_id="g1", target_node_id="t1",
-                      created_by_pid="agent-1"),
-            AddEdgeOp(edge_id="e-g1-t2", edge_type="depends_on",
-                      source_node_id="g1", target_node_id="t2",
-                      created_by_pid="agent-1"),
-            AddEdgeOp(edge_id="e-t2-t1", edge_type="depends_on",
-                      source_node_id="t2", target_node_id="t1",
-                      created_by_pid="agent-1"),
+            AddEdgeOp(
+                edge_id="e-g1-t1",
+                edge_type="depends_on",
+                source_node_id="g1",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="e-g1-t2",
+                edge_type="depends_on",
+                source_node_id="g1",
+                target_node_id="t2",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="e-t2-t1",
+                edge_type="depends_on",
+                source_node_id="t2",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
         ),
         idempotency_key="init_edges",
     )
@@ -86,9 +105,13 @@ def main() -> int:
         expected_graph_version=2,
         author_pid="agent-1",
         operations=(
-            AddEdgeOp(edge_id="bad-cycle", edge_type="depends_on",
-                      source_node_id="t1", target_node_id="t2",
-                      created_by_pid="agent-1"),
+            AddEdgeOp(
+                edge_id="bad-cycle",
+                edge_type="depends_on",
+                source_node_id="t1",
+                target_node_id="t2",
+                created_by_pid="agent-1",
+            ),
         ),
         idempotency_key="cycle-attempt",
     )
@@ -103,12 +126,16 @@ def main() -> int:
 
     # --- Now verify closure: goal must not be closed yet ---
     g1 = rt.inspect_node(gid, "g1")
-    print(f"G.lifecycle={g1.lifecycle.value}, T1.validity={rt.inspect_node(gid,'t1').validity.value}")
+    print(
+        f"G.lifecycle={g1.lifecycle.value}, T1.validity={rt.inspect_node(gid, 't1').validity.value}"
+    )
     # Without evidence no task becomes VERIFIED, so goal stays ACTIVE
 
     # --- Patch 4: cycle rejection does NOT advance version ---
     assert rt.get_graph(gid).current_version == 2
-    print("\nDemo 1 PASSED — goal remains ACTIVE without evidence, cycles rejected, idempotency honored")
+    print(
+        "\nDemo 1 PASSED — goal remains ACTIVE without evidence, cycles rejected, idempotency honored"
+    )
     return 0
 
 

@@ -53,21 +53,15 @@ class ArtifactFactProvider(Protocol):
     Implementations MUST go through the Agent OS SDK (ArtifactSDK).
     """
 
-    def artifact_exists(
-        self, pid: str, canonical_uri: str, version: int
-    ) -> bool:
+    def artifact_exists(self, pid: str, canonical_uri: str, version: int) -> bool:
         """Return True iff the committed ArtifactVersion is present & readable."""
         ...
 
-    def read_hash(
-        self, pid: str, canonical_uri: str, version: int
-    ) -> str | None:
+    def read_hash(self, pid: str, canonical_uri: str, version: int) -> str | None:
         """Return the stored content_hash or None if not found."""
         ...
 
-    def verify_binding(
-        self, pid: str, binding: ArtifactVersionBinding
-    ) -> bool:
+    def verify_binding(self, pid: str, binding: ArtifactVersionBinding) -> bool:
         """True iff binding.version is committed AND hash matches."""
         ...
 

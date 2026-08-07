@@ -28,23 +28,30 @@ def main() -> int:
     gid = rt.create_graph(owner_pid="agent-1").graph_id
 
     def patch(ops, key, *, expect_v):
-        return rt.submit_patch(GraphPatchProposal(
-            graph_id=gid,
-            expected_graph_version=expect_v,
-            author_pid="agent-1",
-            operations=ops,
-            idempotency_key=key,
-        ))
+        return rt.submit_patch(
+            GraphPatchProposal(
+                graph_id=gid,
+                expected_graph_version=expect_v,
+                author_pid="agent-1",
+                operations=ops,
+                idempotency_key=key,
+            )
+        )
 
     # --- Patch A wins at expected=0 ---
     rA = patch(
-        (AddNodeOp(node_id="x", graph_id=gid, node_type="task",
-                    created_by_pid="agent-1", title="X"),),
+        (
+            AddNodeOp(
+                node_id="x", graph_id=gid, node_type="task", created_by_pid="agent-1", title="X"
+            ),
+        ),
         key="A",
         expect_v=0,
     )
-    print(f"patch A: v={rA.committed_graph_version} applied={rA.patch_applied} "
-          f"replay={rA.idempotent_replay}")
+    print(
+        f"patch A: v={rA.committed_graph_version} applied={rA.patch_applied} "
+        f"replay={rA.idempotent_replay}"
+    )
     assert rA.patch_applied is True
     assert rA.committed_graph_version == 1
 
@@ -52,8 +59,11 @@ def main() -> int:
     raised = False
     try:
         patch(
-            (AddNodeOp(node_id="y", graph_id=gid, node_type="task",
-                        created_by_pid="agent-1", title="Y"),),
+            (
+                AddNodeOp(
+                    node_id="y", graph_id=gid, node_type="task", created_by_pid="agent-1", title="Y"
+                ),
+            ),
             key="B",
             expect_v=0,
         )
@@ -71,21 +81,29 @@ def main() -> int:
 
     # --- Patch A replay (idempotent) ---
     rA2 = patch(
-        (AddNodeOp(node_id="x", graph_id=gid, node_type="task",
-                    created_by_pid="agent-1", title="X"),),
+        (
+            AddNodeOp(
+                node_id="x", graph_id=gid, node_type="task", created_by_pid="agent-1", title="X"
+            ),
+        ),
         key="A",
         expect_v=99,  # version drift is ignored on idempotent replay
     )
-    print(f"patch A replay: v={rA2.committed_graph_version} applied={rA2.patch_applied} "
-          f"replay={rA2.idempotent_replay}")
+    print(
+        f"patch A replay: v={rA2.committed_graph_version} applied={rA2.patch_applied} "
+        f"replay={rA2.idempotent_replay}"
+    )
     assert rA2.idempotent_replay is True
     assert rA2.patch_applied is False
     assert rt.get_graph(gid).current_version == 1  # no advance
 
     # --- Patch C wins at expected=1 ---
     rC = patch(
-        (AddNodeOp(node_id="z", graph_id=gid, node_type="task",
-                    created_by_pid="agent-1", title="Z"),),
+        (
+            AddNodeOp(
+                node_id="z", graph_id=gid, node_type="task", created_by_pid="agent-1", title="Z"
+            ),
+        ),
         key="C",
         expect_v=1,
     )

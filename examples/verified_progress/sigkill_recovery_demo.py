@@ -50,6 +50,7 @@ from lhos.runtimes.verified_progress.recovery import verify_and_recover
 # verification derivation is driven entirely by structure the demo controls.
 # ---------------------------------------------------------------------------
 
+
 class _FakeAction:
     def __init__(self, action_id: str, pid: str = "agent-1") -> None:
         self.action_id = action_id
@@ -81,10 +82,7 @@ class FakeFacts(KernelEventProvider, ArtifactFactProvider):
 
     def verify_binding(self, pid, binding):  # ArtifactFactProvider
         # Walk the full binding-hash path even with no kernel facts wired up.
-        return (
-            self._artifacts.get((binding.canonical_uri, binding.version))
-            == binding.content_hash
-        )
+        return self._artifacts.get((binding.canonical_uri, binding.version)) == binding.content_hash
 
     def can_read(self, pid, aid, version):  # ArtifactFactProvider
         return True
@@ -94,21 +92,24 @@ class FakeFacts(KernelEventProvider, ArtifactFactProvider):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _patch(rt: VerifiedProgressRuntime, gid: str, ops, key: str):
-    return rt.submit_patch(GraphPatchProposal(
-        graph_id=gid,
-        expected_graph_version=rt.get_graph(gid).current_version,
-        author_pid="agent-1",
-        operations=ops,
-        idempotency_key=key,
-    ))
+    return rt.submit_patch(
+        GraphPatchProposal(
+            graph_id=gid,
+            expected_graph_version=rt.get_graph(gid).current_version,
+            author_pid="agent-1",
+            operations=ops,
+            idempotency_key=key,
+        )
+    )
 
 
 def verify_projection(store, graph_id: str) -> bool:
     """A projection is 'verified' iff the materialized record is consistent:
 
-      * at least one node and one edge are present, and
-      * the upstream Task t1 is in VERIFIED state.
+    * at least one node and one edge are present, and
+    * the upstream Task t1 is in VERIFIED state.
     """
     nodes = store.get_all_nodes(graph_id)
     edges = store.get_all_edges(graph_id)
@@ -128,19 +129,19 @@ def projection_fields_hash(store, graph_id: str) -> bytes:
     """
     h = hashlib.sha256()
     for n in sorted(store.get_all_nodes(graph_id), key=lambda x: x.node_id):
-        h.update(f"{n.node_id}:{n.node_type.value}:"
-                 f"{n.lifecycle.value}:{n.validity.value}".encode())
+        h.update(f"{n.node_id}:{n.node_type.value}:{n.lifecycle.value}:{n.validity.value}".encode())
         h.update(b"|")
     for e in sorted(store.get_all_edges(graph_id), key=lambda x: x.edge_id):
-        h.update(f"{e.edge_id}:{e.edge_type.value}:"
-                 f"{e.source_node_id}:{e.target_node_id}".encode())
+        h.update(f"{e.edge_id}:{e.edge_type.value}:{e.source_node_id}:{e.target_node_id}".encode())
         h.update(b"|")
     return h.digest()
 
 
 def banner_line(n: int, label: str, ok: bool, expected_fail: bool = False) -> str:
-    status = ("FAIL (expected)" if expected_fail else "PASS") if ok else (
-        "FAIL" if not expected_fail else "FAIL (unexpected)"
+    status = (
+        ("FAIL (expected)" if expected_fail else "PASS")
+        if ok
+        else ("FAIL" if not expected_fail else "FAIL (unexpected)")
     )
     return f"[{n}] {label.ljust(44, '.')}  {status}"
 
@@ -150,7 +151,10 @@ def main() -> int:
     uri = "artifact://ns-p1/build/obj.out"
     vhash = hashlib.sha256(b"binary-payload").hexdigest()
     binding = ArtifactVersionBinding(
-        canonical_uri=uri, artifact_id="art-1", version=1, content_hash=vhash,
+        canonical_uri=uri,
+        artifact_id="art-1",
+        version=1,
+        content_hash=vhash,
     )
     facts = FakeFacts(
         actions={"act-1": _FakeAction("act-1")},
@@ -167,50 +171,104 @@ def main() -> int:
     store = rt.store  # expose GraphStore for the SIGKILL simulation
 
     # P1: goal g1 -> depends_on t1,   t2 -> depends_on t1,   v1 verifies t1
-    _patch(rt, gid, (
-        AddNodeOp(node_id="g1", graph_id=gid, node_type="goal",
-                  created_by_pid="agent-1", title="Root goal"),
-        AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", title="Upstream task"),
-        AddNodeOp(node_id="t2", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", title="Downstream task"),
-        AddNodeOp(node_id="v1", graph_id=gid, node_type="verification",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="g1-t1", edge_type="depends_on",
-                  source_node_id="g1", target_node_id="t1",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="t2-t1", edge_type="depends_on",
-                  source_node_id="t2", target_node_id="t1",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="v1-t1", edge_type="verifies",
-                  source_node_id="v1", target_node_id="t1",
-                  created_by_pid="agent-1"),
-    ), "p1-structure")
+    _patch(
+        rt,
+        gid,
+        (
+            AddNodeOp(
+                node_id="g1",
+                graph_id=gid,
+                node_type="goal",
+                created_by_pid="agent-1",
+                title="Root goal",
+            ),
+            AddNodeOp(
+                node_id="t1",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                title="Upstream task",
+            ),
+            AddNodeOp(
+                node_id="t2",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                title="Downstream task",
+            ),
+            AddNodeOp(
+                node_id="v1", graph_id=gid, node_type="verification", created_by_pid="agent-1"
+            ),
+            AddEdgeOp(
+                edge_id="g1-t1",
+                edge_type="depends_on",
+                source_node_id="g1",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="t2-t1",
+                edge_type="depends_on",
+                source_node_id="t2",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="v1-t1",
+                edge_type="verifies",
+                source_node_id="v1",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
+        ),
+        "p1-structure",
+    )
 
     # P2: pin the produced artifact to t1 (task-local version binding)
-    _patch(rt, gid, (
-        AttachArtifactOp(task_node_id="t1", artifact=binding,
-                         created_by_pid="agent-1", edge_id="t1-p1"),
-    ), "p2-pin")
+    _patch(
+        rt,
+        gid,
+        (
+            AttachArtifactOp(
+                task_node_id="t1", artifact=binding, created_by_pid="agent-1", edge_id="t1-p1"
+            ),
+        ),
+        "p2-pin",
+    )
 
     # P3: PASS-evidence for v1 -> t1 becomes VERIFIED, g1 closes, t2 READY
-    _patch(rt, gid, (
-        AddNodeOp(node_id="e1", graph_id=gid, node_type="evidence",
-                  created_by_pid="agent-1",
-                  result="pass",
-                  evidence_source_action_id="act-1",
-                  source_verification_id="v1",
-                  artifact_bindings=(binding,),
-                  produced_by_pid="agent-1"),
-        AttachEvidenceOp(verification_node_id="v1", evidence_node_id="e1",
-                         created_by_pid="agent-1", edge_id="p3-ev"),
-    ), "p3-evidence")
+    _patch(
+        rt,
+        gid,
+        (
+            AddNodeOp(
+                node_id="e1",
+                graph_id=gid,
+                node_type="evidence",
+                created_by_pid="agent-1",
+                result="pass",
+                evidence_source_action_id="act-1",
+                source_verification_id="v1",
+                artifact_bindings=(binding,),
+                produced_by_pid="agent-1",
+            ),
+            AttachEvidenceOp(
+                verification_node_id="v1",
+                evidence_node_id="e1",
+                created_by_pid="agent-1",
+                edge_id="p3-ev",
+            ),
+        ),
+        "p3-evidence",
+    )
 
     # -- [1] pre-sigkill t1.verified ---------------------------------------------
     t1_pre = rt.inspect_node(gid, "t1")
-    ok1 = (t1_pre is not None
-           and t1_pre.validity.value == "verified"
-           and t1_pre.lifecycle.value == "closed")
+    ok1 = (
+        t1_pre is not None
+        and t1_pre.validity.value == "verified"
+        and t1_pre.lifecycle.value == "closed"
+    )
 
     # -- [2] pre-sigkill t2.ready (deps satisfied) -------------------------------
     ready_pre = [c.task_id for c in rt.query_ready_frontier(gid)]
@@ -232,21 +290,22 @@ def main() -> int:
     for _ in range(4):
         # Emit recovery events (+replay derived events onto the Patch record).
         rec_events, record = verify_and_recover(
-            store, gid, facts_artifact=facts, facts_kernel=facts,
+            store,
+            gid,
+            facts_artifact=facts,
+            facts_kernel=facts,
         )
         assert record is not None and record.graph_id == gid
-        assert any(e.event_type == GraphEventType.GRAPH_RECOVERY_STARTED
-                   for e in rec_events)
-        assert any(e.event_type == GraphEventType.GRAPH_RECOVERY_COMPLETED
-                   for e in rec_events)
+        assert any(e.event_type == GraphEventType.GRAPH_RECOVERY_STARTED for e in rec_events)
+        assert any(e.event_type == GraphEventType.GRAPH_RECOVERY_COMPLETED for e in rec_events)
 
         # Restore the materialized projection deterministically from Patch history.
         _rebuilt_nodes, _rebuilt_edges, rebuilt_evs = rt.rebuild_projection(gid)
 
-        assert any(e.event_type == GraphEventType.TASK_VERIFIED_DERIVED
-                   for e in (*rec_events, *rebuilt_evs)), (
-            "recovery must replay TASK_VERIFIED_DERIVED for the verified task"
-        )
+        assert any(
+            e.event_type == GraphEventType.TASK_VERIFIED_DERIVED
+            for e in (*rec_events, *rebuilt_evs)
+        ), "recovery must replay TASK_VERIFIED_DERIVED for the verified task"
         hashes.append(projection_fields_hash(store, gid))
 
     ok5 = len({h.hex() for h in hashes}) == 1
@@ -266,12 +325,10 @@ def main() -> int:
     print(banner_line(2, "pre-sigkill t2.ready (deps satisfied)", ok2))
     print(banner_line(3, "simulate SIGKILL (wipe projection)", ok3))
     print(banner_line(4, "verify_projection pre-recovery", ok4, expected_fail=True))
-    print(banner_line(5,
-                      "verify_and_recover idempotent (4 runs same hash)", ok5))
+    print(banner_line(5, "verify_and_recover idempotent (4 runs same hash)", ok5))
     print(banner_line(6, "post-recovery t2.ready", ok6))
     print("=" * 40)
-    print("SIGKILL recovery DEMO PASSED" if all_ok
-          else "SIGKILL recovery DEMO FAILED")
+    print("SIGKILL recovery DEMO PASSED" if all_ok else "SIGKILL recovery DEMO FAILED")
     print("=" * 40)
 
     return 0 if all_ok else 1

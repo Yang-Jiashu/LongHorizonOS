@@ -58,9 +58,7 @@ class FakeFacts(KernelEventProvider, ArtifactFactProvider):
         return self._artifacts.get((uri, v))
 
     def verify_binding(self, pid, binding):
-        return self._artifacts.get(
-            (binding.canonical_uri, binding.version)
-        ) == binding.content_hash
+        return self._artifacts.get((binding.canonical_uri, binding.version)) == binding.content_hash
 
     def can_read(self, pid, aid, v):
         return True
@@ -94,58 +92,88 @@ def main() -> int:
     gid = rec.graph_id
 
     def patch(ops, key):
-        return rt.submit_patch(GraphPatchProposal(
-            graph_id=gid,
-            expected_graph_version=rt.get_graph(gid).current_version,
-            author_pid="agent-1",
-            operations=ops,
-            idempotency_key=key,
-        ))
+        return rt.submit_patch(
+            GraphPatchProposal(
+                graph_id=gid,
+                expected_graph_version=rt.get_graph(gid).current_version,
+                author_pid="agent-1",
+                operations=ops,
+                idempotency_key=key,
+            )
+        )
 
     # ----- Setup: task + verification -----
-    patch((
-        AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", title="Build"),
-        AddNodeOp(node_id="v1", graph_id=gid, node_type="verification",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="v1-t1", edge_type="verifies",
-                  source_node_id="v1", target_node_id="t1",
-                  created_by_pid="agent-1"),
-    ), "p1")
+    patch(
+        (
+            AddNodeOp(
+                node_id="t1",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                title="Build",
+            ),
+            AddNodeOp(
+                node_id="v1", graph_id=gid, node_type="verification", created_by_pid="agent-1"
+            ),
+            AddEdgeOp(
+                edge_id="v1-t1",
+                edge_type="verifies",
+                source_node_id="v1",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
+        ),
+        "p1",
+    )
 
     # ----- Pin artifact v1 -----
     patch(
-        (AttachArtifactOp(
-            task_node_id="t1",
-            artifact=ArtifactVersionBinding(
-                canonical_uri="artifact://ns-p1/build/code.py",
-                artifact_id="aid-code",
-                version=1,
-                content_hash=code_hash_v1,
+        (
+            AttachArtifactOp(
+                task_node_id="t1",
+                artifact=ArtifactVersionBinding(
+                    canonical_uri="artifact://ns-p1/build/code.py",
+                    artifact_id="aid-code",
+                    version=1,
+                    content_hash=code_hash_v1,
+                ),
+                created_by_pid="agent-1",
+                edge_id="t1-a1",
             ),
-            created_by_pid="agent-1",
-            edge_id="t1-a1",
-        ),), "p2")
+        ),
+        "p2",
+    )
 
     # ----- Evidence Pass against v1 -----
-    patch((
-        AddNodeOp(node_id="ev-v1", graph_id=gid, node_type="evidence",
-                  created_by_pid="agent-1",
-                  result="pass",
-                  evidence_source_action_id="test-v1",
-                  source_verification_id="v1",
-                  artifact_bindings=(
-                      ArtifactVersionBinding(
-                          canonical_uri="artifact://ns-p1/build/code.py",
-                          artifact_id="aid-code",
-                          version=1,
-                          content_hash=code_hash_v1,
-                      ),
-                  ),
-                  produced_by_pid="agent-1"),
-        AttachEvidenceOp(verification_node_id="v1", evidence_node_id="ev-v1",
-                        created_by_pid="agent-1", edge_id="v1-ev-v1"),
-    ), "p3")
+    patch(
+        (
+            AddNodeOp(
+                node_id="ev-v1",
+                graph_id=gid,
+                node_type="evidence",
+                created_by_pid="agent-1",
+                result="pass",
+                evidence_source_action_id="test-v1",
+                source_verification_id="v1",
+                artifact_bindings=(
+                    ArtifactVersionBinding(
+                        canonical_uri="artifact://ns-p1/build/code.py",
+                        artifact_id="aid-code",
+                        version=1,
+                        content_hash=code_hash_v1,
+                    ),
+                ),
+                produced_by_pid="agent-1",
+            ),
+            AttachEvidenceOp(
+                verification_node_id="v1",
+                evidence_node_id="ev-v1",
+                created_by_pid="agent-1",
+                edge_id="v1-ev-v1",
+            ),
+        ),
+        "p3",
+    )
 
     s1 = rt.inspect_node(gid, "t1")
     print(f"[v1 evidence] T1.validity={s1.validity.value}  lifecycle={s1.lifecycle.value}")
@@ -154,17 +182,21 @@ def main() -> int:
 
     # ----- Repin artifact to v2 -----
     patch(
-        (AttachArtifactOp(
-            task_node_id="t1",
-            artifact=ArtifactVersionBinding(
-                canonical_uri="artifact://ns-p1/build/code.py",
-                artifact_id="aid-code",
-                version=2,
-                content_hash=code_hash_v2,
+        (
+            AttachArtifactOp(
+                task_node_id="t1",
+                artifact=ArtifactVersionBinding(
+                    canonical_uri="artifact://ns-p1/build/code.py",
+                    artifact_id="aid-code",
+                    version=2,
+                    content_hash=code_hash_v2,
+                ),
+                created_by_pid="agent-1",
+                edge_id="t1-a2",
             ),
-            created_by_pid="agent-1",
-            edge_id="t1-a2",
-        ),), "p4")
+        ),
+        "p4",
+    )
 
     s2 = rt.inspect_node(gid, "t1")
     print(f"[v2 repin]    T1.validity={s2.validity.value}  lifecycle={s2.lifecycle.value}")
@@ -173,30 +205,42 @@ def main() -> int:
     # registered stale — both are acceptable state-tracking outcomes.
     # The strong invariant is that it no longer shows VERIFIED+Closed
     # while pinned to a different artifact version than it was verified against.
-    assert not (s2.validity.value == "verified" and s2.lifecycle.value == "closed" and
-                s2.updated_in_version <= s1.updated_in_version), (
-        "task must not be marked verified+closed on repinned artifact"
-    )
+    assert not (
+        s2.validity.value == "verified"
+        and s2.lifecycle.value == "closed"
+        and s2.updated_in_version <= s1.updated_in_version
+    ), "task must not be marked verified+closed on repinned artifact"
 
     # ----- New evidence against v2 re-verifies -----
-    patch((
-        AddNodeOp(node_id="ev-v2", graph_id=gid, node_type="evidence",
-                  created_by_pid="agent-1",
-                  result="pass",
-                  evidence_source_action_id="test-v2",
-                  source_verification_id="v1",
-                  artifact_bindings=(
-                      ArtifactVersionBinding(
-                          canonical_uri="artifact://ns-p1/build/code.py",
-                          artifact_id="aid-code",
-                          version=2,
-                          content_hash=code_hash_v2,
-                      ),
-                  ),
-                  produced_by_pid="agent-1"),
-        AttachEvidenceOp(verification_node_id="v1", evidence_node_id="ev-v2",
-                        created_by_pid="agent-1", edge_id="v1-ev-v2"),
-    ), "p5")
+    patch(
+        (
+            AddNodeOp(
+                node_id="ev-v2",
+                graph_id=gid,
+                node_type="evidence",
+                created_by_pid="agent-1",
+                result="pass",
+                evidence_source_action_id="test-v2",
+                source_verification_id="v1",
+                artifact_bindings=(
+                    ArtifactVersionBinding(
+                        canonical_uri="artifact://ns-p1/build/code.py",
+                        artifact_id="aid-code",
+                        version=2,
+                        content_hash=code_hash_v2,
+                    ),
+                ),
+                produced_by_pid="agent-1",
+            ),
+            AttachEvidenceOp(
+                verification_node_id="v1",
+                evidence_node_id="ev-v2",
+                created_by_pid="agent-1",
+                edge_id="v1-ev-v2",
+            ),
+        ),
+        "p5",
+    )
 
     s3 = rt.inspect_node(gid, "t1")
     print(f"[v2 evidence] T1.validity={s3.validity.value}  lifecycle={s3.lifecycle.value}")

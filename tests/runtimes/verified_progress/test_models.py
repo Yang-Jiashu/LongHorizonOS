@@ -48,15 +48,11 @@ class TestArtifactVersionBinding:
         assert b.media_type == "application/octet-stream"
 
     def test_default_media_type(self):
-        b = ArtifactVersionBinding(
-            canonical_uri="u", artifact_id="a", version=1, content_hash="h"
-        )
+        b = ArtifactVersionBinding(canonical_uri="u", artifact_id="a", version=1, content_hash="h")
         assert b.media_type == "application/octet-stream"
 
     def test_version_is_int(self):
-        b = ArtifactVersionBinding(
-            canonical_uri="u", artifact_id="a", version=7, content_hash="h"
-        )
+        b = ArtifactVersionBinding(canonical_uri="u", artifact_id="a", version=7, content_hash="h")
         assert isinstance(b.version, int)
         assert b.version == 7
 
@@ -199,9 +195,7 @@ class TestInvalidValues:
         assert r.idempotent_replay is False
 
     def test_add_node_op_fields(self):
-        op = AddNodeOp(
-            node_id="n1", graph_id="G", node_type="task", created_by_pid="p1"
-        )
+        op = AddNodeOp(node_id="n1", graph_id="G", node_type="task", created_by_pid="p1")
         assert op.op_type.value == "add_node"
         assert op.required_verification_count == 1
 

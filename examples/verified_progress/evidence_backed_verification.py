@@ -57,9 +57,7 @@ class FakeFacts(KernelEventProvider, ArtifactFactProvider):
         return self._artifacts.get((uri, v))
 
     def verify_binding(self, pid, binding):
-        return self._artifacts.get(
-            (binding.canonical_uri, binding.version)
-        ) == binding.content_hash
+        return self._artifacts.get((binding.canonical_uri, binding.version)) == binding.content_hash
 
     def can_read(self, pid, aid, v):
         return True
@@ -86,62 +84,91 @@ def main() -> int:
     gid = rec.graph_id
 
     def patch(ops, key):
-        return rt.submit_patch(GraphPatchProposal(
-            graph_id=gid,
-            expected_graph_version=rt.get_graph(gid).current_version,
-            author_pid="agent-1",
-            operations=ops,
-            idempotency_key=key,
-        ))
+        return rt.submit_patch(
+            GraphPatchProposal(
+                graph_id=gid,
+                expected_graph_version=rt.get_graph(gid).current_version,
+                author_pid="agent-1",
+                operations=ops,
+                idempotency_key=key,
+            )
+        )
 
-    patch((
-        AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                  created_by_pid="agent-1", title="Build"),
-        AddNodeOp(node_id="v1", graph_id=gid, node_type="verification",
-                  created_by_pid="agent-1"),
-        AddEdgeOp(edge_id="v1-t1", edge_type="verifies",
-                  source_node_id="v1", target_node_id="t1",
-                  created_by_pid="agent-1"),
-    ), "p1")
-    patch((
-        AttachArtifactOp(
-            task_node_id="t1",
-            artifact=ArtifactVersionBinding(
-                canonical_uri="artifact://ns-p1/build/code.py",
-                artifact_id="aid-code",
-                version=1,
-                content_hash=code_hash,
+    patch(
+        (
+            AddNodeOp(
+                node_id="t1",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid="agent-1",
+                title="Build",
             ),
-            created_by_pid="agent-1",
-            edge_id="t1-a1",
+            AddNodeOp(
+                node_id="v1", graph_id=gid, node_type="verification", created_by_pid="agent-1"
+            ),
+            AddEdgeOp(
+                edge_id="v1-t1",
+                edge_type="verifies",
+                source_node_id="v1",
+                target_node_id="t1",
+                created_by_pid="agent-1",
+            ),
         ),
-    ), "p2")
+        "p1",
+    )
+    patch(
+        (
+            AttachArtifactOp(
+                task_node_id="t1",
+                artifact=ArtifactVersionBinding(
+                    canonical_uri="artifact://ns-p1/build/code.py",
+                    artifact_id="aid-code",
+                    version=1,
+                    content_hash=code_hash,
+                ),
+                created_by_pid="agent-1",
+                edge_id="t1-a1",
+            ),
+        ),
+        "p2",
+    )
 
     pre = rt.inspect_node(gid, "t1")
     print(f"pre-evidence T1.validity={pre.validity.value}  lifecycle={pre.lifecycle.value}")
     assert pre.validity.value == "unverified"
 
-    patch((
-        AddNodeOp(node_id="ev-pass", graph_id=gid, node_type="evidence",
-                  created_by_pid="agent-1",
-                  result="pass",
-                  evidence_source_action_id="test-action-1",
-                  source_verification_id="v1",
-                  # evidence binds to task's pinned produced artifact
-                  artifact_bindings=(
-                      ArtifactVersionBinding(
-                          canonical_uri="artifact://ns-p1/build/code.py",
-                          artifact_id="aid-code",
-                          version=1,
-                          content_hash=code_hash,
-                      ),
-                  ),
-                  evidence_hash=code_hash,
-                  produced_by_pid="agent-1"),
-        AddEdgeOp(edge_id="v1-ev-pass", edge_type="produces",
-                  source_node_id="v1", target_node_id="ev-pass",
-                  created_by_pid="agent-1"),
-    ), "p3")
+    patch(
+        (
+            AddNodeOp(
+                node_id="ev-pass",
+                graph_id=gid,
+                node_type="evidence",
+                created_by_pid="agent-1",
+                result="pass",
+                evidence_source_action_id="test-action-1",
+                source_verification_id="v1",
+                # evidence binds to task's pinned produced artifact
+                artifact_bindings=(
+                    ArtifactVersionBinding(
+                        canonical_uri="artifact://ns-p1/build/code.py",
+                        artifact_id="aid-code",
+                        version=1,
+                        content_hash=code_hash,
+                    ),
+                ),
+                evidence_hash=code_hash,
+                produced_by_pid="agent-1",
+            ),
+            AddEdgeOp(
+                edge_id="v1-ev-pass",
+                edge_type="produces",
+                source_node_id="v1",
+                target_node_id="ev-pass",
+                created_by_pid="agent-1",
+            ),
+        ),
+        "p3",
+    )
 
     post = rt.inspect_node(gid, "t1")
     print(f"post-evidence T1.validity={post.validity.value}  lifecycle={post.lifecycle.value}")

@@ -74,13 +74,15 @@ def rt():
 
 
 def _patch(rt, gid, kid, ops):
-    return rt.submit_patch(GraphPatchProposal(
-        graph_id=gid,
-        expected_graph_version=rt.get_graph(gid).current_version,
-        author_pid="p1",
-        idempotency_key=kid,
-        operations=ops,
-    ))
+    return rt.submit_patch(
+        GraphPatchProposal(
+            graph_id=gid,
+            expected_graph_version=rt.get_graph(gid).current_version,
+            author_pid="p1",
+            idempotency_key=kid,
+            operations=ops,
+        )
+    )
 
 
 def _etypes(rt, gid):
@@ -93,42 +95,82 @@ class TestE2EGoalClosure:
         gid = rec.graph_id
 
         # Step 1: wire the DAG → g1 -> t1, g1 -> t2 ; each task has its own verification
-        _patch(rt, gid, "dag", (
-            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal",
-                       created_by_pid="p1", title="Deliverable Goal"),
-            AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                       created_by_pid="p1", title="T1"),
-            AddNodeOp(node_id="t2", graph_id=gid, node_type="task",
-                       created_by_pid="p1", title="T2"),
-            AddNodeOp(node_id="v_t1", graph_id=gid, node_type="verification",
-                       created_by_pid="p1", verification_kind="command_result"),
-            AddNodeOp(node_id="v_t2", graph_id=gid, node_type="verification",
-                       created_by_pid="p1", verification_kind="command_result"),
-            AddEdgeOp(edge_id="dep_g_t1", edge_type="verifies",
-                       source_node_id="v_t1", target_node_id="t1",
-                       created_by_pid="p1"),
-            AddEdgeOp(edge_id="dep_g_t2", edge_type="verifies",
-                       source_node_id="v_t2", target_node_id="t2",
-                       created_by_pid="p1"),
-            AddEdgeOp(edge_id="d1", edge_type="depends_on",
-                       source_node_id="g1", target_node_id="t1",
-                       created_by_pid="p1"),
-            AddEdgeOp(edge_id="d2", edge_type="depends_on",
-                       source_node_id="g1", target_node_id="t2",
-                       created_by_pid="p1"),
-        ))
+        _patch(
+            rt,
+            gid,
+            "dag",
+            (
+                AddNodeOp(
+                    node_id="g1",
+                    graph_id=gid,
+                    node_type="goal",
+                    created_by_pid="p1",
+                    title="Deliverable Goal",
+                ),
+                AddNodeOp(
+                    node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T1"
+                ),
+                AddNodeOp(
+                    node_id="t2", graph_id=gid, node_type="task", created_by_pid="p1", title="T2"
+                ),
+                AddNodeOp(
+                    node_id="v_t1",
+                    graph_id=gid,
+                    node_type="verification",
+                    created_by_pid="p1",
+                    verification_kind="command_result",
+                ),
+                AddNodeOp(
+                    node_id="v_t2",
+                    graph_id=gid,
+                    node_type="verification",
+                    created_by_pid="p1",
+                    verification_kind="command_result",
+                ),
+                AddEdgeOp(
+                    edge_id="dep_g_t1",
+                    edge_type="verifies",
+                    source_node_id="v_t1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+                AddEdgeOp(
+                    edge_id="dep_g_t2",
+                    edge_type="verifies",
+                    source_node_id="v_t2",
+                    target_node_id="t2",
+                    created_by_pid="p1",
+                ),
+                AddEdgeOp(
+                    edge_id="d1",
+                    edge_type="depends_on",
+                    source_node_id="g1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+                AddEdgeOp(
+                    edge_id="d2",
+                    edge_type="depends_on",
+                    source_node_id="g1",
+                    target_node_id="t2",
+                    created_by_pid="p1",
+                ),
+            ),
+        )
 
         # Step 2: verify each task
-        bind = ArtifactVersionBinding(canonical_uri="s3://artifacts/a",
-                                      artifact_id="art1",
-                                      version=1,
-                                      content_hash="deadbeef")
+        bind = ArtifactVersionBinding(
+            canonical_uri="s3://artifacts/a", artifact_id="art1", version=1, content_hash="deadbeef"
+        )
         for tid, vid, prefix in [("t1", "v_t1", "t1"), ("t2", "v_t2", "t2")]:
             evi = EvidenceNode(
-                graph_id=gid, node_id=f"evi_{prefix}",
+                graph_id=gid,
+                node_id=f"evi_{prefix}",
                 node_type=NodeType.EVIDENCE,
-                evidence_kind="command_result", result="pass",
-                source_verification_id=vid, source_action_id=f"act_{prefix}",
+                evidence_kind="command_result",
+                result="pass",
+                source_verification_id=vid,
+                source_action_id=f"act_{prefix}",
                 produced_by_pid="p1",
                 created_in_version=rt.get_graph(gid).current_version,
                 updated_in_version=rt.get_graph(gid).current_version,
@@ -141,16 +183,29 @@ class TestE2EGoalClosure:
                 (f"evi_{prefix}", gid, "evidence", evi.model_dump_json()),
             )
             rt.store.conn.commit()
-            _patch(rt, gid, f"art_{prefix}", (
-                AttachArtifactOp(task_node_id=tid, artifact=bind,
-                                 created_by_pid="p1", edge_id=f"p_{prefix}"),
-            ))
-            _patch(rt, gid, f"att_{prefix}", (
-                AttachEvidenceOp(verification_node_id=vid,
-                                  evidence_node_id=f"evi_{prefix}",
-                                  created_by_pid="p1",
-                                  edge_id=f"pe_{prefix}"),
-            ))
+            _patch(
+                rt,
+                gid,
+                f"art_{prefix}",
+                (
+                    AttachArtifactOp(
+                        task_node_id=tid, artifact=bind, created_by_pid="p1", edge_id=f"p_{prefix}"
+                    ),
+                ),
+            )
+            _patch(
+                rt,
+                gid,
+                f"att_{prefix}",
+                (
+                    AttachEvidenceOp(
+                        verification_node_id=vid,
+                        evidence_node_id=f"evi_{prefix}",
+                        created_by_pid="p1",
+                        edge_id=f"pe_{prefix}",
+                    ),
+                ),
+            )
 
         # Step 3: Assert derived events
         evts = _etypes(rt, gid)
@@ -168,7 +223,8 @@ class TestE2EGoalClosure:
         rt.store.conn.execute("DELETE FROM graph_nodes_projection")
         rt.store.conn.commit()
         events, rec = verify_and_recover(
-            rt.store, gid,
+            rt.store,
+            gid,
             facts_artifact=rt.facts_artifact,
             facts_kernel=rt.facts_kernel,
         )
@@ -183,26 +239,51 @@ class TestE2EGoalClosure:
         rec = rt.create_graph(owner_pid="p1")
         gid = rec.graph_id
         assert rt.get_graph(gid).current_version == 0
-        _patch(rt, gid, "dag", (
-            AddNodeOp(node_id="g1", graph_id=gid, node_type="goal",
-                       created_by_pid="p1", title="G"),
-            AddNodeOp(node_id="t1", graph_id=gid, node_type="task",
-                       created_by_pid="p1", title="T"),
-            AddNodeOp(node_id="v1", graph_id=gid, node_type="verification",
-                       created_by_pid="p1", verification_kind="command_result"),
-            AddEdgeOp(edge_id="d", edge_type="depends_on",
-                       source_node_id="g1", target_node_id="t1",
-                       created_by_pid="p1"),
-            AddEdgeOp(edge_id="vfy", edge_type="verifies",
-                       source_node_id="v1", target_node_id="t1",
-                       created_by_pid="p1"),
-        ))
-        bind = ArtifactVersionBinding(canonical_uri="u", artifact_id="a",
-                                      version=1, content_hash="h")
+        _patch(
+            rt,
+            gid,
+            "dag",
+            (
+                AddNodeOp(
+                    node_id="g1", graph_id=gid, node_type="goal", created_by_pid="p1", title="G"
+                ),
+                AddNodeOp(
+                    node_id="t1", graph_id=gid, node_type="task", created_by_pid="p1", title="T"
+                ),
+                AddNodeOp(
+                    node_id="v1",
+                    graph_id=gid,
+                    node_type="verification",
+                    created_by_pid="p1",
+                    verification_kind="command_result",
+                ),
+                AddEdgeOp(
+                    edge_id="d",
+                    edge_type="depends_on",
+                    source_node_id="g1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+                AddEdgeOp(
+                    edge_id="vfy",
+                    edge_type="verifies",
+                    source_node_id="v1",
+                    target_node_id="t1",
+                    created_by_pid="p1",
+                ),
+            ),
+        )
+        bind = ArtifactVersionBinding(
+            canonical_uri="u", artifact_id="a", version=1, content_hash="h"
+        )
         evi = EvidenceNode(
-            graph_id=gid, node_id="evi1", node_type=NodeType.EVIDENCE,
-            evidence_kind="command_result", result="pass",
-            source_verification_id="v1", source_action_id="act1",
+            graph_id=gid,
+            node_id="evi1",
+            node_type=NodeType.EVIDENCE,
+            evidence_kind="command_result",
+            result="pass",
+            source_verification_id="v1",
+            source_action_id="act1",
             produced_by_pid="p1",
             created_in_version=rt.get_graph(gid).current_version,
             updated_in_version=rt.get_graph(gid).current_version,
@@ -215,14 +296,29 @@ class TestE2EGoalClosure:
             ("evi1", gid, "evidence", evi.model_dump_json()),
         )
         rt.store.conn.commit()
-        _patch(rt, gid, "art", (
-            AttachArtifactOp(task_node_id="t1", artifact=bind,
-                             created_by_pid="p1", edge_id="p1"),
-        ))
-        _patch(rt, gid, "att", (
-            AttachEvidenceOp(verification_node_id="v1", evidence_node_id="evi1",
-                              created_by_pid="p1", edge_id="pe"),
-        ))
+        _patch(
+            rt,
+            gid,
+            "art",
+            (
+                AttachArtifactOp(
+                    task_node_id="t1", artifact=bind, created_by_pid="p1", edge_id="p1"
+                ),
+            ),
+        )
+        _patch(
+            rt,
+            gid,
+            "att",
+            (
+                AttachEvidenceOp(
+                    verification_node_id="v1",
+                    evidence_node_id="evi1",
+                    created_by_pid="p1",
+                    edge_id="pe",
+                ),
+            ),
+        )
         evts = _etypes(rt, gid)
         assert GraphEventType.GOAL_CLOSED_DERIVED in evts
         # 3 commits: "dag", "art", "att"

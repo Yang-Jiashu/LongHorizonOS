@@ -175,14 +175,13 @@ class VerifiedProgressRuntime:
             )
 
         if patch.expected_graph_version != rec.current_version:
-            raise graph_version_conflict(
-                patch.expected_graph_version, rec.current_version
-            )
+            raise graph_version_conflict(patch.expected_graph_version, rec.current_version)
 
         # snapshot current projection — deep copy so derived-state mutations
         # during _apply_derived_after_patch don't alias the baseline and hide
         # the diff in nodes_to_upsert.
         import copy
+
         current_snapshot = self.snapshot_projection(patch.graph_id)
         current_nodes = {nid: copy.deepcopy(n) for nid, n in current_snapshot[0].items()}
         current_edges = [copy.deepcopy(e) for e in current_snapshot[1]]
@@ -273,9 +272,7 @@ class VerifiedProgressRuntime:
     ) -> list[TaskDispatchCandidate]:
         rec = self.get_graph(graph_id)
         nodes, edges = self.snapshot_projection(graph_id)
-        return compute_ready_frontier(
-            graph_id, rec.current_version, nodes, edges
-        )
+        return compute_ready_frontier(graph_id, rec.current_version, nodes, edges)
 
     # ── inspection ────────────────────────────────────────────────────────
     def inspect_node(self, graph_id: str, node_id: str) -> AnyNode | None:
@@ -289,12 +286,12 @@ class VerifiedProgressRuntime:
                 return e
         return None
 
-    def get_events(
-        self, graph_id: str, since_version: int | None = None
-    ) -> list[GraphEvent]:
+    def get_events(self, graph_id: str, since_version: int | None = None) -> list[GraphEvent]:
         return self.store.get_events(graph_id, since_version)
 
-    def rebuild_projection(self, graph_id: str) -> tuple[dict[str, AnyNode], list[VPGEdge], list[GraphEvent]]:
+    def rebuild_projection(
+        self, graph_id: str
+    ) -> tuple[dict[str, AnyNode], list[VPGEdge], list[GraphEvent]]:
         """Drop + rebuild the projection from patch history."""
         self.store.delete_projection(graph_id)
 
@@ -615,9 +612,7 @@ def _normalize_raw_ops(ops: list) -> list:
     return fixed
 
 
-def _ops_to_nodes_edges(
-    graph_id: str, patch: GraphPatchProposal
-) -> tuple[list, list]:
+def _ops_to_nodes_edges(graph_id: str, patch: GraphPatchProposal) -> tuple[list, list]:
     """Derive the nodes/edges a patch added, for projection replay.
 
     This mirrors patch_validator._build_add_node and the per-op edge builders
@@ -649,13 +644,10 @@ def _ops_to_nodes_edges(
 
     def _node_for(op: AddNodeOp) -> AnyNode | None:
         from typing import cast
+
         # source_action_id differs per subtype: verification uses verification_tier,
         # evidence uses evidence_source_action_id.
-        sa_id = (
-            op.evidence_source_action_id
-            if op.node_type == "evidence"
-            else op.source_action_id
-        )
+        sa_id = op.evidence_source_action_id if op.node_type == "evidence" else op.source_action_id
         base: dict[str, object] = dict(
             node_id=op.node_id,
             graph_id=graph_id,
@@ -784,7 +776,8 @@ def _ops_to_nodes_edges(
             if n is not None:
                 new_edges.append(
                     VPGEdge(
-                        edge_id=op.edge_id or f"{op.verification_node_id}-produces-{op.evidence_node_id}",
+                        edge_id=op.edge_id
+                        or f"{op.verification_node_id}-produces-{op.evidence_node_id}",
                         graph_id=graph_id,
                         edge_type=EdgeType.PRODUCES,
                         source_node_id=op.verification_node_id,

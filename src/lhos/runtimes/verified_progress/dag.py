@@ -94,7 +94,4 @@ def detect_cycle(
 
 def is_self_loop(edge: VPGEdge) -> bool:
     """True iff the edge is a depends_on self-loop."""
-    return (
-        edge.edge_type == EdgeType.DEPENDS_ON
-        and edge.source_node_id == edge.target_node_id
-    )
+    return edge.edge_type == EdgeType.DEPENDS_ON and edge.source_node_id == edge.target_node_id

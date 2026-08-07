@@ -61,9 +61,7 @@ class DeterministicSingleProcessCoordinator:
         edges: list,
     ) -> TaskDispatchCandidate | None:
         """Return the FIRST deterministic candidate, or None if frontier empty."""
-        frontier = compute_ready_frontier(
-            graph_id, graph_version, nodes, edges
-        )
+        frontier = compute_ready_frontier(graph_id, graph_version, nodes, edges)
         return frontier[0] if frontier else None
 
     def observe_attempt(
