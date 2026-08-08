@@ -55,14 +55,47 @@ class TestREADMEClaims:
         assert claim in content, f"README missing claim: '{claim}'"
 
     def test_readme_lists_not_yet_implemented(self) -> None:
-        """README must accurately list unimplemented features."""
+        """README must accurately list unimplemented features.
+
+        Background: this test originally asserted that "Verified Progress
+        Runtime" and "Graph-derived multi-agent scheduler" appeared under
+        "Not yet implemented".  Both shipped (D1 and D2 respectively), so that
+        assertion became STALE at D2 stable and is structurally impossible to
+        satisfy.  It was re-scoped to check the invariant the test is meant to
+        protect: any feature the repo claims as shipped must NOT be listed as
+        not-yet-implemented, and genuinely-unimplemented capabilities must
+        remain listed (no over-claiming).
+        """
+        import re as _re
+
         content = README.read_text()
-        not_yet = [
+        match = _re.search(r"Not yet implemented:\n(.*?)(?:\n## |\Z)", content, _re.S)
+        not_yet_block = match.group(1) if match else ""
+
+        # (a) Capabilities actually shipped must NOT be listed as unimplemented.
+        implemented_markers = [
             "Verified Progress Runtime",
             "Graph-derived multi-agent scheduler",
+            "Version-aware causal invalidation",
+            "evidence applicability tracking",
+            "causal invalidation cone",
+            "minimal Repair Frontier",
         ]
-        for item in not_yet:
-            assert item in content, f"README should list '{item}' as not-yet-implemented"
+        for marker in implemented_markers:
+            assert marker not in not_yet_block, (
+                f"README wrongly lists implemented capability '{marker}' as not-yet"
+            )
+
+        # (b) Genuinely-unimplemented capabilities must remain listed.
+        out_of_scope_markers = [
+            "Distributed multi-agent cluster",
+            "General belief revision",
+            "distributed repair cluster",
+        ]
+        for marker in out_of_scope_markers:
+            assert marker.lower() in not_yet_block.lower(), (
+                f"README must keep '{marker}' listed as not-yet-implemented"
+            )
 
     def test_readme_test_count_claim(self) -> None:
         """README test count must match actual count (if stated)."""

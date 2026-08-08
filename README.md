@@ -89,8 +89,9 @@ Phase D2: Multi-Agent Scheduler — 253 tests green (across eligibility / matchi
 Not yet implemented:
 
 - **Distributed multi-agent cluster** — out of scope
-- **Automatic semantic repair / causal invalidation cone (D3)** — out of scope
-- **Local repair planning (D3)** — out of scope
+- **General belief revision / LLM self-repair planner** — out of scope (D3 is deterministic, graph-derived, local repair only)
+- **Semantic contradiction solver** — out of scope
+- **Distributed repair cluster / multi-host consensus** — out of scope
 - Real distributed execution
 - Production security hardening
 
