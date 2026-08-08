@@ -11,12 +11,13 @@ evidence-backed progress:
 - **Verified Progress Runtime** — deterministic semantically-closed Task/Goal
   state graph; evidence-backed VERIFIED derivation.
 - **Graph-derived Multi-Agent Scheduler** — eligibility, deterministic matching,
-  kernel-backed exclusive TaskClaims, projection, reconciliation (IN PROGRESS).
+  kernel-backed exclusive TaskClaims, per-agent concurrency, crash reassignment,
+  projection, reconciliation, replayable audit log.
 
-## Current Status (Phase D2 — Graph-derived Multi-Agent Scheduler in progress)
+## Current Status (Phase D2 — Graph-derived Multi-Agent Scheduler implemented)
 
 Verified Progress Runtime — implemented
-Graph-derived Multi-Agent Scheduler — in progress
+Graph-derived Multi-Agent Scheduler — implemented
 
 Implemented:
 
@@ -30,9 +31,11 @@ Implemented:
 - **Datetime consistency** — all modules use UTC-aware stamps (X-01 / LEASE-04 / MOD-02 closed)
 - **Capability merge + atomic lease journaling** — concurrent-capability and lease acquisitions merge into single rows (CAP-02 / LEASE-01)
 - **Verified Progress Runtime (VPG)** — deterministic semantically-closed Task/Goal state graph; evidence-backed VERIFIED derivation; task-local artifact-version invalidation; deterministic READY frontier (priority DESC / topo depth ASC / created ASC / node_id ASC); atomic optimistic patch commit with composite-key idempotency; architecture boundary at L4 (no kernel-internal imports)
+- **Graph-derived Multi-Agent Scheduler (D2)** — eligibility (10-predicate deterministic filter using live Kernel Process/Capability state), deterministic best-fit matching (`match_deterministic_best_fit_v1`, integer score + agent_id tie-break, PYTHONHASHSEED- and insertion-order-independent), Kernel-backed exclusive TaskClaims (claim linearization point = exclusive ResourceLease acquisition), per-agent `max_concurrency`, projection + reconciliation + replayable audit log, crash reassignment via real POSIX SIGKILL + scheduler recovery. Architecture boundary: Scheduler imports only VPG public API + Agent OS public SDK — never kernel internals (D2-I1..D15 enforced, 20 forbidden deviations asserted, 120 authentic SIGKILL trials green)
 
 Semantic closure: Phase C1 all-23 UNCERTAIN items closed with regression tests (FIX) or spec text (DOC); 0 surviving mutations.
-Phase D1: 214 tests green across 27 test files; all 5 flagship demos pass.
+Phase D1: VPG runtime — 214+ tests green across 27 test files; 5 flagship demos pass.
+Phase D2: Multi-Agent Scheduler — 253 tests green (across eligibility / matching / claims / capacity / attempts / completion / loss / reassignment / reconciliation / recovery / projection-replay / determinism / architecture / mutations / SIGKILL); 6 flagship demos pass; 0 surviving forbidden deviations (D2-01..D2-20).
 
 ### Phases completed
 
@@ -42,6 +45,7 @@ Phase D1: 214 tests green across 27 test files; all 5 flagship demos pass.
 | C1.1 | Graph / Namespace / Artifact FS v1 | `src/lhos/agent_os/artifacts/`, `src/lhos/agent_os/graph/` |
 | **C2** | **Version-bound Context VM** | **context snapshots, deterministic working sets, process-isolated working sets** |
 | **D1** | **Verified Progress Runtime** | **VPG runtime: models, DAG, patch protocol, evidence/verification/closure/readiness, projection, recovery, SDK; 5 demos** |
+| **D2** | **Graph-derived Multi-Agent Scheduler** | **eligibility + deterministic matching + Kernel-backed exclusive TaskClaims + per-agent concurrency + crash reassignment + Projection/Reconcile/Recovery + replayable audit log; 6 demos** |
 
 ### Phase C2 implementation locations
 
@@ -53,18 +57,24 @@ Phase D1: 214 tests green across 27 test files; all 5 flagship demos pass.
 | Demos | `examples/agent_os/context_*.py` (6 scripts) |
 | Tests | `tests/agent_os/context/` (21+ test files) |
 
-### Phase D1 implementation locations
+### Phase D1 / D2 implementation locations
 
 | Layer | Path |
 |-------|------|
 | Runtime package | `src/lhos/runtimes/verified_progress/` |
 | Public SDK | `src/lhos/runtimes/verified_progress/sdk.py` (`VerifiedProgressRuntime`) |
-| Demos | `examples/verified_progress/*.py` (6 scripts: basic closure, evidence, version reopen, optimistic conflict, ready frontier, SIGKILL recovery) |
+| Demos | `examples/verified_progress/*.py` (6 scripts) |
 | Tests | `tests/runtimes/verified_progress/` (27+ test files) |
+| Scheduler package | `src/lhos/runtimes/multi_agent/` |
+| Scheduler SDK | `src/lhos/runtimes/multi_agent/sdk.py` (`create_scheduler`, `SchedulerSession`) |
+| Scheduler demos | `examples/multi_agent/*.py` (6 scripts: specialized pipeline, parallel ready, crash reassignment, no-eligible-agent, capacity, semantic/operational separation) |
+| Scheduler tests | `tests/runtimes/multi_agent/` (31 test files) |
 
 Not yet implemented:
 
-- Graph-derived multi-agent scheduler
+- **Distributed multi-agent cluster** — out of scope
+- **Automatic semantic repair / causal invalidation cone (D3)** — out of scope
+- **Local repair planning (D3)** — out of scope
 - Real distributed execution
 - Production security hardening
 
