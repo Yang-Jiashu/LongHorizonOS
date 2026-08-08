@@ -12,8 +12,15 @@ def _d2_src() -> str:
     here = os.path.dirname(__file__)
     return os.path.abspath(
         os.path.join(
-            here, os.pardir, os.pardir, os.pardir, os.pardir,
-            "src", "lhos", "runtimes", "multi_agent",
+            here,
+            os.pardir,
+            os.pardir,
+            os.pardir,
+            os.pardir,
+            "src",
+            "lhos",
+            "runtimes",
+            "multi_agent",
         )
     )
 
@@ -36,8 +43,10 @@ def test_scheduler_source_file_forbidden_imports():
                     s = line.strip()
                     if s.startswith("#"):
                         continue
-                    if any(s.startswith(p) or ("lhos.agent_os." in s and "import" in s)
-                           for p in forbidden_prefixes):
+                    if any(
+                        s.startswith(p) or ("lhos.agent_os." in s and "import" in s)
+                        for p in forbidden_prefixes
+                    ):
                         offenders.append(f"{path}: {s}")
     assert not offenders, "Forbidden Kernel/VPG imports in D2:\n" + "\n".join(offenders)
 
@@ -57,7 +66,8 @@ def test_scheduler_package_runtime_no_kernel_modules():
     )
     violations: list[str] = []
     for importer, modname, ispkg in pkgutil.walk_packages(
-        d2_pkg.__path__, prefix="lhos.runtimes.multi_agent.",
+        d2_pkg.__path__,
+        prefix="lhos.runtimes.multi_agent.",
     ):
         mod = importlib.import_module(modname)
         for name, obj in vars(mod).items():
@@ -65,6 +75,6 @@ def test_scheduler_package_runtime_no_kernel_modules():
                 mod_of = getattr(obj, "__module__", "") or ""
                 if any(mod_of.startswith(f) for f in forbidden):
                     violations.append(f"{modname} defines/imports {name} from {mod_of}")
-    assert not violations, (
-        "D2 source module imports Kernel/VPG internals:\n" + "\n".join(violations)
+    assert not violations, "D2 source module imports Kernel/VPG internals:\n" + "\n".join(
+        violations
     )

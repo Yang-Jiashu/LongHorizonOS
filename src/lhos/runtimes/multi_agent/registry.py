@@ -28,9 +28,7 @@ class AgentRegistry:
     def register(self, agent: AgentDescriptor) -> AgentDescriptor:
         with self._lock:
             if agent.agent_id in self._agents:
-                raise ValueError(
-                    f"agent_id {agent.agent_id!r} already registered"
-                )
+                raise ValueError(f"agent_id {agent.agent_id!r} already registered")
             self._agents[agent.agent_id] = agent
             return agent
 
@@ -49,7 +47,9 @@ class AgentRegistry:
             agents = [a for a in agents if a.enabled]
         return agents
 
-    def update(self, agent_id: str, fields: dict[str, Any] | None = None, **kw: Any) -> AgentDescriptor:
+    def update(
+        self, agent_id: str, fields: dict[str, Any] | None = None, **kw: Any
+    ) -> AgentDescriptor:
         """Patch agent fields; returns the updated descriptor.
 
         Prefer the ``fields`` dict — passing ``agent_id`` as a keyword would

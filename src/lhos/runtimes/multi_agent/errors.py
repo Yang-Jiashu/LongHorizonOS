@@ -38,8 +38,7 @@ class NoEligibleAgentError(D2Error):
         self.reasons = reasons
         body = "; ".join(reasons) if reasons else "no agent available"
         super().__init__(
-            f"Task {task_id!r} in graph {graph_id!r} is READY but no eligible "
-            f"agent: {body}."
+            f"Task {task_id!r} in graph {graph_id!r} is READY but no eligible agent: {body}."
         )
 
 
@@ -49,9 +48,7 @@ class TaskAlreadyClaimed(D2Error):
     def __init__(self, task_id: str, claim_id: str) -> None:
         self.task_id = task_id
         self.claim_id = claim_id
-        super().__init__(
-            f"Task {task_id!r} already has an ACTIVE claim {claim_id!r}."
-        )
+        super().__init__(f"Task {task_id!r} already has an ACTIVE claim {claim_id!r}.")
 
 
 class LeaseAcquisitionFailed(D2Error):
@@ -93,8 +90,7 @@ class ConcurrencyViolation(D2Error):
         self.active = active
         self.maximum = maximum
         super().__init__(
-            f"Agent {agent_id!r} already has {active} active claims "
-            f"(max_concurrency={maximum})."
+            f"Agent {agent_id!r} already has {active} active claims (max_concurrency={maximum})."
         )
 
 

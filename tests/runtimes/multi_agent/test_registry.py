@@ -1,4 +1,5 @@
 """AgentRegistry CRUD semantics."""
+
 from __future__ import annotations
 
 import pytest

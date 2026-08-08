@@ -23,8 +23,13 @@ def test_scheduler_session_schedule_and_snapshot():
 def test_scheduler_session_run_pass_observe_reconcile():
     vpg = FakeVPG()
     sch = fake_scheduler(
-        {"a": {"supported_task_kinds": ("*",), "specializations": ("python",),
-                "max_concurrency": 5}},
+        {
+            "a": {
+                "supported_task_kinds": ("*",),
+                "specializations": ("python",),
+                "max_concurrency": 5,
+            }
+        },
         fake_vpg=vpg,
     )
     vpg.add_ready_task("t1", required_specializations=("python",))
@@ -40,8 +45,13 @@ def test_scheduler_session_run_pass_observe_reconcile():
 def test_scheduler_session_schedule_until_idle_results():
     vpg = FakeVPG()
     sch = fake_scheduler(
-        {"a": {"supported_task_kinds": ("*",), "specializations": ("python",),
-                "max_concurrency": 10}},
+        {
+            "a": {
+                "supported_task_kinds": ("*",),
+                "specializations": ("python",),
+                "max_concurrency": 10,
+            }
+        },
         fake_vpg=vpg,
     )
     for i in range(4):

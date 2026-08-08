@@ -48,18 +48,21 @@ def projection_fingerprint(proj: SchedulerProjection) -> str:
     agents = sorted(proj.agents.keys())
     claims = sorted(
         (
-            c.claim_id, c.graph_id, c.task_id, c.agent_id, c.process_id,
-            c.state.value, c.lease_id or "",
+            c.claim_id,
+            c.graph_id,
+            c.task_id,
+            c.agent_id,
+            c.process_id,
+            c.state.value,
+            c.lease_id or "",
         )
         for c in proj.claims.values()
     )
     attempts = sorted(
-        (a.attempt_id, a.task_id, a.agent_id, a.state.value)
-        for a in proj.attempts.values()
+        (a.attempt_id, a.task_id, a.agent_id, a.state.value) for a in proj.attempts.values()
     )
     loads = sorted(
-        (load.agent_id, load.active_claims, load.max_concurrency)
-        for load in proj.loads.values()
+        (load.agent_id, load.active_claims, load.max_concurrency) for load in proj.loads.values()
     )
     payload = json.dumps(
         {"agents": agents, "claims": claims, "attempts": attempts, "loads": loads},

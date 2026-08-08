@@ -56,9 +56,7 @@ class SchedulerProjection:
         self.loads = {}
         for agent in agents:
             active = [
-                c
-                for c in claims
-                if c.agent_id == agent.agent_id and c.state == ClaimState.ACTIVE
+                c for c in claims if c.agent_id == agent.agent_id and c.state == ClaimState.ACTIVE
             ]
             last_active = max(
                 (c.activated_at for c in active if c.activated_at),

@@ -1,4 +1,5 @@
 """D2-I1/I2/I3 checks on model construction and invariants."""
+
 from __future__ import annotations
 
 import pytest

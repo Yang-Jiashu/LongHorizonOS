@@ -20,13 +20,20 @@ from tests.runtimes.multi_agent.helpers import FakeVPG
 def test_observe_vpg_completes_verified_claim():
     vpg = FakeVPG()
     reg = AgentRegistry()
-    reg.register(AgentDescriptor(
-        agent_id="a", process_id="pid-a",
-        supported_task_kinds=("*",), specializations=("python",),
-    ))
+    reg.register(
+        AgentDescriptor(
+            agent_id="a",
+            process_id="pid-a",
+            supported_task_kinds=("*",),
+            specializations=("python",),
+        )
+    )
     sch = create_scheduler(
-        reg, vpg=vpg, process_provider=_NullProc(),
-        lease_provider=_LeaseRecorder(), capability_provider=_NullCap(),
+        reg,
+        vpg=vpg,
+        process_provider=_NullProc(),
+        lease_provider=_LeaseRecorder(),
+        capability_provider=_NullCap(),
     )
     vpg.add_ready_task("t1", required_specializations=("python",))
     sch.schedule_once(vpg.graph_id)
@@ -42,13 +49,20 @@ def test_observe_vpg_is_idempotent():
     """Calling observe_vpg on an already-COMPLETED claim must not double-count."""
     vpg = FakeVPG()
     reg = AgentRegistry()
-    reg.register(AgentDescriptor(
-        agent_id="a", process_id="pid-a",
-        supported_task_kinds=("*",), specializations=("python",),
-    ))
+    reg.register(
+        AgentDescriptor(
+            agent_id="a",
+            process_id="pid-a",
+            supported_task_kinds=("*",),
+            specializations=("python",),
+        )
+    )
     sch = create_scheduler(
-        reg, vpg=vpg, process_provider=_NullProc(),
-        lease_provider=_NullLease(), capability_provider=_NullCap(),
+        reg,
+        vpg=vpg,
+        process_provider=_NullProc(),
+        lease_provider=_NullLease(),
+        capability_provider=_NullCap(),
     )
     vpg.add_ready_task("t1", required_specializations=("python",))
     sch.schedule_once(vpg.graph_id)
@@ -63,14 +77,21 @@ def test_releasing_completed_claim_calls_kernel():
     """Completion path must release the backing Kernel lease."""
     vpg = FakeVPG()
     reg = AgentRegistry()
-    reg.register(AgentDescriptor(
-        agent_id="a", process_id="pid-a",
-        supported_task_kinds=("*",), specializations=("python",),
-    ))
+    reg.register(
+        AgentDescriptor(
+            agent_id="a",
+            process_id="pid-a",
+            supported_task_kinds=("*",),
+            specializations=("python",),
+        )
+    )
     leases = _LeaseRecorder()
     sch = create_scheduler(
-        reg, vpg=vpg, process_provider=_NullProc(),
-        lease_provider=leases, capability_provider=_NullCap(),
+        reg,
+        vpg=vpg,
+        process_provider=_NullProc(),
+        lease_provider=leases,
+        capability_provider=_NullCap(),
     )
     vpg.add_ready_task("t1", required_specializations=("python",))
     sch.schedule_once(vpg.graph_id)
@@ -128,6 +149,7 @@ class _LeaseRecorder(_NullLease):
 class _L:
     def __init__(self, resource_id):
         from datetime import datetime, timedelta
+
         self.lease_id = f"lease-{resource_id}"
         self.resource_id = resource_id
         self.expires_at = datetime.now(UTC) + timedelta(minutes=30)

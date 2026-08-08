@@ -49,9 +49,7 @@ class ClaimManager:
         return [
             c
             for c in self._claims.values()
-            if c.graph_id == graph_id
-            and c.task_id == task_id
-            and c.state == ClaimState.ACTIVE
+            if c.graph_id == graph_id and c.task_id == task_id and c.state == ClaimState.ACTIVE
         ]
 
     def active_claims_for_agent(self, agent_id: str) -> list[TaskClaim]:
@@ -100,9 +98,7 @@ class ClaimManager:
         Returns True on success (claim -> ACTIVE), False on refusal
         (claim stays ACQUIRING; caller may retry or release).
         """
-        lease = self._adapter.acquire(
-            claim.graph_id, claim.task_id, claim.process_id
-        )
+        lease = self._adapter.acquire(claim.graph_id, claim.task_id, claim.process_id)
         if lease is None:
             claim.state = ClaimState.REJECTED
             claim.reason = "kernel_exclusive_lease_refused"

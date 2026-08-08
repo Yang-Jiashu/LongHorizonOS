@@ -1,4 +1,5 @@
 """D2-I4: each Task gets at most one ACTIVE claim."""
+
 from __future__ import annotations
 
 from lhos.runtimes.multi_agent import AgentDescriptor, AgentRegistry, create_scheduler
@@ -37,14 +38,10 @@ def test_exactly_one_active_claim_per_task(world):
         },
     )
     gid = world.vpg_rt.create_graph(owner_pid="kernel").graph_id
-    world.vpg_rt.submit_patch(
-        _make_task_patch(world, gid, "t1", "code_review", ("python",))
-    )
+    world.vpg_rt.submit_patch(_make_task_patch(world, gid, "t1", "code_review", ("python",)))
     res = sch.schedule_once(gid)
     assert len(res.dispatched) == 1
-    active_for_t1 = [
-        c for c in sch.claims if c.task_id == "t1"
-    ]
+    active_for_t1 = [c for c in sch.claims if c.task_id == "t1"]
     assert len(active_for_t1) == 1
 
 
@@ -55,9 +52,7 @@ def test_schedule_until_idle_never_creates_duplicate_active(world):
     )
     gid = world.vpg_rt.create_graph(owner_pid="kernel").graph_id
     for i in range(5):
-        world.vpg_rt.submit_patch(
-            _make_task_patch(world, gid, f"t{i}", "code_review", ("python",))
-        )
+        world.vpg_rt.submit_patch(_make_task_patch(world, gid, f"t{i}", "code_review", ("python",)))
     sch.schedule_until_idle(gid, max_dispatches=50)
     by_task: dict[str, int] = {}
     for c in sch.claims:
@@ -71,6 +66,7 @@ def _make_task_patch(world, gid, tid, kind, sched_specs):
         AddNodeOp,
         GraphPatchProposal,
     )
+
     return GraphPatchProposal(
         graph_id=gid,
         expected_graph_version=world.vpg_rt.get_graph(gid).current_version,

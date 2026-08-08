@@ -54,12 +54,12 @@ def reconcile(
     attempts: list[ScheduledExecutionAttempt],
     *,
     # Authoritative lookups (injected; NEVER from the scheduler projection):
-    lease_is_live: Any,        # (lease_id) -> bool  (looks up Kernel leases)
-    process_is_alive: Any,     # (pid) -> bool       (looks up Kernel process)
-    vpg_task_verified: Any,    # (task_id) -> bool   (looks up VPG validity)
-    vpg_task_stale: Any,       # (task_id) -> bool   (STale / not dispatchable)
-    lease_lookup: Any,         # (claim) -> lease_info | None
-    release_lease: Any,        # (lease_id) -> bool
+    lease_is_live: Any,  # (lease_id) -> bool  (looks up Kernel leases)
+    process_is_alive: Any,  # (pid) -> bool       (looks up Kernel process)
+    vpg_task_verified: Any,  # (task_id) -> bool   (looks up VPG validity)
+    vpg_task_stale: Any,  # (task_id) -> bool   (STale / not dispatchable)
+    lease_lookup: Any,  # (claim) -> lease_info | None
+    release_lease: Any,  # (lease_id) -> bool
     clock_now: Any = _now,
 ) -> ReconciliationResult:
     """Walk every stored claim and confirm it agrees with authoritative
@@ -81,7 +81,8 @@ def reconcile(
 
         if claim.state == ClaimState.ACTIVE:
             _reconcile_active_claim(
-                claim, res,
+                claim,
+                res,
                 lease_is_live=lease_is_live,
                 process_is_alive=process_is_alive,
                 vpg_task_verified=vpg_task_verified,
@@ -131,7 +132,8 @@ def _reconcile_active_claim(
     # 1. Kernel process dead -> claim is LOST.
     if not process_is_alive(claim.process_id):
         _lose_claim(
-            claim, res,
+            claim,
+            res,
             reason="process_dead_claim_lost",
             release_lease=release_lease,
         )
@@ -240,29 +242,22 @@ def detect_invariants_violations(
             by_task.setdefault(c.task_id, []).append(c)
     for tid, active in by_task.items():
         if len(active) > 1:
-            violations.append(
-                f"D2-I4 violation: task {tid!r} has "
-                f"{len(active)} ACTIVE claims"
-            )
+            violations.append(f"D2-I4 violation: task {tid!r} has {len(active)} ACTIVE claims")
 
     for c in claims:
         if c.state == ClaimState.ACTIVE:
             # D2-I5: active claim must have a lease_id.
             if c.lease_id is None:
-                violations.append(
-                    f"D2-I5 violation: ACTIVE claim {c.claim_id} has no lease_id"
-                )
+                violations.append(f"D2-I5 violation: ACTIVE claim {c.claim_id} has no lease_id")
                 continue
             # D2-I5b: lease must be live.
             if not lease_is_live(c.lease_id):
                 violations.append(
-                    f"D2-I5 violation: ACTIVE claim {c.claim_id} lease "
-                    f"{c.lease_id} not live"
+                    f"D2-I5 violation: ACTIVE claim {c.claim_id} lease {c.lease_id} not live"
                 )
             # D2-I7: owning process must be alive.
             if not process_is_alive(c.process_id):
                 violations.append(
-                    f"D2-I7 violation: ACTIVE claim {c.claim_id} process "
-                    f"{c.process_id} not alive"
+                    f"D2-I7 violation: ACTIVE claim {c.claim_id} process {c.process_id} not alive"
                 )
     return violations

@@ -23,20 +23,36 @@ def _build_projection():
     ]
     claims = [
         TaskClaim(
-            claim_id="c1", graph_id="g", graph_version=1, task_id="t1",
-            agent_id="a1", process_id="p1", lease_resource="r1",
-            state=ClaimState.ACTIVE, lease_id="lease-1",
+            claim_id="c1",
+            graph_id="g",
+            graph_version=1,
+            task_id="t1",
+            agent_id="a1",
+            process_id="p1",
+            lease_resource="r1",
+            state=ClaimState.ACTIVE,
+            lease_id="lease-1",
         ),
         TaskClaim(
-            claim_id="c2", graph_id="g", graph_version=1, task_id="t2",
-            agent_id="a2", process_id="p2", lease_resource="r2",
-            state=ClaimState.COMPLETED, lease_id=None,
+            claim_id="c2",
+            graph_id="g",
+            graph_version=1,
+            task_id="t2",
+            agent_id="a2",
+            process_id="p2",
+            lease_resource="r2",
+            state=ClaimState.COMPLETED,
+            lease_id=None,
         ),
     ]
     attempts = [
         ScheduledExecutionAttempt(
-            attempt_id="att-1", task_id="t1", claim_id="c1",
-            agent_id="a1", process_id="p1", state=AttemptState.RUNNING,
+            attempt_id="att-1",
+            task_id="t1",
+            claim_id="c1",
+            agent_id="a1",
+            process_id="p1",
+            state=AttemptState.RUNNING,
         ),
     ]
     proj = SchedulerProjection()
@@ -59,9 +75,9 @@ def test_different_inputs_yield_different_fingerprint():
     agents_b = [
         AgentDescriptor(agent_id="a3", process_id="p3", max_concurrency=3),
     ]
-    proj_b = rebuild_projection(agents_b, [], [],
-                                lease_is_live=lambda l: True,
-                                process_is_alive=lambda p: True)
+    proj_b = rebuild_projection(
+        agents_b, [], [], lease_is_live=lambda l: True, process_is_alive=lambda p: True
+    )
     assert projection_fingerprint(proj_a) != projection_fingerprint(proj_b)
 
 

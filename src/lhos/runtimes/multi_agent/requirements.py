@@ -27,8 +27,7 @@ def decode_task_requirements(
 
     return TaskRequirements(
         task_id=task_id,
-        task_kind=sched.get("task_kind", "")
-        or task_node_payload.get("task_kind", ""),
+        task_kind=sched.get("task_kind", "") or task_node_payload.get("task_kind", ""),
         required_specializations=_to_tuple(sched.get("required_specializations")),
         preferred_specializations=_to_tuple(sched.get("preferred_specializations")),
         required_tools=_to_tuple(sched.get("required_tools")),

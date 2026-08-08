@@ -27,8 +27,7 @@ def test_same_graph_version_not_redispatched():
     r2 = sch.schedule_once(vpg.graph_id)
     assert r2.dispatched == []
     skipped_reasons = [reason for _, reason in r2.skipped]
-    assert any(("idempotent" in reason) or ("active claim" in reason)
-               for reason in skipped_reasons)
+    assert any(("idempotent" in reason) or ("active claim" in reason) for reason in skipped_reasons)
 
 
 def test_version_change_allows_redispatch():
@@ -48,6 +47,7 @@ def test_version_change_allows_redispatch():
 
 def test_idempotency_key_is_graph_task_version_composite():
     from lhos.runtimes.multi_agent.scheduler import MultiAgentScheduler
+
     k = MultiAgentScheduler._claim_idempotency_key("g1", "t7", 3)
     assert k == "g1:t7:v3"
 

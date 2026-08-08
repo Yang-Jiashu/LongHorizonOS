@@ -30,8 +30,9 @@ from tests.runtimes.multi_agent.test_providers import (
 )
 
 # Use the real venv interpreter for worker children.
-_PY = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir,
-                   ".", ".venv", "bin", "python")
+_PY = os.path.join(
+    os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, ".", ".venv", "bin", "python"
+)
 _PY = os.path.abspath(_PY)
 
 
@@ -57,8 +58,11 @@ except KeyboardInterrupt:
 
 
 def _spawn_worker(db_path: str, marker: str) -> subprocess.Popen:
-    return subprocess.Popen([_PY, "-c", _WORKER_READY, db_path, marker],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return subprocess.Popen(
+        [_PY, "-c", _WORKER_READY, db_path, marker],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 # ── class-level tests ──────────────────────────────────────────────────
@@ -73,6 +77,7 @@ def test_k1_dispatch_alive_agent(trial):
     proc = _spawn_worker(db, marker)
     try:
         from lhos.agent_os.sdk.client import create_kernel
+
         assert wait_for_file(marker, timeout=10.0)
         with open(marker) as f:
             pid = f.read().strip()
@@ -87,6 +92,7 @@ def test_k1_dispatch_alive_agent(trial):
 
 def wait_for_file(path, *, timeout=10.0, poll=0.05):
     import time
+
     deadline = time.time() + timeout
     while time.time() < deadline:
         if os.path.exists(path):
@@ -110,6 +116,7 @@ def test_k2_dead_agent_not_eligible(trial):
         os.kill(proc.pid, signal.SIGKILL)
         wait_for_child_exit(proc)
         from lhos.agent_os.sdk.client import create_kernel
+
         kernel = create_kernel(db)
         # After SIGKILL on the parent Python that held the pcb in memory,
         # the process row lives only in the DB. Kernel doesn't proactively
@@ -143,17 +150,27 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
         os.kill(proc.pid, signal.SIGKILL)
         wait_for_child_exit(proc)
         # Simulate an ACTIVE claim that was held by this agent.
-        claims = [TaskClaim(
-            claim_id="c", graph_id="g", graph_version=1, task_id="t",
-            agent_id="a", process_id=pid,
-            lease_resource="vpg://g/task/t/claim",
-            state=ClaimState.ACTIVE, lease_id="lease-x",
-        )]
+        claims = [
+            TaskClaim(
+                claim_id="c",
+                graph_id="g",
+                graph_version=1,
+                task_id="t",
+                agent_id="a",
+                process_id=pid,
+                lease_resource="vpg://g/task/t/claim",
+                state=ClaimState.ACTIVE,
+                lease_id="lease-x",
+            )
+        ]
         res = reconcile(
-            claims, [],
+            claims,
+            [],
             lease_is_live=lambda lid: False,
-            process_is_alive=lambda p: kernel._process_service.get_process(p) is not None
-                and kernel._process_service.get_process(p).state.value not in {"exited", "failed"},
+            process_is_alive=lambda p: (
+                kernel._process_service.get_process(p) is not None
+                and kernel._process_service.get_process(p).state.value not in {"exited", "failed"}
+            ),
             vpg_task_verified=lambda tid: False,
             vpg_task_stale=lambda tid: False,
             lease_lookup=lambda c: None,
@@ -174,13 +191,22 @@ def test_k4_lease_expiry_reclaim_marks_lost(trial):
     from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
     from lhos.runtimes.multi_agent.reconciliation import reconcile
 
-    claims = [TaskClaim(
-        claim_id="c", graph_id="g", graph_version=1, task_id="t",
-        agent_id="a", process_id="pid", lease_id="lease-expired",
-        lease_resource="vpg://g/task/t/claim", state=ClaimState.ACTIVE,
-    )]
+    claims = [
+        TaskClaim(
+            claim_id="c",
+            graph_id="g",
+            graph_version=1,
+            task_id="t",
+            agent_id="a",
+            process_id="pid",
+            lease_id="lease-expired",
+            lease_resource="vpg://g/task/t/claim",
+            state=ClaimState.ACTIVE,
+        )
+    ]
     res = reconcile(
-        claims, [],
+        claims,
+        [],
         lease_is_live=lambda lid: False,  # expired / reclaimed
         process_is_alive=lambda pid: True,
         vpg_task_verified=lambda tid: False,
@@ -198,13 +224,22 @@ def test_k5_alive_with_active_lease_stays_active(trial):
     from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
     from lhos.runtimes.multi_agent.reconciliation import reconcile
 
-    claims = [TaskClaim(
-        claim_id="c", graph_id="g", graph_version=1, task_id="t",
-        agent_id="a", process_id="pid", lease_id="lease-ok",
-        lease_resource="vpg://g/task/t/claim", state=ClaimState.ACTIVE,
-    )]
+    claims = [
+        TaskClaim(
+            claim_id="c",
+            graph_id="g",
+            graph_version=1,
+            task_id="t",
+            agent_id="a",
+            process_id="pid",
+            lease_id="lease-ok",
+            lease_resource="vpg://g/task/t/claim",
+            state=ClaimState.ACTIVE,
+        )
+    ]
     res = reconcile(
-        claims, [],
+        claims,
+        [],
         lease_is_live=lambda lid: True,
         process_is_alive=lambda pid: True,
         vpg_task_verified=lambda tid: False,
@@ -224,12 +259,17 @@ def test_k6_exactly_one_active_after_reconcile(trial):
 
     from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
     from lhos.runtimes.multi_agent.reconciliation import detect_invariants_violations
+
     claims = [
         TaskClaim(
             claim_id=f"c-{uuid.uuid4().hex[:8]}",
-            graph_id="g", graph_version=1, task_id=f"t{i}",
-            agent_id=f"a{i}", process_id=f"p{i}",
-            lease_id=f"lease-{i}", lease_resource=f"vpg://g/task/t{i}/claim",
+            graph_id="g",
+            graph_version=1,
+            task_id=f"t{i}",
+            agent_id=f"a{i}",
+            process_id=f"p{i}",
+            lease_id=f"lease-{i}",
+            lease_resource=f"vpg://g/task/t{i}/claim",
             state=ClaimState.ACTIVE,
         )
         for i in range(5)

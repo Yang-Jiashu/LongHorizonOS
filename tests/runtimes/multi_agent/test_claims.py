@@ -1,4 +1,5 @@
 """Claim lifecycle and Kernel-lease binding."""
+
 from __future__ import annotations
 
 from lhos.runtimes.multi_agent import ClaimState
@@ -105,6 +106,7 @@ def test_claim_lease_refusal_marks_rejected():
 
 def test_claim_completes_and_releases_lease():
     from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
     provider = FakeLeaseProvider()
     mgr = ClaimManager(LeaseAdapter(provider))
     c = mgr.propose(
@@ -171,6 +173,7 @@ def test_active_claim_counts():
 
 def test_release_is_idempotent_on_lease():
     from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
     provider = FakeLeaseProvider()
     mgr = ClaimManager(LeaseAdapter(provider))
     c = mgr.propose(

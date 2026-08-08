@@ -14,11 +14,15 @@ from tests.runtimes.multi_agent.helpers import FakeVPG
 
 def _make_scheduler(vpg):
     reg = AgentRegistry()
-    reg.register(AgentDescriptor(
-        agent_id="a", process_id="pid-a",
-        supported_task_kinds=("*",), specializations=("python",),
-        max_concurrency=5,
-    ))
+    reg.register(
+        AgentDescriptor(
+            agent_id="a",
+            process_id="pid-a",
+            supported_task_kinds=("*",),
+            specializations=("python",),
+            max_concurrency=5,
+        )
+    )
 
     class _Proc:
         def get(self, pid):
@@ -52,6 +56,7 @@ def _make_scheduler(vpg):
     class _L:
         def __init__(self, resource_id):
             from datetime import datetime, timedelta
+
             self.lease_id = f"lease-{resource_id}"
             self.resource_id = resource_id
             self.expires_at = datetime.now(UTC) + timedelta(minutes=30)
@@ -64,8 +69,11 @@ def _make_scheduler(vpg):
             return []
 
     return create_scheduler(
-        reg, vpg=vpg, process_provider=_Proc(),
-        lease_provider=_Lease(), capability_provider=_Cap(),
+        reg,
+        vpg=vpg,
+        process_provider=_Proc(),
+        lease_provider=_Lease(),
+        capability_provider=_Cap(),
     )
 
 
@@ -105,12 +113,18 @@ def test_current_version_used_in_idempotency_key():
     """After bumping the graph version, a new task at the new version gets a
     fresh idempotency key and can be scheduled (agent has spare capacity)."""
     from tests.runtimes.multi_agent.helpers import fake_scheduler
+
     vpg = FakeVPG()
     # Agent needs max_concurrency > 1 so t2 isn't capacity-rejected while t1
     # remains ACTIVE in the same pass-chain.
     sch = fake_scheduler(
-        {"a": {"supported_task_kinds": ("*",), "specializations": ("python",),
-                "max_concurrency": 5}},
+        {
+            "a": {
+                "supported_task_kinds": ("*",),
+                "specializations": ("python",),
+                "max_concurrency": 5,
+            }
+        },
         fake_vpg=vpg,
     )
     vpg.add_ready_task("t1", required_specializations=("python",))

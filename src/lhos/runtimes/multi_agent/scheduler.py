@@ -53,9 +53,7 @@ class ScheduleResult:
         self.idle: bool = True
 
     def mark_dispatched(self, task_id: str, agent_id: str, claim_id: str) -> None:
-        self.dispatched.append(
-            {"task_id": task_id, "agent_id": agent_id, "claim_id": claim_id}
-        )
+        self.dispatched.append({"task_id": task_id, "agent_id": agent_id, "claim_id": claim_id})
         self.idle = False
 
 
@@ -165,9 +163,7 @@ class MultiAgentScheduler:
             # Existing active claim: skip (per D2-I4 we never create a 2nd).
             existing = self.get_claim(task_id)
             if existing is not None:
-                result.skipped.append(
-                    (task_id, f"active claim {existing.claim_id}")
-                )
+                result.skipped.append((task_id, f"active claim {existing.claim_id}"))
                 continue
 
             # Bounds.
@@ -185,7 +181,9 @@ class MultiAgentScheduler:
             # Idempotency key: graph+task+version+agent composite is the
             # canonical repeat-scheduling key (Section 30).
             idem_key = self._claim_idempotency_key(
-                graph_id, task_id, current_version,
+                graph_id,
+                task_id,
+                current_version,
             )
             if idem_key in self._idempotent_keys:
                 result.skipped.append((task_id, "idempotent replay"))
@@ -193,18 +191,16 @@ class MultiAgentScheduler:
 
             # ── eligibility ────────────────────────────────────────────
             eligibility = self._evaluate_eligibility_for_task(
-                graph_id, current_version, req, candidate, active_by_agent,
+                graph_id,
+                current_version,
+                req,
+                candidate,
+                active_by_agent,
             )
-            eligible_agents = [
-                e for e in eligibility if e.eligible
-            ]
+            eligible_agents = [e for e in eligibility if e.eligible]
             if not eligible_agents:
-                reasons = tuple(
-                    (e.agent_id, e.reason_text) for e in eligibility
-                )
-                result.skipped.append(
-                    (task_id, f"no eligible agent; evaluated={reasons}")
-                )
+                reasons = tuple((e.agent_id, e.reason_text) for e in eligibility)
+                result.skipped.append((task_id, f"no eligible agent; evaluated={reasons}"))
                 self._events.append(
                     record_event(
                         SchedulerEventType.ELIGIBILITY_EVALUATED,
@@ -216,14 +212,10 @@ class MultiAgentScheduler:
                 )
                 continue
 
-            agent_pool = [
-                self._registry.get(e.agent_id) for e in eligible_agents
-            ]
+            agent_pool = [self._registry.get(e.agent_id) for e in eligible_agents]
             agent_pool = [a for a in agent_pool if a is not None]
             if not agent_pool:
-                result.skipped.append(
-                    (task_id, "eligible agents disappeared")
-                )
+                result.skipped.append((task_id, "eligible agents disappeared"))
                 continue
 
             # deterministic best-fit across eligible pool
@@ -258,16 +250,16 @@ class MultiAgentScheduler:
                 agent_id=decision.selected_agent_id,
             )
             if not acquired:
-                result.skipped.append(
-                    (task_id, "claim race lost / kernel refused lease")
-                )
+                result.skipped.append((task_id, "claim race lost / kernel refused lease"))
                 continue
 
             claims_this_pass += 1
             existing = self.get_claim(task_id)
             claim_id = existing.claim_id if existing is not None else ""
             result.mark_dispatched(
-                task_id, decision.selected_agent_id, claim_id,
+                task_id,
+                decision.selected_agent_id,
+                claim_id,
             )
             active_by_agent[decision.selected_agent_id] = (
                 active_by_agent.get(decision.selected_agent_id, 0) + 1
@@ -291,9 +283,7 @@ class MultiAgentScheduler:
         out: list[ScheduleResult] = []
         total = 0
         for _ in range(max_dispatches + 1):
-            res = self.schedule_once(
-                graph_id, max_claims=max_claims_per_pass
-            )
+            res = self.schedule_once(graph_id, max_claims=max_claims_per_pass)
             out.append(res)
             if not res.dispatched:
                 break
@@ -542,9 +532,7 @@ class MultiAgentScheduler:
         return None
 
     @staticmethod
-    def _claim_idempotency_key(
-        graph_id: str, task_id: str, graph_version: int
-    ) -> str:
+    def _claim_idempotency_key(graph_id: str, task_id: str, graph_version: int) -> str:
         return f"{graph_id}:{task_id}:v{graph_version}"
 
     def _idependent_mark_idempotent(self, key: str) -> None:

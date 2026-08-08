@@ -8,9 +8,15 @@ from lhos.runtimes.multi_agent.recovery import finalize_after_restart
 
 def _claim(**kw):
     defaults = dict(
-        claim_id="c", graph_id="g", graph_version=1, task_id="t",
-        agent_id="a", process_id="p", lease_resource="vpg://g/task/t/claim",
-        state=ClaimState.ACTIVE, lease_id="lease-1",
+        claim_id="c",
+        graph_id="g",
+        graph_version=1,
+        task_id="t",
+        agent_id="a",
+        process_id="p",
+        lease_resource="vpg://g/task/t/claim",
+        state=ClaimState.ACTIVE,
+        lease_id="lease-1",
     )
     defaults.update(kw)
     return TaskClaim(**defaults)

@@ -12,6 +12,7 @@ from lhos.runtimes.multi_agent.models import ClaimState
 class _L:
     def __init__(self, lease_id, resource_id):
         from datetime import datetime, timedelta
+
         self.lease_id = lease_id
         self.resource_id = resource_id
         self.expires_at = datetime.now(UTC) + timedelta(minutes=30)
@@ -52,8 +53,13 @@ def _mgr():
 
 def _propose(mgr, claim_id="c1", task_id="t1"):
     c = mgr.propose(
-        claim_id=claim_id, graph_id="g", graph_version=1, task_id=task_id,
-        agent_id="a", process_id="p", lease_resource=f"vpg://g/task/{task_id}/claim",
+        claim_id=claim_id,
+        graph_id="g",
+        graph_version=1,
+        task_id=task_id,
+        agent_id="a",
+        process_id="p",
+        lease_resource=f"vpg://g/task/{task_id}/claim",
     )
     mgr.mark_acquiring(c)
     return c
@@ -78,6 +84,7 @@ def test_lease_refusal_marks_rejected_then_lost():
 
 def test_assert_active_has_live_lease_raises_when_missing():
     from lhos.runtimes.multi_agent.errors import KernelLeaseRequired
+
     mgr = _mgr()
     c = _propose(mgr)
     # PROPOSED claim: invariant only fires for ACTIVE.

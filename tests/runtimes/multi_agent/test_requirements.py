@@ -1,4 +1,5 @@
 """TaskRequirements decoding (Section 10)."""
+
 from __future__ import annotations
 
 from lhos.runtimes.multi_agent.requirements import decode_task_requirements

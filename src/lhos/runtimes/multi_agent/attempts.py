@@ -37,9 +37,7 @@ class AttemptManager:
     def attempts_for_agent(self, agent_id: str) -> list[ScheduledExecutionAttempt]:
         return [a for a in self._attempts.values() if a.agent_id == agent_id]
 
-    def latest_attempt_for_task(
-        self, task_id: str
-    ) -> ScheduledExecutionAttempt | None:
+    def latest_attempt_for_task(self, task_id: str) -> ScheduledExecutionAttempt | None:
         ordered = sorted(
             (a for a in self._attempts.values() if a.task_id == task_id),
             key=lambda a: a.started_at,
@@ -82,23 +80,17 @@ class AttemptManager:
         attempt.ended_at = _now()
         attempt.error = error or "failed"
 
-    def mark_operationally_succeeded(
-        self, attempt: ScheduledExecutionAttempt
-    ) -> None:
+    def mark_operationally_succeeded(self, attempt: ScheduledExecutionAttempt) -> None:
         attempt.state = AttemptState.SUCCEEDED_OPERATIONALLY
         attempt.ended_at = _now()
 
-    def mark_semantically_verified(
-        self, attempt: ScheduledExecutionAttempt
-    ) -> None:
+    def mark_semantically_verified(self, attempt: ScheduledExecutionAttempt) -> None:
         """Promote an operationally-successful attempt to semantically
         verified after the VPG derives Task -> VERIFIED."""
         if attempt.state != AttemptState.SUCCEEDED_OPERATIONALLY:
             # Defensive: we still record the fact, but flag it so a later
             # auditor sees the sequence.
-            attempt.error = (
-                f"forced semantic verification from {attempt.state.value}"
-            )
+            attempt.error = f"forced semantic verification from {attempt.state.value}"
         attempt.state = AttemptState.VERIFIED_SEMANTICALLY
         attempt.ended_at = _now()
 

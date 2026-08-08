@@ -64,16 +64,12 @@ def evaluate_eligibility(
         elif process_state in _TERMINAL_PROCESS_STATES:
             reasons.append(f"process in terminal state {process_state!r}")
         elif process_state not in _SCHEDULABLE_PROCESS_STATES:
-            reasons.append(
-                f"process state {process_state!r} does not allow scheduling"
-            )
+            reasons.append(f"process state {process_state!r} does not allow scheduling")
 
     if agent.max_concurrency == 0:
         reasons.append("max_concurrency == 0")
     elif active_claims_for_agent >= agent.max_concurrency:
-        reasons.append(
-            f"capacity exhausted ({active_claims_for_agent}/{agent.max_concurrency})"
-        )
+        reasons.append(f"capacity exhausted ({active_claims_for_agent}/{agent.max_concurrency})")
 
     # special value "*" means "any kind"
     if (
@@ -82,18 +78,14 @@ def evaluate_eligibility(
         and "*" not in agent.supported_task_kinds
         and task_kind not in agent.supported_task_kinds
     ):
-            reasons.append(
-                f"task_kind {task_kind!r} not in supported_task_kinds "
-                f"{list(agent.supported_task_kinds)}"
-            )
-
-    missing_specs = sorted(
-        set(required_specializations) - set(agent.specializations)
-    )
-    if missing_specs:
         reasons.append(
-            f"missing required specializations: {missing_specs}"
+            f"task_kind {task_kind!r} not in supported_task_kinds "
+            f"{list(agent.supported_task_kinds)}"
         )
+
+    missing_specs = sorted(set(required_specializations) - set(agent.specializations))
+    if missing_specs:
+        reasons.append(f"missing required specializations: {missing_specs}")
 
     missing_tools = sorted(set(required_tools) - set(agent.supported_tools))
     if missing_tools:

@@ -767,9 +767,7 @@ def _count_mutation_style_tests() -> int:
         return 0
     tree = ast.parse(p.read_text())
     return sum(
-        1
-        for n in ast.walk(tree)
-        if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")
+        1 for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")
     )
 
 
@@ -794,7 +792,10 @@ def _run(cmd: list[str], *, timeout: float = 60.0) -> dict:
     new_path = f"{extra_path}{os.pathsep}{existing}" if existing else extra_path
     try:
         r = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
             cwd=str(REPO),
             env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": new_path},
         )
@@ -876,12 +877,22 @@ write(
                 "total_ops": 50000,
                 "seeded": True,
                 "operations": [
-                    "agent_register", "agent_disable", "agent_enable",
-                    "task_becomes_ready", "task_becomes_stale", "task_verified",
-                    "schedule", "claim", "release",
-                    "process_crash", "process_restart", "lease_expiry",
-                    "capability_revoke", "capability_grant",
-                    "projection_rebuild", "scheduler_restart",
+                    "agent_register",
+                    "agent_disable",
+                    "agent_enable",
+                    "task_becomes_ready",
+                    "task_becomes_stale",
+                    "task_verified",
+                    "schedule",
+                    "claim",
+                    "release",
+                    "process_crash",
+                    "process_restart",
+                    "lease_expiry",
+                    "capability_revoke",
+                    "capability_grant",
+                    "projection_rebuild",
+                    "scheduler_restart",
                 ],
             },
             "invariant_checks": [
@@ -895,10 +906,10 @@ write(
                 "capacity not exceeded",
             ],
             "implementation_status": "Configuration documented; full random "
-                                      "state-machine planned for D2.1; "
-                                      "existing deterministic scheduler tests "
-                                      "cover all invariants on concrete "
-                                      "invocations.",
+            "state-machine planned for D2.1; "
+            "existing deterministic scheduler tests "
+            "cover all invariants on concrete "
+            "invocations.",
         },
         indent=2,
         sort_keys=False,
@@ -945,11 +956,11 @@ write(
                 },
             ],
             "implementation_status": "Tested via FakeVPG-based deterministic "
-                                      "scheduling in test_claim_exclusivity.py "
-                                      "and test_scheduler.py (no Kernel-level "
-                                      "concurrency needed for Scheduler logic "
-                                      "verification); end-to-end Kernel "
-                                      "concurrency planned for D2.1.",
+            "scheduling in test_claim_exclusivity.py "
+            "and test_scheduler.py (no Kernel-level "
+            "concurrency needed for Scheduler logic "
+            "verification); end-to-end Kernel "
+            "concurrency planned for D2.1.",
         },
         indent=2,
         sort_keys=False,
@@ -990,7 +1001,7 @@ write(
                 "decision_hash",
             ],
             "test_mapping": "test_matching_determinism.py "
-                            "(insertion-order ×10, ×10 repeats, PYTHONHASHSEED-independent)",
+            "(insertion-order ×10, ×10 repeats, PYTHONHASHSEED-independent)",
             "result": "byte-identical decision hash across all permutations",
         },
         indent=2,
@@ -1045,9 +1056,11 @@ def _perf_sample() -> dict:
     """A fast self-sample to prove the generator actually ran scheduler code."""
     t0 = time.time()
     import sys
+
     sys.path.insert(0, str(REPO))
     sys.path.insert(0, str(REPO / "src"))
     from tests.runtimes.multi_agent.helpers import FakeVPG, fake_scheduler
+
     n_agents = 50
     n_tasks = 200
     agents = {
@@ -1107,9 +1120,9 @@ write(
             },
             "live_sample": perf,
             "path": "see test_projection_replay.py, test_mutations.py, "
-                    "test_scheduler.py for full micro-scale assertions; "
-                    "large-scale microbench (1000-task DAG, 3 rebuilds) "
-                    "mirrors D1 phase-bench under phase-d1-stable tests.",
+            "test_scheduler.py for full micro-scale assertions; "
+            "large-scale microbench (1000-task DAG, 3 rebuilds) "
+            "mirrors D1 phase-bench under phase-d1-stable tests.",
         },
         indent=2,
         sort_keys=False,
@@ -1140,7 +1153,8 @@ for py, json_name in demo_list:
             json.dumps(
                 {"artifact": json_name, "status": "MISSING", "path": str(dp)},
                 indent=2,
-            ) + "\n",
+            )
+            + "\n",
         )
         demo_exit_summary[py] = -1
         continue
@@ -1186,8 +1200,8 @@ for py, json_name in demo_list:
 # ════════════════════════════════════════════════════════════════════════════
 
 ignored_section57_checklist = False  # handled inline below
-sigkill_ok = (sigkill_total == 120)
-mutation_ok = (count_mut >= 20 and all(v >= 1 for v in count_tests.values()))
+sigkill_ok = sigkill_total == 120
+mutation_ok = count_mut >= 20 and all(v >= 1 for v in count_tests.values())
 # Pytest reports 253 flat count (134 AST-counted test functions + 120
 # parametrized SIGKILL trials - 1 because test_demos is a parametrization
 # of 6 but counts as 1 def). We trust pytest's 253 as the canonical total.
@@ -1198,7 +1212,7 @@ demo_ok = all(v == 0 for v in demo_exit_summary.values())
 yes_no = lambda b: "YES" if b else "NO"
 
 demo_status = "all PASSED" if demo_ok else "see demo-*.json"
-final = f"""# Phase D2 Final Gate — {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}
+final = f"""# Phase D2 Final Gate — {time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
 
 ## Gate: `LONGHORIZONOS-PHASE-D2-READY-FOR-AUDIT`
 
@@ -1219,7 +1233,7 @@ final = f"""# Phase D2 Final Gate — {time.strftime('%Y-%m-%d %H:%M UTC', time.
 Head SHA at artifact-generation time:
 
 ```
-{subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, cwd=str(REPO)).stdout.strip()}
+{subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=str(REPO)).stdout.strip()}
 ```
 
 Parent: `3d56054` (D1 stable baseline).

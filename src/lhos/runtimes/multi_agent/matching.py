@@ -27,8 +27,8 @@ from .models import AgentDescriptor, AgentMatchScore, MatchDecision
 
 # Tuning knobs (all integer).  Kept tiny and documented.
 SPECIALIZATION_BONUS = 10  # per preferred specialization held
-LOCALITY_BONUS = 5         # exact artifact-version match
-LOAD_PENALTY = 1           # per active claim the agent already holds
+LOCALITY_BONUS = 5  # exact artifact-version match
+LOAD_PENALTY = 1  # per active claim the agent already holds
 COST_PENALTY_DIVISOR = 50  # cost_weight // this
 
 
@@ -53,15 +53,11 @@ def match_deterministic_best_fit_v1(
 
         # Preferred specialization bonus — an agent that ALREADY satisfies a
         # *preferred* (not required) specialization gets a mild boost.
-        held_preferred = sorted(
-            set(preferred_specializations) & set(agent.specializations)
-        )
+        held_preferred = sorted(set(preferred_specializations) & set(agent.specializations))
         if held_preferred:
             bonus = SPECIALIZATION_BONUS * len(held_preferred)
             score += bonus
-            reasons.append(
-                f"preferred specializations {held_preferred} (+{bonus})"
-            )
+            reasons.append(f"preferred specializations {held_preferred} (+{bonus})")
 
         # Exact-version locality bonus.
         if exact_locality:
@@ -112,7 +108,9 @@ def match_deterministic_best_fit_v1(
     )
     selected = scored_sorted[0].agent_id if scored_sorted else ""
     decision_hash = _hash_decision(
-        graph_id, graph_version, task_id,
+        graph_id,
+        graph_version,
+        task_id,
         tuple(s.model_dump() for s in scored_sorted),
     )
     return MatchDecision(

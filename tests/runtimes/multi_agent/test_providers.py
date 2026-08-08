@@ -67,10 +67,15 @@ class KernelLeaseProvider:
         self._k = kernel
 
     def acquire_exclusive(
-        self, pid: str, resource_id: str, ttl: timedelta,
+        self,
+        pid: str,
+        resource_id: str,
+        ttl: timedelta,
     ) -> Any | None:
         leases = self._k._lease_service.atomic_acquire(
-            pid, [{"resource_id": resource_id, "mode": "exclusive"}], ttl=ttl,
+            pid,
+            [{"resource_id": resource_id, "mode": "exclusive"}],
+            ttl=ttl,
         )
         if not leases:
             return None
@@ -166,10 +171,7 @@ class FakeFactsMinimal:
     def verify_binding(self, pid: str, binding: Any) -> bool:
         if binding is None:
             return True
-        return (
-            self._artifacts.get((binding.canonical_uri, binding.version))
-            == binding.content_hash
-        )
+        return self._artifacts.get((binding.canonical_uri, binding.version)) == binding.content_hash
 
     def can_read(self, pid: str, aid: str, v: int) -> bool:
         return True
@@ -248,13 +250,13 @@ def cleanup_temp_db(path: str) -> None:
     try:
         shutil.rmtree(d, ignore_errors=True)
     except Exception:
-        logging.getLogger(__name__).exception(
-            "cleanup_temp_db failed for %s", d
-        )
+        logging.getLogger(__name__).exception("cleanup_temp_db failed for %s", d)
 
 
 def wait_for_child_exit(
-    proc: subprocess.Popen, *, timeout: float = SIGKILL_TIMEOUT,
+    proc: subprocess.Popen,
+    *,
+    timeout: float = SIGKILL_TIMEOUT,
 ) -> int:
     try:
         return proc.wait(timeout=timeout)

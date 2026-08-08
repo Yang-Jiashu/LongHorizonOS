@@ -13,8 +13,11 @@ from lhos.runtimes.multi_agent.models import AttemptState
 def test_full_attempt_lifecycle():
     mgr = AttemptManager()
     a = mgr.start_attempt(
-        attempt_id="att-1", task_id="t1", claim_id="c1",
-        agent_id="a1", process_id="p1",
+        attempt_id="att-1",
+        task_id="t1",
+        claim_id="c1",
+        agent_id="a1",
+        process_id="p1",
     )
     assert a.state == AttemptState.DISPATCHED
     mgr.mark_running(a)
@@ -30,8 +33,9 @@ def test_operational_semantic_boundary_respected():
     but still reach VERIFIED — the OPERATIONAL milestone is required by
     spec; the audit trail captures forced promotions."""
     mgr = AttemptManager()
-    a = mgr.start_attempt(attempt_id="att-1", task_id="t1", claim_id="c1",
-                          agent_id="a1", process_id="p1")
+    a = mgr.start_attempt(
+        attempt_id="att-1", task_id="t1", claim_id="c1", agent_id="a1", process_id="p1"
+    )
     mgr.mark_running(a)
     # Attempt to verify semantically without operational success.
     mgr.mark_semantically_verified(a)
@@ -43,8 +47,9 @@ def test_operational_semantic_boundary_respected():
 
 def test_crashed_attempt_records_error_and_end():
     mgr = AttemptManager()
-    a = mgr.start_attempt(attempt_id="att-1", task_id="t1", claim_id="c1",
-                          agent_id="a1", process_id="p1")
+    a = mgr.start_attempt(
+        attempt_id="att-1", task_id="t1", claim_id="c1", agent_id="a1", process_id="p1"
+    )
     mgr.mark_running(a)
     mgr.mark_crashed(a, error="sigkill")
     assert a.state == AttemptState.CRASHED
@@ -54,8 +59,9 @@ def test_crashed_attempt_records_error_and_end():
 
 def test_failed_attempt_records_end():
     mgr = AttemptManager()
-    a = mgr.start_attempt(attempt_id="att-1", task_id="t1", claim_id="c1",
-                          agent_id="a1", process_id="p1")
+    a = mgr.start_attempt(
+        attempt_id="att-1", task_id="t1", claim_id="c1", agent_id="a1", process_id="p1"
+    )
     mgr.mark_failed(a, error="nonzero exit")
     assert a.state == AttemptState.FAILED
     assert a.ended_at is not None
@@ -63,12 +69,15 @@ def test_failed_attempt_records_end():
 
 def test_attempts_for_task_filter_and_latest():
     mgr = AttemptManager()
-    mgr.start_attempt(attempt_id="att-1", task_id="t1", claim_id="c1",
-                      agent_id="a1", process_id="p1")
-    mgr.start_attempt(attempt_id="att-2", task_id="t1", claim_id="c2",
-                      agent_id="a2", process_id="p2")
-    mgr.start_attempt(attempt_id="att-3", task_id="t2", claim_id="c3",
-                      agent_id="a1", process_id="p1")
+    mgr.start_attempt(
+        attempt_id="att-1", task_id="t1", claim_id="c1", agent_id="a1", process_id="p1"
+    )
+    mgr.start_attempt(
+        attempt_id="att-2", task_id="t1", claim_id="c2", agent_id="a2", process_id="p2"
+    )
+    mgr.start_attempt(
+        attempt_id="att-3", task_id="t2", claim_id="c3", agent_id="a1", process_id="p1"
+    )
     t1 = mgr.attempts_for_task("t1")
     assert len(t1) == 2
     latest = mgr.latest_attempt_for_task("t1")
@@ -82,8 +91,9 @@ def test_attempts_for_task_filter_and_latest():
 
 def test_get_by_id_and_all():
     mgr = AttemptManager()
-    a = mgr.start_attempt(attempt_id="att-x", task_id="t", claim_id="c",
-                          agent_id="a", process_id="p")
+    a = mgr.start_attempt(
+        attempt_id="att-x", task_id="t", claim_id="c", agent_id="a", process_id="p"
+    )
     assert mgr.get("att-x") is a
     assert mgr.get("nope") is None
     assert mgr.all_attempts() == [a]
