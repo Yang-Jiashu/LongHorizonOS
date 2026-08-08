@@ -27,6 +27,7 @@ from .errors import (
     VerificationError,
 )
 from .goal import Goal
+from .observability import StatusView
 from .os import OS, AgentOS
 from .result import RepairOutcome, RunResult
 from .status import StatusSnapshot
@@ -52,6 +53,7 @@ __all__ = [
     "RunResult",
     "SchedulingError",
     "StatusSnapshot",
+    "StatusView",
     "Task",
     "VerificationError",
     "VerificationOutcome",

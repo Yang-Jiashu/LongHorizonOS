@@ -25,7 +25,9 @@ dev = [
 ]
 
 [project.scripts]
-lhos = "lhos.cli.main:main"
+# Core V1 native CLI (read-only observability, E3).  `lhos legacy` routes to
+# the legacy spec-20 CLI.
+lhos = "lhos.cli.core:main"
 
 [[tool.uv.index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"

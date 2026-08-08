@@ -24,11 +24,14 @@ from lhos.runtimes.verified_progress.patches import (
     GraphPatchProposal,
 )
 
+from .agent import Agent  # runtime import (used by open_run)
 from .errors import (
     ConfigurationError,
     ExecutionError,
     SchedulingError,
 )
+from .goal import Goal  # runtime import (used by save_run/_serialize_goal)
+from .observability import StatusView  # re-export for CLI
 from .providers import (
     FactsProvider,
     KernelCapabilityProvider,
@@ -40,8 +43,6 @@ from .result import RepairOutcome, RunResult
 from .status import StatusSnapshot
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .agent import Agent
-    from .goal import Goal
     from .verification import VerificationOutcome
 
 
@@ -49,6 +50,7 @@ class AgentOS:
     """Top-level composition root for a Core-backed LongHorizonOS instance."""
 
     def __init__(self, db_path: str = ":memory:", *, facts: FactsProvider | None = None) -> None:
+        self._db_path = db_path
         self._kernel = create_kernel(db_path)
         self._facts = facts or FactsProvider()
         self._vpg = VerifiedProgressRuntime(
@@ -71,6 +73,7 @@ class AgentOS:
         self._next_artifact_version: dict[str, int] = {}
         self._goals: dict[str, Goal] = {}
         self._goal_gid: dict[str, str] = {}
+        self._last_repair: RepairOutcome | None = None
 
     # ── agents ───────────────────────────────────────────────────────────────
     def add_agent(self, agent: Agent) -> Agent:
@@ -372,6 +375,58 @@ class AgentOS:
             owner_by_task=r.owner_by_task,
         )
 
+    # ── E3 observability (read-only) ────────────────────────────────────────
+    def status_view(self, goal_id: str) -> StatusView:
+        from .observability_service import build_status_view
+
+        return build_status_view(self, goal_id)
+
+    def explain(self, goal_id: str, task_id: str) -> list[str]:
+        sv = self.status_view(goal_id)
+        tv = sv.tasks.get(task_id, {})
+        lines = []
+        if not tv:
+            return [f"task {task_id!r} not found"]
+        lines.append(f"Task {task_id}: {tv.get('validity', '?').upper()}")
+        if tv.get("validity") == "verified":
+            if tv.get("supporting_evidence"):
+                lines.append(
+                    f"  VERIFIED because: Evidence {tv['supporting_evidence']} PASS "
+                    f"binds {tv.get('artifact')}@{tv.get('artifact_version')} and is current"
+                )
+            else:
+                lines.append(
+                    "  VERIFIED because: required dependencies valid + applicable Evidence exists"
+                )
+        elif tv.get("validity") == "stale":
+            lines.append(
+                f"  STALE because: {tv.get('artifact', '?')} changed version; "
+                f"old Evidence not current for the new artifact version"
+            )
+        elif tv.get("validity") == "unverified":
+            lines.append("  UNVERIFIED because: no applicable Evidence yet")
+        return lines
+
+    def graph_lines(self, goal_id: str) -> list[str]:
+        sv = self.status_view(goal_id)
+        gid = self._gid_for(goal_id)
+        if gid is None:
+            return []
+        _, edges = self.vpg.snapshot_projection(gid)
+        # goal -> task deps (depends_on) rendered as an indented tree
+        deps: dict[str, list[str]] = {}
+        roots = []
+        for e in edges:
+            if e.edge_type.value == "depends_on":
+                deps.setdefault(e.source_node_id, []).append(e.target_node_id)
+                if e.source_node_id == goal_id:
+                    roots.append(e.target_node_id)
+        lines = [f"Goal: {goal_id} [{sv.goal_state}]"]
+        seen: set[str] = set()
+        for root in sorted(roots):
+            _render_tree(root, deps, sv, lines, seen, prefix="", is_last=True)
+        return lines
+
     # ── repair (D3) ────────────────────────────────────────────────────────
     def repair(
         self, goal: Goal, *, new_artifact_version: int | None = None, artifact_id: str | None = None
@@ -463,12 +518,14 @@ class AgentOS:
         )
         er = run_invalidation_engine(inp)
         ir = build_invalidation_result(inp, er)
-        return RepairOutcome(
+        outcome = RepairOutcome(
             affected=list(ir.stale_nodes),
             preserved=list(ir.preserved_nodes),
             frontier=[c.task_id for c in ir.frontier.candidates],
             causes=[c.reason for c in ir.causes],
         )
+        self._last_repair = outcome
+        return outcome
 
     # ── real workspace <-> ArtifactVersion bridge (E2, §15/§16) ─────────────
     def register_workspace_artifact(self, workspace, rel: str, version: int) -> str:
@@ -506,6 +563,120 @@ class AgentOS:
     def scheduler(self):
         return self._scheduler
 
+    # ── run persistence for CLI observability (E3) ──────────────────────────
+    def save_run(self, manifest_path: str) -> None:
+        """Persist a run manifest so a later CLI/process can re-open it read-only.
+        (Agent specs + goal graph + db path are stored; kernel/vpg state already
+        durable in the db.)"""
+        import json
+
+        manifest = {
+            "db_path": self._db_path,
+            "goals": {gid: self._serialize_goal(g) for gid, g in self._goals.items()},
+            "agents": [
+                {
+                    "name": a.name,
+                    "specializations": list(a.specializations),
+                    "max_concurrency": a.max_concurrency,
+                    "cost_weight": a.cost_weight,
+                }
+                for a in self._agents.values()
+            ],
+        }
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+    def _serialize_goal(self, g: Goal) -> dict:
+        return {
+            "goal_id": g.goal_id,
+            "graph_id": self._goal_gid.get(g.goal_id),
+            "tasks": [
+                {
+                    "task_id": t.task_id,
+                    "agent": t.agent,
+                    "depends_on": list(t.dependency_ids),
+                    "task_kind": t.task_kind,
+                    "required_specializations": list(t.required_specializations),
+                    "required_tools": list(t.required_tools),
+                }
+                for t in g.tasks
+            ],
+        }
+
+    @classmethod
+    def open_run(cls, manifest_path: str) -> AgentOS:
+        """Re-open a saved run (read-only observability; does not re-run)."""
+        import json
+
+        with open(manifest_path) as f:
+            m = json.load(f)
+        os_ = cls(m.get("db_path", ":memory:"))
+        for ag in m.get("agents", []):
+            os_.add_agent(
+                Agent(
+                    ag["name"],
+                    specializations=tuple(ag.get("specializations", ("python",))),
+                    max_concurrency=ag.get("max_concurrency", 4),
+                    cost_weight=ag.get("cost_weight", 1.0),
+                )
+            )
+        for gid, gm in m.get("goals", {}).items():
+            g = os_.goal(gid)
+            stored_gid = gm.get("graph_id")
+            if stored_gid and os_.vpg.get_graph(stored_gid) is not None:
+                # Reuse the durable graph; do NOT re-compile (keeps verified state).
+                os_._goal_gid[gid] = stored_gid
+                for t in gm.get("tasks", []):
+                    deps = [
+                        next((tt for tt in g.tasks if tt.task_id == d), None)
+                        for d in t.get("depends_on", [])
+                    ]
+                    g.task(
+                        t["task_id"],
+                        agent=t.get("agent", ""),
+                        depends_on=tuple(x for x in deps if x is not None),
+                        task_kind=t.get("task_kind", "task"),
+                        required_specializations=tuple(
+                            t.get("required_specializations", ["python"])
+                        ),
+                        required_tools=tuple(t.get("required_tools", [])),
+                    )
+            else:
+                for t in gm.get("tasks", []):
+                    deps = [
+                        next((tt for tt in g.tasks if tt.task_id == d), None)
+                        for d in t.get("depends_on", [])
+                    ]
+                    g.task(
+                        t["task_id"],
+                        agent=t.get("agent", ""),
+                        depends_on=tuple(x for x in deps if x is not None),
+                        task_kind=t.get("task_kind", "task"),
+                        required_specializations=tuple(
+                            t.get("required_specializations", ["python"])
+                        ),
+                        required_tools=tuple(t.get("required_tools", [])),
+                    )
+                os_._compile_goal(g)
+        return os_
+
 
 # ergonomic alias
 OS = AgentOS
+
+
+def _render_tree(node_id: str, deps, sv, lines, seen, prefix: str, is_last: bool) -> None:
+    if node_id in seen:
+        return
+    seen.add(node_id)
+    tv = sv.tasks.get(node_id, {})
+    mark = {"verified": "\u2713", "stale": "\u2717", "unverified": ".", "invalid": "!"}.get(
+        tv.get("validity", ""), "?"
+    )
+    star = " \u2605 REPAIR" if tv.get("in_repair_frontier") else ""
+    branch = "`-- " if is_last else "|-- "
+    lines.append(f"{prefix}{branch}{mark} {node_id} [{tv.get('validity', '?').upper()}]{star}")
+    children = sorted(deps.get(node_id, []))
+    child_prefix = prefix + ("    " if is_last else "|   ")
+    for i, c in enumerate(children):
+        _render_tree(c, deps, sv, lines, seen, child_prefix, is_last=(i == len(children) - 1))
