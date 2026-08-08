@@ -150,7 +150,11 @@ class MultiAgentScheduler:
         from .events import SchedulerEventType, record_event
 
         # Authoritative VPG frontier.
-        frontier = list(self._vpg.ready_frontier(graph_id))
+        try:
+            frontier = list(self._vpg.ready_frontier(graph_id))
+        except Exception:
+            # Unknown graph (e.g. pre-demo demarcation) — treat as empty.
+            return ScheduleResult()
         if not frontier:
             return ScheduleResult()
 

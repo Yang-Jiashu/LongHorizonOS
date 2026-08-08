@@ -49,14 +49,20 @@ class AgentRegistry:
             agents = [a for a in agents if a.enabled]
         return agents
 
-    def update(self, agent_id: str, **fields: Any) -> AgentDescriptor:
-        """Patch agent fields; returns the updated descriptor."""
+    def update(self, agent_id: str, fields: dict[str, Any] | None = None, **kw: Any) -> AgentDescriptor:
+        """Patch agent fields; returns the updated descriptor.
+
+        Prefer the ``fields`` dict — passing ``agent_id`` as a keyword would
+        collide with the positional arg.
+        """
+        merged: dict[str, Any] = dict(fields or {})
+        merged.update(kw)
         with self._lock:
             cur = self._agents.get(agent_id)
             if cur is None:
                 raise KeyError(agent_id)
             data = cur.model_dump()
-            for k, v in fields.items():
+            for k, v in merged.items():
                 if k == "agent_id":
                     raise ValueError("agent_id is immutable")
                 if k not in data:

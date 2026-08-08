@@ -33,6 +33,7 @@ from .models import (
     EligibilityResult,
     MatchDecision,
     ScheduledExecutionAttempt,
+    TERMINAL_CLAIM_STATES,
     TaskClaim,
     TaskRequirements,
 )
@@ -51,6 +52,7 @@ __all__ = [
     "MatchDecision",
     "TaskClaim",
     "ClaimState",
+    "TERMINAL_CLAIM_STATES",
     "ScheduledExecutionAttempt",
     "D2Error",
     "SemanticNotReadyError",
