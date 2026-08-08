@@ -220,9 +220,11 @@ def build_proofs(
     }
     proofs: list[InvalidationProof] = []
     for tid in cone.affected_node_ids:
-        # causal_path: walk reverse_deps from seed to tid.
+        # causal_path: walk DEPENDENCIES (forward_deps) from tid up to a seed.
+        # A task becomes STALE because one of the tasks IT DEPENDS ON is stale
+        # (or it is itself a seed).  So to find the root cause we climb the
+        # dependency direction (forward_deps), NOT reverse_deps (dependents).
         roots: list[str] = []
-        # Simple BFS from tid upward to find a seed.
         fringe: deque[tuple[str, tuple[str, ...]]] = deque([(tid, (tid,))])
         found: tuple[str, ...] | None = None
         visited: set[str] = {tid}
@@ -232,7 +234,7 @@ def build_proofs(
                 roots.append(root_causes[cur])
                 found = p
                 break
-            for parent in view.reverse_deps.get(cur, ()):
+            for parent in view.forward_deps.get(cur, ()):
                 if parent not in visited:
                     visited.add(parent)
                     fringe.append((parent, (parent, *p)))
