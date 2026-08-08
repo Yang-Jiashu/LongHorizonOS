@@ -197,6 +197,22 @@ def fake_scheduler(agent_specs, *, fake_vpg):
     )
 
 
+class _DeadProc:
+    """Process provider that reports a configurable dead set as non-existent,
+    simulating crashed agents for crash-reassignment demos/tests."""
+
+    def __init__(self, dead: set[str] | None = None) -> None:
+        self.dead = set(dead or set())
+
+    def get(self, pid: str) -> Any:
+        if pid in self.dead:
+            return None
+        return _ProcStub(pid, "ready")
+
+    def list_all(self) -> list[Any]:
+        return [_ProcStub("pid-alive", "ready")]
+
+
 class _ProcStub:
     def __init__(self, pid: str, state: str) -> None:
         self.pid = pid
