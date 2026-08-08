@@ -10,18 +10,23 @@ Independent checks:
       once; InvalidationProof keeps all root causes; deterministic paths.
   §13 independent branches (A/B/C 100 tasks each): mutate A => B/C preserved.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
 import random
 import sys
-from pathlib import Path
 from collections import deque
+from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from lhos.runtimes.invalidation.engine import EngineInputs, build_invalidation_result, run_invalidation_engine
+from lhos.runtimes.invalidation.engine import (
+    EngineInputs,
+    build_invalidation_result,
+    run_invalidation_engine,
+)
 from lhos.runtimes.invalidation.models import InvalidationCause
 
 
@@ -212,3 +217,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

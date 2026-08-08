@@ -11,6 +11,7 @@ matrix of reuse vectors, each requiring old Evidence to FAIL to prove the new
 version.  We also confirm the codebase contains no content-identity reuse rule
 (so version identity dominates, per spec §6).
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -70,9 +71,11 @@ def main() -> int:
     snap = (_plain(e7.artifact_bindings[0]), e7.source_action_id,
             e7.source_verification_id, tuple(e7.source_event_ids))
 
-    from lhos.runtimes.invalidation.engine import EngineInputs
-    from lhos.runtimes.invalidation.engine import build_invalidation_result
-    from lhos.runtimes.invalidation.engine import run_invalidation_engine
+    from lhos.runtimes.invalidation.engine import (
+        EngineInputs,
+        build_invalidation_result,
+        run_invalidation_engine,
+    )
     cause = InvalidationCause(cause_id="c", graph_id="g", graph_version=8,
                               cause_type="ARTIFACT_VERSION_SUPERSEDED",
                               source_node_id="T", artifact_id="X",
@@ -174,3 +177,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

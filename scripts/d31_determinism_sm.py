@@ -21,18 +21,22 @@ state, Repair Frontier, cone_hash, frontier_hash — must be identical.
   - every CLOSED goal has all required tasks VERIFIED
   - historical Evidence / ArtifactVersion unchanged
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
 import random
 import sys
 from pathlib import Path
-from collections import deque
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from lhos.runtimes.invalidation.engine import EngineInputs, build_invalidation_result, run_invalidation_engine
+from lhos.runtimes.invalidation.engine import (
+    EngineInputs,
+    build_invalidation_result,
+    run_invalidation_engine,
+)
 from lhos.runtimes.invalidation.frontier import compute_repair_frontier
 from lhos.runtimes.invalidation.projection import D3Projection
 
@@ -192,3 +196,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

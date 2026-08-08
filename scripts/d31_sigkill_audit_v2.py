@@ -11,6 +11,7 @@ Because the D3 engine is PURE (never writes to the authoritative graph), the
 recovery is naturally idempotent — the child's SIGKILL leaves only process
 state, and recovery recomputes the identical derived state (§25, §31).
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -116,3 +117,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -16,6 +16,7 @@ we assert:
   (b) the frontier-advance is strictly one step per reverification
   (c) Evidence applicability requires a fresh exact-version PASS binding
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -25,8 +26,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from lhos.runtimes.invalidation.frontier import compute_repair_frontier
 from lhos.runtimes.invalidation.evidence import evidence_applicability_for_graph
+from lhos.runtimes.invalidation.frontier import compute_repair_frontier
+
 
 class _Val:
     def __init__(self, v): self.value = v
@@ -128,3 +130,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

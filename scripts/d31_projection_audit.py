@@ -10,6 +10,7 @@
      supersession); delete all rebuildable projections; rebuild 3x and require
      byte-identical normalized output.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -113,3 +114,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

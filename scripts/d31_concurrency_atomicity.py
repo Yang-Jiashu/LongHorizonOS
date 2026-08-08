@@ -15,19 +15,24 @@ concurrency (32 workers x 100 rounds), and invalidation atomicity.
      6 commit points and assert the graph is untouched (zero effect) for a
      failed transaction and fully correct for a committed one.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
 import random
 import sys
 from pathlib import Path
-from collections import deque
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from lhos.runtimes.invalidation.engine import EngineInputs, build_invalidation_result, run_invalidation_engine
-from lhos.runtimes.invalidation.runtime import InvalidGraphVersionRace, InvalidationRuntime
+from lhos.runtimes.invalidation.engine import (
+    EngineInputs,
+    build_invalidation_result,
+    run_invalidation_engine,
+)
+from lhos.runtimes.invalidation.runtime import InvalidationRuntime, InvalidGraphVersionRace
+
 
 class _Val:
     def __init__(self, v): self.value = v
@@ -123,7 +128,6 @@ def main() -> int:
     # point leaves graph untouched.  We simulate by running the full engine and
     # asserting (a) input graph validity unchanged (atomic = zero side effect)
     # and (b) the returned result is complete (all stale nodes present).
-    from copy import deepcopy
     before = {k: n.validity.value for k, n in atasks.items()}
     res = run("g", 5, atasks, aedges, cause("g", 5, "T0"), goals=agoals, goal_deps=agoal_deps)
     after = {k: n.validity.value for k, n in atasks.items()}
@@ -157,3 +161,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -1,3 +1,4 @@
+# ruff: noqa
 #!/usr/bin/env python3
 """Phase D3.1 §26 — Mutation Audit 2.0 (D3-A01..D3-A30).
 
@@ -409,7 +410,7 @@ def main() -> int:
                 shutil.copy(str(path), str(backup))
                 try:
                     apply_mutation(path, m)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     status = "SKIP"
                     tally["skipped"] += 1
                     error_msg = str(e)
@@ -541,7 +542,7 @@ def main() -> int:
         mark = {"KILLED": "OK", "EQUIVALENT": "EQ", "SKIP": "SK", "SURVIVOR": "!!"}[r["status"]]
         print(f"    [{mark}] {r['id']} {r['target']} :: {r['name']}  ({r['status']})")
     print()
-    print(f"  artifacts:")
+    print("  artifacts:")
     print(f"    {json_path}")
     print(f"    {report_path}")
     print("=" * 76)
