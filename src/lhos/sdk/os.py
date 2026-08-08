@@ -216,13 +216,15 @@ class AgentOS:
         return self.result(gid)
 
     def _execute_and_verify(self, gid: str, task_id: str, agent_id: str, goal: Goal) -> None:
-        """Execute a dispatched task's verifier and attach real Evidence."""
+        """Execute a dispatched task's verifier and attach real Evidence.
+
+        A task with no verifier/executor stays unverified (VPG-G2/G3): without
+        a Verification->Evidence path the SDK must NOT fabricate VERIFIED.
+        """
         task = next((t for t in goal.tasks if t.task_id == task_id), None)
         if task is None or task.verify is None:
-            # no verifier and no executor: mark as a scripted pass with default artifact
-            verifier = _default_scripted(task_id)
-        else:
-            verifier = task.verify
+            return  # fail-closed: no Evidence, no VERIFIED
+        verifier = task.verify
         try:
             outcome = verifier()
         except Exception as e:
@@ -401,8 +403,11 @@ class AgentOS:
 
         nodes, edges = self._vpg.snapshot_projection(gid)
         task_nodes = {n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "task"}
-        # one seed: the task that produced the bumped artifact (if any)
-        cause = None
+        curver = self._vpg.get_graph(gid).current_version
+        newver = (
+            new_artifact_version or (self._facts.latest(artifact_id) if artifact_id else None) or 1
+        )
+        causes: list[InvalidationCause] = []
         for tid, _tn in task_nodes.items():
             ars = [
                 n
@@ -417,45 +422,44 @@ class AgentOS:
                     for e in edges
                 )
             ]
-            if (
-                cause is None
-                and ars
-                and artifact_id
-                and getattr(ars[0], "artifact_id", None) == artifact_id
-            ):
-                cause = InvalidationCause(
-                    cause_id=f"c:{artifact_id}",
-                    graph_id=gid,
-                    graph_version=self._vpg.get_graph(gid).current_version,
-                    cause_type="ARTIFACT_VERSION_SUPERSEDED",
-                    source_node_id=tid,
-                    artifact_id=artifact_id,
-                    old_version=self._facts.latest(artifact_id) or 1,
-                    new_version=new_artifact_version or (self._facts.latest(artifact_id) or 1),
-                    reason=f"{artifact_id} version bumped",
+            if ars and artifact_id and getattr(ars[0], "artifact_id", None) == artifact_id:
+                causes.append(
+                    InvalidationCause(
+                        cause_id=f"c:{artifact_id}:{tid}",
+                        graph_id=gid,
+                        graph_version=curver,
+                        cause_type="ARTIFACT_VERSION_SUPERSEDED",
+                        source_node_id=tid,
+                        artifact_id=artifact_id,
+                        old_version=self._facts.latest(artifact_id) or 1,
+                        new_version=newver,
+                        reason=f"{artifact_id} version bumped",
+                    )
                 )
-        if cause is None:
-            cause = InvalidationCause(
-                cause_id="c:change",
-                graph_id=gid,
-                graph_version=self._vpg.get_graph(gid).current_version,
-                cause_type="ARTIFACT_VERSION_SUPERSEDED",
-                source_node_id=next(iter(task_nodes)),
-                artifact_id=artifact_id,
-                old_version=1,
-                new_version=2,
-                reason="world changed",
+        if not causes:
+            causes.append(
+                InvalidationCause(
+                    cause_id="c:change",
+                    graph_id=gid,
+                    graph_version=curver,
+                    cause_type="ARTIFACT_VERSION_SUPERSEDED",
+                    source_node_id=next(iter(task_nodes)),
+                    artifact_id=artifact_id,
+                    old_version=1,
+                    new_version=2,
+                    reason="world changed",
+                )
             )
         inp = EngineInputs(
             graph_id=gid,
-            current_version=self._vpg.get_graph(gid).current_version,
+            current_version=curver,
             task_nodes=task_nodes,
             goal_nodes={},
             evidence_nodes={
                 n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "evidence"
             },
             edges=edges,
-            explicit_causes=(cause,),
+            explicit_causes=tuple(causes),
         )
         er = run_invalidation_engine(inp)
         ir = build_invalidation_result(inp, er)
@@ -465,6 +469,29 @@ class AgentOS:
             frontier=[c.task_id for c in ir.frontier.candidates],
             causes=[c.reason for c in ir.causes],
         )
+
+    # ── real workspace <-> ArtifactVersion bridge (E2, §15/§16) ─────────────
+    def register_workspace_artifact(self, workspace, rel: str, version: int) -> str:
+        """Register a real workspace file's current bytes as the exact
+        ArtifactVersion.  Returns the artifact_id.  (The physical file and the
+        Artifact FS authority are kept consistent; the version identity is the
+        file content hash + the caller-selected version.)"""
+        content = workspace.byte_content(rel)
+        self._facts.add_version(rel, version, content)
+        return rel
+
+    def workspace_latest_version(self, workspace, rel: str) -> int:
+        return self._facts.latest(rel) or 0
+
+    def apply_workspace_mutation(
+        self, workspace, rel: str, content: str, *, next_version: int | None = None
+    ) -> int:
+        """Write to the real workspace, then register the new ArtifactVersion.
+        Returns the new version (so D3 later sees applicability loss)."""
+        workspace.write(rel, content)
+        ver = next_version or (self._facts.latest(rel) or 0) + 1
+        self._facts.add_version(rel, ver, content)
+        return ver
 
     # ── lower-level access (still public, for advanced users / future E3) ──
     @property
@@ -478,21 +505,6 @@ class AgentOS:
     @property
     def scheduler(self):
         return self._scheduler
-
-
-def _default_scripted(task_id: str):
-    from .verification import VerificationOutcome
-
-    def _run() -> VerificationOutcome:
-        return VerificationOutcome(
-            passed=True,
-            artifact_id=task_id,
-            version=1,
-            content=f"{task_id}:ok",
-            evidence_note="scripted",
-        )
-
-    return _run
 
 
 # ergonomic alias
