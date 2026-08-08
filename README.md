@@ -14,10 +14,11 @@ evidence-backed progress:
   kernel-backed exclusive TaskClaims, per-agent concurrency, crash reassignment,
   projection, reconciliation, replayable audit log.
 
-## Current Status (Phase D2 — Graph-derived Multi-Agent Scheduler implemented)
+## Current Status (Phase D3 — Version-aware causal invalidation and local repair implemented)
 
 Verified Progress Runtime — implemented
 Graph-derived Multi-Agent Scheduler — implemented
+Version-aware causal invalidation and local repair — implemented
 
 Implemented:
 
@@ -32,6 +33,7 @@ Implemented:
 - **Capability merge + atomic lease journaling** — concurrent-capability and lease acquisitions merge into single rows (CAP-02 / LEASE-01)
 - **Verified Progress Runtime (VPG)** — deterministic semantically-closed Task/Goal state graph; evidence-backed VERIFIED derivation; task-local artifact-version invalidation; deterministic READY frontier (priority DESC / topo depth ASC / created ASC / node_id ASC); atomic optimistic patch commit with composite-key idempotency; architecture boundary at L4 (no kernel-internal imports)
 - **Graph-derived Multi-Agent Scheduler (D2)** — eligibility (10-predicate deterministic filter using live Kernel Process/Capability state), deterministic best-fit matching (`match_deterministic_best_fit_v1`, integer score + agent_id tie-break, PYTHONHASHSEED- and insertion-order-independent), Kernel-backed exclusive TaskClaims (claim linearization point = exclusive ResourceLease acquisition), per-agent `max_concurrency`, projection + reconciliation + replayable audit log, crash reassignment via real POSIX SIGKILL + scheduler recovery. Architecture boundary: Scheduler imports only VPG public API + Agent OS public SDK — never kernel internals (D2-I1..D15 enforced, 20 forbidden deviations asserted, 120 authentic SIGKILL trials green)
+- **Version-aware causal invalidation and local repair (D3)** — version-aware causal invalidation; evidence applicability tracking; deterministic local semantic invalidation cone over DEPENDS_ON edges; preservation of unaffected VERIFIED work; deterministic minimal Repair Frontier; incremental re-verification (Goal reopens and closes via derivation). Authority boundary: D3 derives validity only — it never claims Tasks, never dispatches Agents, never mutates Artifact or Evidence history, and never teaches invalidation semantics to the Scheduler (D3-01..D3-20 mutation-killed).
 
 Semantic closure: Phase C1 all-23 UNCERTAIN items closed with regression tests (FIX) or spec text (DOC); 0 surviving mutations.
 Phase D1: VPG runtime — 214+ tests green across 27 test files; 5 flagship demos pass.
@@ -46,6 +48,7 @@ Phase D2: Multi-Agent Scheduler — 253 tests green (across eligibility / matchi
 | **C2** | **Version-bound Context VM** | **context snapshots, deterministic working sets, process-isolated working sets** |
 | **D1** | **Verified Progress Runtime** | **VPG runtime: models, DAG, patch protocol, evidence/verification/closure/readiness, projection, recovery, SDK; 5 demos** |
 | **D2** | **Graph-derived Multi-Agent Scheduler** | **eligibility + deterministic matching + Kernel-backed exclusive TaskClaims + per-agent concurrency + crash reassignment + Projection/Reconcile/Recovery + replayable audit log; 6 demos** |
+| **D3** | **Version-aware causal invalidation + local repair** | **evidence applicability tracking + deterministic invalidation cone + preserved-work preservation + minimal Repair Frontier + incremental re-verification; 6 demos** |
 
 ### Phase C2 implementation locations
 
@@ -65,6 +68,19 @@ Phase D2: Multi-Agent Scheduler — 253 tests green (across eligibility / matchi
 | Public SDK | `src/lhos/runtimes/verified_progress/sdk.py` (`VerifiedProgressRuntime`) |
 | Demos | `examples/verified_progress/*.py` (6 scripts) |
 | Tests | `tests/runtimes/verified_progress/` (27+ test files) |
+
+### Phase D3 implementation locations
+
+| Layer | Path |
+|-------|------|
+| Runtime package | `src/lhos/runtimes/invalidation/` |
+| Public runtime | `src/lhos/runtimes/invalidation/runtime.py` (`InvalidationRuntime`) |
+| Tests | `tests/runtimes/verified_progress/invalidation/` (52 test cases) |
+
+### Phase D2 implementation locations
+
+| Layer | Path |
+|-------|------|
 | Scheduler package | `src/lhos/runtimes/multi_agent/` |
 | Scheduler SDK | `src/lhos/runtimes/multi_agent/sdk.py` (`create_scheduler`, `SchedulerSession`) |
 | Scheduler demos | `examples/multi_agent/*.py` (6 scripts: specialized pipeline, parallel ready, crash reassignment, no-eligible-agent, capacity, semantic/operational separation) |
