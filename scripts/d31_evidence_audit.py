@@ -11,6 +11,7 @@ matrix of reuse vectors, each requiring old Evidence to FAIL to prove the new
 version.  We also confirm the codebase contains no content-identity reuse rule
 (so version identity dominates, per spec §6).
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -38,8 +39,14 @@ class Bound:
 
 
 class FNode:
-    def __init__(self, eid, artifact_bindings=(), source_action_id=None,
-                 source_verification_id=None, source_event_ids=()):
+    def __init__(
+        self,
+        eid,
+        artifact_bindings=(),
+        source_action_id=None,
+        source_verification_id=None,
+        source_event_ids=(),
+    ):
         self.node_id = eid
         self.node_type = "evidence"
         self.artifact_bindings = artifact_bindings
@@ -57,45 +64,77 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # ── §5: Evidence immutability ──────────────────────────────────────────
-    e7 = FNode("E7", artifact_bindings=(Bound("X", 7, "h7"),),
-               source_action_id="act-1", source_verification_id="ver-1")
+    e7 = FNode(
+        "E7",
+        artifact_bindings=(Bound("X", 7, "h7"),),
+        source_action_id="act-1",
+        source_verification_id="ver-1",
+    )
     evnodes = {"E7": e7}
 
-    a7 = evidence_applicability_for_graph("g", 7, evnodes,
-                                          current_output_versions={"X": 7})
-    a8 = evidence_applicability_for_graph("g", 8, evnodes,
-                                          current_output_versions={"X": 8})
+    a7 = evidence_applicability_for_graph("g", 7, evnodes, current_output_versions={"X": 7})
+    a8 = evidence_applicability_for_graph("g", 8, evnodes, current_output_versions={"X": 8})
     e7_at_7 = next(a for a in a7 if a.evidence_id == "E7").applies
     e7_at_8 = next(a for a in a8 if a.evidence_id == "E7").applies
 
-    snap = (_plain(e7.artifact_bindings[0]), e7.source_action_id,
-            e7.source_verification_id, tuple(e7.source_event_ids))
+    snap = (
+        _plain(e7.artifact_bindings[0]),
+        e7.source_action_id,
+        e7.source_verification_id,
+        tuple(e7.source_event_ids),
+    )
 
     from lhos.runtimes.invalidation.engine import (
         EngineInputs,
         build_invalidation_result,
         run_invalidation_engine,
     )
-    cause = InvalidationCause(cause_id="c", graph_id="g", graph_version=8,
-                              cause_type="ARTIFACT_VERSION_SUPERSEDED",
-                              source_node_id="T", artifact_id="X",
-                              old_version=7, new_version=8, reason="seed")
-    inp = EngineInputs(graph_id="g", current_version=8, task_nodes={},
-                       goal_nodes={}, evidence_nodes=evnodes, edges=[],
-                       explicit_causes=(cause,))
+
+    cause = InvalidationCause(
+        cause_id="c",
+        graph_id="g",
+        graph_version=8,
+        cause_type="ARTIFACT_VERSION_SUPERSEDED",
+        source_node_id="T",
+        artifact_id="X",
+        old_version=7,
+        new_version=8,
+        reason="seed",
+    )
+    inp = EngineInputs(
+        graph_id="g",
+        current_version=8,
+        task_nodes={},
+        goal_nodes={},
+        evidence_nodes=evnodes,
+        edges=[],
+        explicit_causes=(cause,),
+    )
     r = run_invalidation_engine(inp)
     _ = build_invalidation_result(inp, r)
-    post = (_plain(e7.artifact_bindings[0]), e7.source_action_id,
-            e7.source_verification_id, tuple(e7.source_event_ids))
-    immut_after_derive = (snap == post)
+    post = (
+        _plain(e7.artifact_bindings[0]),
+        e7.source_action_id,
+        e7.source_verification_id,
+        tuple(e7.source_event_ids),
+    )
+    immut_after_derive = snap == post
 
     # Source invariant: no D3 source file assigns to a history field.
     immut_source = True
     infile = REPO / "src" / "lhos" / "runtimes" / "invalidation"
-    banned = (".result =", ".version =", ".content_hash =",
-              ".artifact_bindings =", ".source_action_id =",
-              ".source_verification_id =", ".evidence_content_ref =",
-              ".evidence_hash =", ".old_version =", ".new_version =")
+    banned = (
+        ".result =",
+        ".version =",
+        ".content_hash =",
+        ".artifact_bindings =",
+        ".source_action_id =",
+        ".source_verification_id =",
+        ".evidence_content_ref =",
+        ".evidence_hash =",
+        ".old_version =",
+        ".new_version =",
+    )
     for p in infile.rglob("*.py"):
         src = p.read_text()
         for b in banned:
@@ -110,8 +149,13 @@ def main() -> int:
                     if "Field(" not in src.split(b)[-0].split("\n")[-1]:
                         pass
         # Explicitly: engine/cones must not contain `e7.result =` style writes.
-        for b in (".result =", ".artifact_bindings =", ".evidence_hash =",
-                  ".source_action_id =", ".source_verification_id ="):
+        for b in (
+            ".result =",
+            ".artifact_bindings =",
+            ".evidence_hash =",
+            ".source_action_id =",
+            ".source_verification_id =",
+        ):
             for line in src.splitlines():
                 ls = line.strip()
                 if ls.startswith(b) or (b in ls and "def " not in ls and "Field(" not in ls):
@@ -128,8 +172,9 @@ def main() -> int:
     # ── §6: old-Evidence reuse attack vectors ──────────────────────────────
     def app_at(eid, binding, cur):
         nodes = {"E7": FNode(eid, artifact_bindings=(binding,))}
-        vv = evidence_applicability_for_graph("g", max(cur.values(), default=7) + 1,
-                                              nodes, current_output_versions=cur)
+        vv = evidence_applicability_for_graph(
+            "g", max(cur.values(), default=7) + 1, nodes, current_output_versions=cur
+        )
         return next(a for a in vv if a.evidence_id == eid).applies
 
     vectors = {
@@ -177,4 +222,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

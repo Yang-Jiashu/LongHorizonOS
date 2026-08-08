@@ -18,6 +18,7 @@ diamonds, fan-out/fan-in, then:
 Over-invalidation audit: §7, 1000 trials.
 Under-invalidation audit: §8, 1000 trials.
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -39,7 +40,8 @@ from lhos.runtimes.invalidation.models import InvalidationCause
 
 
 class _Val:
-    def __init__(self, v): self.value = v
+    def __init__(self, v):
+        self.value = v
 
 
 class TNode:
@@ -63,9 +65,15 @@ def depends_on(s, t):
 
 def _cause(gid, ver, tid):
     return InvalidationCause(
-        cause_id=f"c:{tid}", graph_id=gid, graph_version=ver,
-        cause_type="ARTIFACT_VERSION_SUPERSEDED", source_node_id=tid,
-        artifact_id="A", old_version=0, new_version=1, reason=f"seed {tid}",
+        cause_id=f"c:{tid}",
+        graph_id=gid,
+        graph_version=ver,
+        cause_type="ARTIFACT_VERSION_SUPERSEDED",
+        source_node_id=tid,
+        artifact_id="A",
+        old_version=0,
+        new_version=1,
+        reason=f"seed {tid}",
     )
 
 
@@ -128,9 +136,13 @@ def build_large_dag(rng, n=1000):
 
 def run_one(graph, seed):
     inp = EngineInputs(
-        graph_id="gbig", current_version=1,
-        task_nodes=graph["tasks"], goal_nodes={}, evidence_nodes={},
-        edges=graph["edges"], explicit_causes=(_cause("gbig", 1, seed),),
+        graph_id="gbig",
+        current_version=1,
+        task_nodes=graph["tasks"],
+        goal_nodes={},
+        evidence_nodes={},
+        edges=graph["edges"],
+        explicit_causes=(_cause("gbig", 1, seed),),
     )
     r = run_invalidation_engine(inp)
     res = build_invalidation_result(inp, r)
@@ -179,26 +191,46 @@ def main() -> int:
 
     # §15 minimality: T1->T2->T3->T4->T5 all stale -> frontier [T1] then [T2]...
     from lhos.runtimes.invalidation.frontier import compute_repair_frontier
+
     mind_ids = [f"T{i}" for i in range(1, 6)]
     mind_tasks = {tid: TNode(tid, "verified") for tid in mind_ids}
-    mind_edges = [depends_on("T2", "T1"), depends_on("T3", "T2"),
-                  depends_on("T4", "T3"), depends_on("T5", "T4")]
+    mind_edges = [
+        depends_on("T2", "T1"),
+        depends_on("T3", "T2"),
+        depends_on("T4", "T3"),
+        depends_on("T5", "T4"),
+    ]
     # T1 seeded stale -> all 5 stale; frontier = [T1]
-    inp = EngineInputs(graph_id="m", current_version=1, task_nodes=mind_tasks,
-                       goal_nodes={}, evidence_nodes={}, edges=mind_edges,
-                       explicit_causes=(_cause("m", 1, "T1"),))
+    inp = EngineInputs(
+        graph_id="m",
+        current_version=1,
+        task_nodes=mind_tasks,
+        goal_nodes={},
+        evidence_nodes={},
+        edges=mind_edges,
+        explicit_causes=(_cause("m", 1, "T1"),),
+    )
     r = run_invalidation_engine(inp)
     res = build_invalidation_result(inp, r)
     f1 = [c.task_id for c in res.frontier.candidates]
     # after T1 reverified -> frontier=[T2]
     dv = {"T1": "verified", "T2": "stale", "T3": "stale", "T4": "stale", "T5": "stale"}
-    f2 = [c.task_id for c in compute_repair_frontier("m", 2, mind_tasks, mind_edges,
-                                                     stale_or_unverified={"T2","T3","T4","T5"},
-                                                     derived_validity=dv).candidates]
-    minimality_pass = (f1 == ["T1"] and f2 == ["T2"])
+    f2 = [
+        c.task_id
+        for c in compute_repair_frontier(
+            "m",
+            2,
+            mind_tasks,
+            mind_edges,
+            stale_or_unverified={"T2", "T3", "T4", "T5"},
+            derived_validity=dv,
+        ).candidates
+    ]
+    minimality_pass = f1 == ["T1"] and f2 == ["T2"]
 
     # §14 frontier exactness: expected == D3 frontier (1000 random states)
     from lhos.runtimes.invalidation.frontier import compute_repair_frontier
+
     frontier_mismatch = 0
     for t in range(1000):
         g = rng.choice(graphs)
@@ -210,9 +242,9 @@ def main() -> int:
         derived = {}
         for tid, node in g["tasks"].items():
             derived[tid] = "stale" if tid in stale_set else node.validity.value
-        fr = compute_repair_frontier("gf", 1, g["tasks"], g["edges"],
-                                     stale_or_unverified=stale_set,
-                                     derived_validity=derived)
+        fr = compute_repair_frontier(
+            "gf", 1, g["tasks"], g["edges"], stale_or_unverified=stale_set, derived_validity=derived
+        )
         actual = {c.task_id for c in fr.candidates}
         # expected: stale tasks whose all deps are verified
         fwd = {tid: [] for tid in g["ids"]}
@@ -233,31 +265,75 @@ def main() -> int:
         "spec_section": "§7/§8/§14/§15",
         "over_invalidation": over_results,
         "under_invalidation": under_results,
-        "frontier_exactness": {"trials": 1000, "mismatches": frontier_mismatch,
-                                "pass": frontier_exactness_pass},
+        "frontier_exactness": {
+            "trials": 1000,
+            "mismatches": frontier_mismatch,
+            "pass": frontier_exactness_pass,
+        },
         "frontier_minimality": {"pass": minimality_pass, "f1": f1, "f2": f2},
     }
 
     # distinct artifacts
-    (out_dir / "over-invalidation-audit.json").write_text(json.dumps(
-        {"spec_section": "§7", "trials": 1000, "false_positives": over_results["false_positives"],
-         "pass": over_results["pass"], "details": over_results["details"][:3]}, indent=2))
-    (out_dir / "under-invalidation-audit.json").write_text(json.dumps(
-        {"spec_section": "§8", "trials": 1000, "false_negatives": under_results["false_negatives"],
-         "pass": under_results["pass"], "details": under_results["details"][:3]}, indent=2))
-    (out_dir / "repair-frontier-exactness.json").write_text(json.dumps(
-        {"spec_section": "§14", "trials": 1000, "mismatches": frontier_mismatch,
-         "pass": frontier_exactness_pass}, indent=2))
+    (out_dir / "over-invalidation-audit.json").write_text(
+        json.dumps(
+            {
+                "spec_section": "§7",
+                "trials": 1000,
+                "false_positives": over_results["false_positives"],
+                "pass": over_results["pass"],
+                "details": over_results["details"][:3],
+            },
+            indent=2,
+        )
+    )
+    (out_dir / "under-invalidation-audit.json").write_text(
+        json.dumps(
+            {
+                "spec_section": "§8",
+                "trials": 1000,
+                "false_negatives": under_results["false_negatives"],
+                "pass": under_results["pass"],
+                "details": under_results["details"][:3],
+            },
+            indent=2,
+        )
+    )
+    (out_dir / "repair-frontier-exactness.json").write_text(
+        json.dumps(
+            {
+                "spec_section": "§14",
+                "trials": 1000,
+                "mismatches": frontier_mismatch,
+                "pass": frontier_exactness_pass,
+            },
+            indent=2,
+        )
+    )
 
-    print("over:", over_results["false_positives"], "false-positives /", over_results["trials"], "trials")
-    print("under:", under_results["false_negatives"], "false-negatives /", under_results["trials"], "trials")
+    print(
+        "over:",
+        over_results["false_positives"],
+        "false-positives /",
+        over_results["trials"],
+        "trials",
+    )
+    print(
+        "under:",
+        under_results["false_negatives"],
+        "false-negatives /",
+        under_results["trials"],
+        "trials",
+    )
     print("frontier exactness mismatches:", frontier_mismatch)
     print("frontier minimality:", minimality_pass, f1, f2)
-    ok = (over_results["pass"] and under_results["pass"]
-          and frontier_exactness_pass and minimality_pass)
+    ok = (
+        over_results["pass"]
+        and under_results["pass"]
+        and frontier_exactness_pass
+        and minimality_pass
+    )
     return 0 if ok else 2
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

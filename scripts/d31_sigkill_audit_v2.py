@@ -11,6 +11,7 @@ Because the D3 engine is PURE (never writes to the authoritative graph), the
 recovery is naturally idempotent — the child's SIGKILL leaves only process
 state, and recovery recomputes the identical derived state (§25, §31).
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -27,8 +28,14 @@ REPO = Path(__file__).resolve().parent.parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-BOUNDARIES = {"S1": "seed_validation", "S2": "cone", "S3": "validity_commit",
-               "S4": "goal_frontier", "S5": "reverify", "S6": "downstream_recompute"}
+BOUNDARIES = {
+    "S1": "seed_validation",
+    "S2": "cone",
+    "S3": "validity_commit",
+    "S4": "goal_frontier",
+    "S5": "reverify",
+    "S6": "downstream_recompute",
+}
 TRIALS = 20
 
 
@@ -62,8 +69,13 @@ def main() -> int:
             child_env["D3_MARKER_DIR"] = tmp
 
             # 1) reference no-crash result (write_marker=0 -> does not block)
-            subprocess.run([sys.executable, "-c", _worker_code(out2, "reverify", 0)],
-                           capture_output=True, text=True, env=child_env, timeout=120)
+            subprocess.run(
+                [sys.executable, "-c", _worker_code(out2, "reverify", 0)],
+                capture_output=True,
+                text=True,
+                env=child_env,
+                timeout=120,
+            )
             reference = json.loads(open(out2).read()) if os.path.exists(out2) else None
 
             # 2) kill-target child at `boundary` (write_marker=1 -> blocks)
@@ -73,7 +85,9 @@ def main() -> int:
                 os.remove(marker)
             child = subprocess.Popen(
                 [sys.executable, "-u", "-c", _worker_code(out1, boundary, 1)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=child_env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env=child_env,
             )
             deadline = time.time() + 60
             while time.time() < deadline and not os.path.exists(marker):
@@ -87,16 +101,28 @@ def main() -> int:
                 child.wait()
                 killed = True
             else:
-                child.kill(); child.wait()
+                child.kill()
+                child.wait()
                 killed = False
 
             # 3) fresh recovery recomputes the identical result
-            subprocess.run([sys.executable, "-c", _worker_code(out2, "reverify", 0)],
-                           capture_output=True, text=True, env=child_env, timeout=120)
+            subprocess.run(
+                [sys.executable, "-c", _worker_code(out2, "reverify", 0)],
+                capture_output=True,
+                text=True,
+                env=child_env,
+                timeout=120,
+            )
             recovered = json.loads(open(out2).read()) if os.path.exists(out2) else None
             ok = bool(killed and reference is not None and recovered == reference)
-            records.append({"trial": trial, "killed": killed,
-                            "recovered_matches": recovered == reference, "ok": ok})
+            records.append(
+                {
+                    "trial": trial,
+                    "killed": killed,
+                    "recovered_matches": recovered == reference,
+                    "ok": ok,
+                }
+            )
             all_pass = all_pass and ok
         results_per_boundary[boundary] = records
 
@@ -107,14 +133,20 @@ def main() -> int:
         "all_pass": all_pass,
     }
     json_path = out_dir / "authentic-sigkill-results-v2.json"
-    json_path.write_text(json.dumps({
-        "artifact": "authentic-sigkill-results-v2.json", "spec_section": "§21",
-        "summary": summary, "per_boundary": results_per_boundary,
-    }, indent=2))
+    json_path.write_text(
+        json.dumps(
+            {
+                "artifact": "authentic-sigkill-results-v2.json",
+                "spec_section": "§21",
+                "summary": summary,
+                "per_boundary": results_per_boundary,
+            },
+            indent=2,
+        )
+    )
     print("sigkill summary:", summary)
     return 0 if all_pass else 2
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

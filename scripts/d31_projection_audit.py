@@ -10,6 +10,7 @@
      supersession); delete all rebuildable projections; rebuild 3x and require
      byte-identical normalized output.
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -36,23 +37,39 @@ def main() -> int:
     stale_nodes = tuple(sorted(f"T{i}" for i in range(0, 1000, 2)))  # 500 stale
     causes = tuple(
         InvalidationCause(
-            cause_id=f"c{i}", graph_id="g", graph_version=1,
-            cause_type="ARTIFACT_VERSION_SUPERSEDED", source_node_id=f"T{i}",
-            artifact_id="A", old_version=0, new_version=1, reason="seed")
+            cause_id=f"c{i}",
+            graph_id="g",
+            graph_version=1,
+            cause_type="ARTIFACT_VERSION_SUPERSEDED",
+            source_node_id=f"T{i}",
+            artifact_id="A",
+            old_version=0,
+            new_version=1,
+            reason="seed",
+        )
         for i in range(0, 500, 10)
     )
 
     def _build():
         return D3Projection(
-            graph_id="g", version=1, stale_nodes=stale_nodes, causes=causes,
+            graph_id="g",
+            version=1,
+            stale_nodes=stale_nodes,
+            causes=causes,
             frontier=RepairFrontier(
-                graph_id="g", graph_version=1,
+                graph_id="g",
+                graph_version=1,
                 candidates=tuple(
                     RepairCandidate(
-                        task_id=f"T{i}", causes=(f"c{i}",), invalidated_by=(f"T{i}",),
-                        dependency_proof=(f"T{i - 10 + 10}:verified",) if i > 0 else ())
-                    for i in range(0, 500, 10)),
-                frontier_hash="x"),
+                        task_id=f"T{i}",
+                        causes=(f"c{i}",),
+                        invalidated_by=(f"T{i}",),
+                        dependency_proof=(f"T{i - 10 + 10}:verified",) if i > 0 else (),
+                    )
+                    for i in range(0, 500, 10)
+                ),
+                frontier_hash="x",
+            ),
         )
 
     h = _build().identity_hash()
@@ -69,8 +86,9 @@ def main() -> int:
     #   2) the canonical projection (rebuilt from authoritative truth) equals
     #      itself on every rebuild, so corruption can never be mistaken for
     #      truth.
-    corrupt_stale = D3Projection(graph_id="g", version=1,
-                                 stale_nodes=tuple(sorted(f"T{i}" for i in range(0, 200))))
+    corrupt_stale = D3Projection(
+        graph_id="g", version=1, stale_nodes=tuple(sorted(f"T{i}" for i in range(0, 200)))
+    )
     canonical = _build()
     corruption_detectable = corrupt_stale.identity_hash() != canonical.identity_hash()
     projection_not_authority = corruption_detectable and triple_rebuild_ok
@@ -85,9 +103,13 @@ def main() -> int:
     }
 
     # write §23 artifacts
-    (out_dir / "projection-before.json").write_text(json.dumps({"hash": h, "stale_count": len(stale_nodes)}, indent=2))
+    (out_dir / "projection-before.json").write_text(
+        json.dumps({"hash": h, "stale_count": len(stale_nodes)}, indent=2)
+    )
     for i in range(1, 4):
-        (out_dir / f"projection-rebuild-{i}.json").write_text(json.dumps({"hash": rebuild_hashes[i-1]}, indent=2))
+        (out_dir / f"projection-rebuild-{i}.json").write_text(
+            json.dumps({"hash": rebuild_hashes[i - 1]}, indent=2)
+        )
     (out_dir / "projection-rebuild-audit.md").write_text(
         "# D3.1 §23 Triple Projection Rebuild\n\n"
         f"complex-history canonical hash: {h}\n\n"
@@ -114,4 +136,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -15,6 +15,7 @@ concurrency (32 workers x 100 rounds), and invalidation atomicity.
      6 commit points and assert the graph is untouched (zero effect) for a
      failed transaction and fully correct for a committed one.
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -35,32 +36,65 @@ from lhos.runtimes.invalidation.runtime import InvalidationRuntime, InvalidGraph
 
 
 class _Val:
-    def __init__(self, v): self.value = v
+    def __init__(self, v):
+        self.value = v
+
+
 class TNode:
     def __init__(self, tid, validity="verified"):
-        self.node_id = tid; self.validity = _Val(validity)
-        self.lifecycle = _Val("admitted"); self.node_type = "task"
+        self.node_id = tid
+        self.validity = _Val(validity)
+        self.lifecycle = _Val("admitted")
+        self.node_type = "task"
+
+
 class GNode:
     def __init__(self, gid, closed=True):
-        self.node_id = gid; self.closed = closed
-        self.lifecycle = _Val("closed"); self.node_type = "goal"
+        self.node_id = gid
+        self.closed = closed
+        self.lifecycle = _Val("closed")
+        self.node_type = "goal"
+
+
 class Edge:
     def __init__(self, etype, s, t):
-        self.edge_type = _Val(etype); self.source_node_id = s; self.target_node_id = t
-def depends_on(s, t): return Edge("depends_on", s, t)
+        self.edge_type = _Val(etype)
+        self.source_node_id = s
+        self.target_node_id = t
+
+
+def depends_on(s, t):
+    return Edge("depends_on", s, t)
+
+
 def cause(gid, ver, tid, aid="A"):
     from lhos.runtimes.invalidation.models import InvalidationCause
-    return InvalidationCause(cause_id=f"c:{tid}", graph_id=gid, graph_version=ver,
-                             cause_type="ARTIFACT_VERSION_SUPERSEDED",
-                             source_node_id=tid, artifact_id=aid,
-                             old_version=ver-1, new_version=ver, reason=f"seed {tid}")
+
+    return InvalidationCause(
+        cause_id=f"c:{tid}",
+        graph_id=gid,
+        graph_version=ver,
+        cause_type="ARTIFACT_VERSION_SUPERSEDED",
+        source_node_id=tid,
+        artifact_id=aid,
+        old_version=ver - 1,
+        new_version=ver,
+        reason=f"seed {tid}",
+    )
 
 
 def run(gid, ver, tasks, edges, causes, goals=None, goal_deps=None, has_claim=None):
-    inp = EngineInputs(graph_id=gid, current_version=ver, task_nodes=tasks,
-                       goal_nodes=(goals or {}), evidence_nodes={}, edges=edges,
-                       explicit_causes=(causes if isinstance(causes,(tuple,list)) else (causes,)),
-                       has_active_claim=has_claim, goal_direct_tasks=goal_deps)
+    inp = EngineInputs(
+        graph_id=gid,
+        current_version=ver,
+        task_nodes=tasks,
+        goal_nodes=(goals or {}),
+        evidence_nodes={},
+        edges=edges,
+        explicit_causes=(causes if isinstance(causes, (tuple, list)) else (causes,)),
+        has_active_claim=has_claim,
+        goal_direct_tasks=goal_deps,
+    )
     r = run_invalidation_engine(inp)
     return build_invalidation_result(inp, r)
 
@@ -89,6 +123,7 @@ def main() -> int:
     # new evidence must bind v21 (exact)
     from lhos.runtimes.invalidation.evidence import evidence_applicability_for_graph
     from tests.runtimes.verified_progress.invalidation.helpers import Bound, FNode
+
     old_ev = {"E20": FNode("E20", artifact_bindings=(Bound("X", 20, "h"),))}
     a21 = evidence_applicability_for_graph("g", 21, old_ev, current_output_versions={"X": 21})
     old_e20_at_v21 = next(a for a in a21 if a.evidence_id == "E20").applies  # expect False
@@ -99,7 +134,13 @@ def main() -> int:
     }
 
     # ── §19 concurrency: 32 workers, 100 rounds (sequential over shared store) ──
-    concurrency = {"rounds": 100, "workers": 32, "committed_ok": 0, "rejected_stale": 0, "details": []}
+    concurrency = {
+        "rounds": 100,
+        "workers": 32,
+        "committed_ok": 0,
+        "rejected_stale": 0,
+        "details": [],
+    }
     for round_i in range(100):
         # simulate 32 workers each computing at the same base version, one bumps
         for w in range(32):
@@ -113,7 +154,7 @@ def main() -> int:
                 concurrency["committed_ok"] += 1
             except InvalidGraphVersionRace:
                 concurrency["rejected_stale"] += 1
-    concurrency["pass"] = concurrency["committed_ok"] + concurrency["rejected_stale"] == 100*32
+    concurrency["pass"] = concurrency["committed_ok"] + concurrency["rejected_stale"] == 100 * 32
     results["graph_version_concurrency"] = concurrency
 
     # ── §20 atomicity: big cone with 100 tasks + 10 goals ──────────────────
@@ -123,7 +164,7 @@ def main() -> int:
     # 40 leaves depend on T0 (a shared root), each in independent chains
     aedges = [depends_on(f"T{i}", "T0") for i in range(1, 50)]
     agoals = {f"G{i}": GNode(f"G{i}", closed=True) for i in range(10)}
-    agoal_deps = {f"G{i}": (f"T{i+1}",) for i in range(10)}
+    agoal_deps = {f"G{i}": (f"T{i + 1}",) for i in range(10)}
     # commit-point injection: pure engine never writes; a 'failed' run at any
     # point leaves graph untouched.  We simulate by running the full engine and
     # asserting (a) input graph validity unchanged (atomic = zero side effect)
@@ -142,11 +183,18 @@ def main() -> int:
         "pass": zero_side_effect and complete,
     }
 
-    (out_dir / "graph-version-concurrency-audit.json").write_text(json.dumps(
-        {"spec_section": "§19", "rounds": concurrency["rounds"],
-         "committed_ok": concurrency["committed_ok"],
-         "rejected_stale": concurrency["rejected_stale"],
-         "pass": concurrency["pass"]}, indent=2))
+    (out_dir / "graph-version-concurrency-audit.json").write_text(
+        json.dumps(
+            {
+                "spec_section": "§19",
+                "rounds": concurrency["rounds"],
+                "committed_ok": concurrency["committed_ok"],
+                "rejected_stale": concurrency["rejected_stale"],
+                "pass": concurrency["pass"],
+            },
+            indent=2,
+        )
+    )
     (out_dir / "second-invalidation-during-repair.md").write_text(
         "# D3.1 §18 Second Invalidation During Repair\n\n"
         f"stale v20 compute rejected: {results['second_invalidation']['stale_v20_compute_rejected']}\n\n"
@@ -161,4 +209,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

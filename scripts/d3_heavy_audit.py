@@ -14,6 +14,7 @@ semantics (cone + frontier) are validated against the invariants:
 It is deterministic and writes artifacts/agent_os_phase_d3/random-state-machine-results.json
 + determinism-results.json.
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -36,7 +37,8 @@ from lhos.runtimes.invalidation.models import InvalidationCause
 
 # ── minimal graph primitives (match test helpers) ─────────────────────────────
 class _Val:
-    def __init__(self, v: str): self.value = v
+    def __init__(self, v: str):
+        self.value = v
 
 
 class TNode:
@@ -60,9 +62,14 @@ def depends_on(s: str, t: str) -> Edge:
 
 def _cause(gid: str, ver: int, tid: str, aid: str) -> InvalidationCause:
     return InvalidationCause(
-        cause_id=f"c:{tid}:{aid}", graph_id=gid, graph_version=ver,
+        cause_id=f"c:{tid}:{aid}",
+        graph_id=gid,
+        graph_version=ver,
         cause_type="ARTIFACT_VERSION_SUPERSEDED",
-        source_node_id=tid, artifact_id=aid, old_version=0, new_version=1,
+        source_node_id=tid,
+        artifact_id=aid,
+        old_version=0,
+        new_version=1,
         reason=f"seed {tid}",
     )
 
@@ -70,19 +77,26 @@ def _cause(gid: str, ver: int, tid: str, aid: str) -> InvalidationCause:
 def _valid_topo(node_ids, edges) -> bool:
     """Check DEPENDS_ON topo: no cycles among task nodes."""
     import collections
+
     adj = collections.defaultdict(list)
     indeg = {n: 0 for n in node_ids}
     for e in edges:
-        if e.edge_type.value == "depends_on" and e.source_node_id in node_ids and e.target_node_id in node_ids:
+        if (
+            e.edge_type.value == "depends_on"
+            and e.source_node_id in node_ids
+            and e.target_node_id in node_ids
+        ):
             adj[e.source_node_id].append(e.target_node_id)
             indeg[e.target_node_id] += 1
     q = collections.deque([n for n in node_ids if indeg[n] == 0])
     seen = 0
     while q:
-        u = q.popleft(); seen += 1
+        u = q.popleft()
+        seen += 1
         for v in adj[u]:
             indeg[v] -= 1
-            if indeg[v] == 0: q.append(v)
+            if indeg[v] == 0:
+                q.append(v)
     return seen == len(node_ids)
 
 
@@ -106,7 +120,8 @@ def random_dag(rng: random.Random, n: int) -> dict:
         attempts += 1
         tgt = rng.randrange(n)
         src = rng.randrange(tgt + 1, n) if tgt + 1 < n else None
-        if src is None: continue
+        if src is None:
+            continue
         e = depends_on(f"T{src}", f"T{tgt}")
         if e not in edges:
             edges.append(e)
@@ -137,8 +152,12 @@ def validate_graph(gid: str, ver: int, graph: dict, seed_tid: str):
     edges = graph["edges"]
     cause = _cause(gid, ver, seed_tid, "A")
     inp = EngineInputs(
-        graph_id=gid, current_version=ver, task_nodes=tasks,
-        goal_nodes={}, evidence_nodes={}, edges=edges,
+        graph_id=gid,
+        current_version=ver,
+        task_nodes=tasks,
+        goal_nodes={},
+        evidence_nodes={},
+        edges=edges,
         explicit_causes=(cause,),
     )
     er = run_invalidation_engine(inp)
@@ -156,6 +175,7 @@ def validate_graph(gid: str, ver: int, graph: dict, seed_tid: str):
     #    DEPENDS_ON-direction (seed -> depends-on -> ...) must remain VERIFIED.
     #    We compute forward dependency closure (reverse of propagation).
     from collections import deque
+
     reverse = {tid: set() for tid in tasks}
     for e in edges:
         if e.edge_type.value == "depends_on":
@@ -166,7 +186,8 @@ def validate_graph(gid: str, ver: int, graph: dict, seed_tid: str):
     q = deque([seed_tid])
     while q:
         u = q.popleft()
-        if u in reach: continue
+        if u in reach:
+            continue
         reach.add(u)
         for v in reverse.get(u, ()):
             q.append(v)
@@ -235,53 +256,95 @@ def main() -> int:
         per_graph.append({"graph": gi, "ops": ops, "violations": g_viol})
 
     sm_results = {
-        "graphs": 100, "ops_per_graph": 500, "total_ops": total_ops,
-        "violations": len(violations), "per_graph": per_graph[:5],
+        "graphs": 100,
+        "ops_per_graph": 500,
+        "total_ops": total_ops,
+        "violations": len(violations),
+        "per_graph": per_graph[:5],
         "pass": len(violations) == 0,
     }
 
     # ── §38: determinism (500-T equivalent graph: fan-in tree) ──
     big = random_dag(random.Random(0xDEAD), 500)
     seed_big = "T0"
+
     def run_big(seed_order_rev=False, extra_edges_rev=False):
         tasks = big["tasks"]
         edges = list(reversed(big["edges"])) if extra_edges_rev else big["edges"]
         inp = EngineInputs(
-            graph_id="gbig", current_version=1,
+            graph_id="gbig",
+            current_version=1,
             task_nodes={k: TNode(k, t.validity.value) for k, t in tasks.items()},
-            goal_nodes={}, evidence_nodes={}, edges=edges,
+            goal_nodes={},
+            evidence_nodes={},
+            edges=edges,
             explicit_causes=(_cause("gbig", 1, seed_big, "A"),),
         )
         er = run_invalidation_engine(inp)
-        return er.cone.cone_hash, er.frontier.frontier_hash, tuple(sorted(er.cone.affected_node_ids))
+        return (
+            er.cone.cone_hash,
+            er.frontier.frontier_hash,
+            tuple(sorted(er.cone.affected_node_ids)),
+        )
 
     sigs = run_big()
     all_same = True
     for _ in range(50):
-        if run_big() != sigs: all_same = False
+        if run_big() != sigs:
+            all_same = False
     # reversed-edge ordering
-    if run_big(extra_edges_rev=True) != sigs: all_same = False
+    if run_big(extra_edges_rev=True) != sigs:
+        all_same = False
 
     det_results = {
-        "tasks": 500, "in_process_runs": 50, "reverted_edge_runs": 1,
-        "byte_identical": all_same, "sample": sigs[:3],
+        "tasks": 500,
+        "in_process_runs": 50,
+        "reverted_edge_runs": 1,
+        "byte_identical": all_same,
+        "sample": sigs[:3],
     }
 
     # ── write artifacts ──
-    (out_dir / "random-state-machine-results.json").write_text(json.dumps({
-        "artifact": "random-state-machine-results.json", "spec_section": "§35",
-        "summary": sm_results,
-    }, indent=2))
-    (out_dir / "determinism-results.json").write_text(json.dumps({
-        "artifact": "determinism-results.json", "spec_section": "§38",
-        "corpus": {"section": "§34", "graphs": 500, "pass": corpus_results["pass"],
-                   "validated": corpus_results["validated"]},
-        "random_sm": {"section": "§35", **sm_results},
-        "determinism": {"section": "§38", **det_results},
-    }, indent=2))
+    (out_dir / "random-state-machine-results.json").write_text(
+        json.dumps(
+            {
+                "artifact": "random-state-machine-results.json",
+                "spec_section": "§35",
+                "summary": sm_results,
+            },
+            indent=2,
+        )
+    )
+    (out_dir / "determinism-results.json").write_text(
+        json.dumps(
+            {
+                "artifact": "determinism-results.json",
+                "spec_section": "§38",
+                "corpus": {
+                    "section": "§34",
+                    "graphs": 500,
+                    "pass": corpus_results["pass"],
+                    "validated": corpus_results["validated"],
+                },
+                "random_sm": {"section": "§35", **sm_results},
+                "determinism": {"section": "§38", **det_results},
+            },
+            indent=2,
+        )
+    )
 
-    print("corpus:", corpus_results["pass"], corpus_results["validated"], "/ 500, failures", len(corpus_results["failures"]))
-    print("random_sm:", "PASS" if sm_results["pass"] else "FAIL", f"{total_ops} ops, {len(violations)} violations")
+    print(
+        "corpus:",
+        corpus_results["pass"],
+        corpus_results["validated"],
+        "/ 500, failures",
+        len(corpus_results["failures"]),
+    )
+    print(
+        "random_sm:",
+        "PASS" if sm_results["pass"] else "FAIL",
+        f"{total_ops} ops, {len(violations)} violations",
+    )
     print("determinism:", "PASS" if all_same else "FAIL")
     (out_dir / "corpus-summary.txt").write_text(
         f"corpus_pass={corpus_results['pass']} validated={corpus_results['validated']}/{corpus_results['graphs']} failures={len(corpus_results['failures'])}\n"
@@ -293,4 +356,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

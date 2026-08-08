@@ -1340,4 +1340,3 @@ print("[gen_d2_artifacts] baseline.md already present")
 print(f"[gen_d2_artifacts] tests collected (selected): {total_tests}")
 print(f"[gen_d2_artifacts] parametrized SIGKILL trials (sum): {sigkill_total}")
 print(f"[gen_d2_artifacts] demo exit-codes: {demo_exit_summary}")
-

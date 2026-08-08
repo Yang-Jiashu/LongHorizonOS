@@ -31,6 +31,7 @@ Reports:
 
 Exit 0 iff survived == 0; exit 2 otherwise.
 """
+
 from __future__ import annotations
 
 import json
@@ -64,7 +65,8 @@ def _now() -> str:
 MUTATIONS: list[dict] = [
     # A01 — v7 Evidence validates v8 (version-supersede check disabled)
     {
-        "id": "A01", "name": "v7 Evidence validates v8 (supersede check disabled)",
+        "id": "A01",
+        "name": "v7 Evidence validates v8 (supersede check disabled)",
         "file": "evidence.py",
         "old": "                if cur is not None and cur > b.version:",
         "new": "                if cur is not None and False:  # A01 MUTATION",
@@ -72,7 +74,8 @@ MUTATIONS: list[dict] = [
     },
     # A02 — same content hash bypasses version/integrity check
     {
-        "id": "A02", "name": "verify_binding always True (content bypass)",
+        "id": "A02",
+        "name": "verify_binding always True (content bypass)",
         "file": "evidence.py",
         "old": "                ok = verify_binding(b.artifact_id, b.version, b.content_hash)",
         "new": "                ok = True  # A02 MUTATION: verify_binding always True",
@@ -80,7 +83,8 @@ MUTATIONS: list[dict] = [
     },
     # A03 — Artifact update does not stale producing Task (seed skipped)
     {
-        "id": "A03", "name": "producing-task seed dropped (no invalidation seed)",
+        "id": "A03",
+        "name": "producing-task seed dropped (no invalidation seed)",
         "file": "cone.py",
         "old": "            seed_ids.append(cause.source_node_id)",
         "new": "            pass  # A03 MUTATION: producing seed dropped",
@@ -88,7 +92,8 @@ MUTATIONS: list[dict] = [
     },
     # A04 — stale upstream does not stale dependent (no propagation)
     {
-        "id": "A04", "name": "dependency propagation dropped",
+        "id": "A04",
+        "name": "dependency propagation dropped",
         "file": "cone.py",
         "old": "        for rely in view.reverse_deps.get(node_id, ()):",
         "new": "        for rely in ():  # A04 MUTATION: no propagation",
@@ -96,7 +101,8 @@ MUTATIONS: list[dict] = [
     },
     # A05 — propagation skips one graph level (work-list jumps a hop)
     {
-        "id": "A05", "name": "propagation skips one graph level",
+        "id": "A05",
+        "name": "propagation skips one graph level",
         "file": "cone.py",
         "old": "                queue.append(rely)",
         "new": "                # A05 MUTATION: enqueue grand-dependents (skip one hop)\n                queue.extend(view.reverse_deps.get(rely, ()))",
@@ -104,7 +110,8 @@ MUTATIONS: list[dict] = [
     },
     # A06 — invalidation propagates backwards (forward_deps instead of reverse)
     {
-        "id": "A06", "name": "invalidation propagates backwards",
+        "id": "A06",
+        "name": "invalidation propagates backwards",
         "file": "cone.py",
         "old": "        for rely in view.reverse_deps.get(node_id, ()):",
         "new": "        for rely in view.forward_deps.get(node_id, ()):  # A06 MUTATION: backwards",
@@ -112,7 +119,8 @@ MUTATIONS: list[dict] = [
     },
     # A07 — independent sibling becomes STALE (VERIFIED guard removed)
     {
-        "id": "A07", "name": "UNVERIFIED sibling promoted to STALE",
+        "id": "A07",
+        "name": "UNVERIFIED sibling promoted to STALE",
         "file": "cone.py",
         "old": "            if cur == VERIFIED:",
         "new": "            if True:  # A07 MUTATION: promote UNVERIFIED too",
@@ -120,7 +128,8 @@ MUTATIONS: list[dict] = [
     },
     # A08 — entire graph marked STALE (seed all task ids)
     {
-        "id": "A08", "name": "entire graph marked STALE (seed all tasks)",
+        "id": "A08",
+        "name": "entire graph marked STALE (seed all tasks)",
         "file": "cone.py",
         "old": "    seed_ids.sort()",
         "new": "    seed_ids = sorted(task_nodes.keys())  # A08 MUTATION: seed everything",
@@ -128,7 +137,8 @@ MUTATIONS: list[dict] = [
     },
     # A09 — Goal remains CLOSED with stale Task (reopen guard skip)
     {
-        "id": "A09", "name": "Goal stays CLOSED with stale dependency",
+        "id": "A09",
+        "name": "Goal stays CLOSED with stale dependency",
         "file": "engine.py",
         "old": "            if tid in cone.affected_node_ids:",
         "new": "            if False:  # A09 MUTATION: never reopen",
@@ -136,7 +146,8 @@ MUTATIONS: list[dict] = [
     },
     # A10 — Repair Frontier includes Task with stale dependency
     {
-        "id": "A10", "name": "frontier includes Task with stale dependency",
+        "id": "A10",
+        "name": "frontier includes Task with stale dependency",
         "file": "frontier.py",
         "old": "            if dval not in {VERIFIED}:",
         "new": "            if False:  # A10 MUTATION: ignore stale dep",
@@ -144,7 +155,8 @@ MUTATIONS: list[dict] = [
     },
     # A11 — Repair Frontier includes ALL stale (non-minimal)
     {
-        "id": "A11", "name": "frontier non-minimal (all stale included)",
+        "id": "A11",
+        "name": "frontier non-minimal (all stale included)",
         "file": "frontier.py",
         "old": "        if not ok:",
         "new": "        if False and not ok:  # A11 MUTATION: never exclude dep",
@@ -152,7 +164,8 @@ MUTATIONS: list[dict] = [
     },
     # A12 — Repairable Task missing from Frontier
     {
-        "id": "A12", "name": "repairable tasks disappear from frontier",
+        "id": "A12",
+        "name": "repairable tasks disappear from frontier",
         "file": "frontier.py",
         "old": "        if has_active_claim is not None and has_active_claim(tid):",
         "new": "        if True:  # A12 MUTATION: drop every candidate",
@@ -160,7 +173,8 @@ MUTATIONS: list[dict] = [
     },
     # A13 — old Evidence binding mutated in place (version history write)
     {
-        "id": "A13", "name": "old Evidence binding mutated in place",
+        "id": "A13",
+        "name": "old Evidence binding mutated in place",
         "file": "evidence.py",
         "old": "        bindings = ev.artifact_bindings\n        for b in bindings:\n            # Seed A: output superseded?",
         "new": "        bindings = ev.artifact_bindings\n        for b in bindings:\n            b.version = 999  # A13 MUTATION: in-place history edit\n            # Seed A: output superseded?",
@@ -168,15 +182,17 @@ MUTATIONS: list[dict] = [
     },
     # A14 — old Evidence result mutated (content-hash history write)
     {
-        "id": "A14", "name": "old Evidence result/history mutated",
+        "id": "A14",
+        "name": "old Evidence result/history mutated",
         "file": "evidence.py",
         "old": "        bindings = ev.artifact_bindings\n        for b in bindings:\n            # Seed A: output superseded?",
-        "new": "        bindings = ev.artifact_bindings\n        for b in bindings:\n            b.content_hash = \"MUTATED_ARTIFACT\"  # A14 MUTATION: old-EVD result mutated\n            # Seed A: output superseded?",
+        "new": '        bindings = ev.artifact_bindings\n        for b in bindings:\n            b.content_hash = "MUTATED_ARTIFACT"  # A14 MUTATION: old-EVD result mutated\n            # Seed A: output superseded?',
         "hint": "source write into the input Evidence history",
     },
     # A15 — GraphVersion check removed (assert_version_is_current no-op)
     {
-        "id": "A15", "name": "GraphVersion check removed (no-op verify)",
+        "id": "A15",
+        "name": "GraphVersion check removed (no-op verify)",
         "file": "runtime.py",
         "old": "        if now != compute_version:",
         "new": "        if False and now != compute_version:  # A15 MUTATION: never raise",
@@ -184,15 +200,17 @@ MUTATIONS: list[dict] = [
     },
     # A16 — stale invalidation silently merged (raise path removed)
     {
-        "id": "A16", "name": "stale invalidation silently merged",
+        "id": "A16",
+        "name": "stale invalidation silently merged",
         "file": "runtime.py",
-        "old": "        if now != compute_version:\n            raise InvalidGraphVersionRace(\n                f\"invalidation computed on v{compute_version}, \"\n                f\"graph now at v{now}; MUST recompute — no silent merge\"\n            )",
+        "old": '        if now != compute_version:\n            raise InvalidGraphVersionRace(\n                f"invalidation computed on v{compute_version}, "\n                f"graph now at v{now}; MUST recompute — no silent merge"\n            )',
         "new": "        if now != compute_version:\n            return  # A16 MUTATION: silent merge (raise path removed)",
         "hint": "InvalidGraphVersionRace never raised; return instead",
     },
     # A17 — partial invalidation commit allowed (engine writes STALE side effect)
     {
-        "id": "A17", "name": "partial invalidation commit leaks into graph",
+        "id": "A17",
+        "name": "partial invalidation commit leaks into graph",
         "file": "engine.py",
         "old": "    derived_validity = {\n        tid: (STALE if tid in cone.affected_node_ids else cur_validity)",
         "new": "    for _t in cone.affected_node_ids:\n        if _t in inp.task_nodes:\n            inp.task_nodes[_t].validity.value = STALE  # A17 MUTATION: partial commit\n    derived_validity = {\n        tid: (STALE if tid in cone.affected_node_ids else cur_validity)",
@@ -200,7 +218,8 @@ MUTATIONS: list[dict] = [
     },
     # A18 — traversal uses random/set iteration (hash-order seeds)
     {
-        "id": "A18", "name": "traversal uses hash-order seeds (set/random iteration)",
+        "id": "A18",
+        "name": "traversal uses hash-order seeds (set/random iteration)",
         "file": "cone.py",
         "old": "    queue: deque[str] = deque(seed_ids)",
         "new": "    queue: deque[str] = deque(sorted(seed_ids, key=hash))  # A18 MUTATION: hash-order seeds",
@@ -208,7 +227,8 @@ MUTATIONS: list[dict] = [
     },
     # A19 — Projection treated as authority (banned Kernel symbol)
     {
-        "id": "A19", "name": "projection treated as authority (KernelLeaseProvider)",
+        "id": "A19",
+        "name": "projection treated as authority (KernelLeaseProvider)",
         "file": "projection.py",
         "old": "    def identity_hash(self) -> str:\n        h = hashlib.sha256(self.serialize()).hexdigest()\n        return h",
         "new": "    def identity_hash(self) -> str:\n        h = hashlib.sha256(self.serialize()).hexdigest()\n        return h\n\n    def _claim_graph_authority(self) -> None:\n        # A19 MUTATION: projection treated as authority\n        KernelLeaseProvider  # noqa",
@@ -216,7 +236,8 @@ MUTATIONS: list[dict] = [
     },
     # A20 — rebuild from history drops invalidation causes
     {
-        "id": "A20", "name": "projection replay drops invalidation causes",
+        "id": "A20",
+        "name": "projection replay drops invalidation causes",
         "file": "projection.py",
         "old": "        self._causes = tuple(sorted(causes, key=lambda c: c.cause_id))",
         "new": "        self._causes = ()  # A20 MUTATION: causes dropped from projection",
@@ -224,7 +245,8 @@ MUTATIONS: list[dict] = [
     },
     # A21 — causal proof loses root cause
     {
-        "id": "A21", "name": "causal proof loses root cause",
+        "id": "A21",
+        "name": "causal proof loses root cause",
         "file": "cone.py",
         "old": "                root_causes=tuple(roots),",
         "new": "                root_causes=(),  # A21 MUTATION: root cause dropped",
@@ -232,7 +254,8 @@ MUTATIONS: list[dict] = [
     },
     # A22 — repair execution alone marks VERIFIED (un-anchorable, see skip_note)
     {
-        "id": "A22", "name": "repair execution alone marks VERIFIED",
+        "id": "A22",
+        "name": "repair execution alone marks VERIFIED",
         "file": "models.py",
         "old": "class RepairFrontier(BaseModel):",
         "new": "class RepairFrontier(BaseModel):  # A22 (no-op anchor marker)",
@@ -249,7 +272,8 @@ MUTATIONS: list[dict] = [
     },
     # A23 — FAIL Evidence repairs Task (FAIL applies as True)
     {
-        "id": "A23", "name": "FAIL Evidence applies as True",
+        "id": "A23",
+        "name": "FAIL Evidence applies as True",
         "file": "evidence.py",
         "old": "                if cur is not None and cur > b.version:\n                    applies = False",
         "new": "                if cur is not None and cur > b.version:\n                    applies = True  # A23 MUTATION: FAIL evidence applies",
@@ -257,7 +281,8 @@ MUTATIONS: list[dict] = [
     },
     # A24 — D3 directly claims Task (banned symbol try_acquire_lease)
     {
-        "id": "A24", "name": "D3 directly claims a Task",
+        "id": "A24",
+        "name": "D3 directly claims a Task",
         "file": "runtime.py",
         "old": "    def invalidate(self, graph_id: str, base_graph_version: int) -> InvalidationResult:",
         "new": "    # A24 MUTATION: banned claim primitive try_acquire_lease\n    def invalidate(self, graph_id: str, base_graph_version: int) -> InvalidationResult:",
@@ -265,7 +290,8 @@ MUTATIONS: list[dict] = [
     },
     # A25 — D3 directly dispatches Agent (banned symbol mark_dispatched)
     {
-        "id": "A25", "name": "D3 directly dispatches an Agent",
+        "id": "A25",
+        "name": "D3 directly dispatches an Agent",
         "file": "runtime.py",
         "old": "    def assert_version_is_current(self, graph_id: str, compute_version: int) -> None:",
         "new": "    # A25 MUTATION: banned dispatch primitive mark_dispatched\n    def assert_version_is_current(self, graph_id: str, compute_version: int) -> None:",
@@ -273,7 +299,8 @@ MUTATIONS: list[dict] = [
     },
     # A26 — D3 mutates Kernel ownership (banned symbol KernelLeaseProvider)
     {
-        "id": "A26", "name": "D3 mutates Kernel ownership",
+        "id": "A26",
+        "name": "D3 mutates Kernel ownership",
         "file": "runtime.py",
         "old": "    def __init__(",
         "new": "    # A26 MUTATION: banned KernelLeaseProvider ownership write\n    def __init__(",
@@ -281,7 +308,8 @@ MUTATIONS: list[dict] = [
     },
     # A27 — D2 learns internal invalidation semantics (forbidden import in D3)
     {
-        "id": "A27", "name": "D3/D2 import-layer leak (multi_agent import)",
+        "id": "A27",
+        "name": "D3/D2 import-layer leak (multi_agent import)",
         "file": "engine.py",
         "old": "from .cone import (",
         "new": "import lhos.runtimes.multi_agent  # A27 MUTATION: D2 semantics leak into D3\nfrom .cone import (",
@@ -289,7 +317,8 @@ MUTATIONS: list[dict] = [
     },
     # A28 — Kernel imports D3 (forbidden agent_os import in D3)
     {
-        "id": "A28", "name": "Kernel/D3 import-layer leak (agent_os import)",
+        "id": "A28",
+        "name": "Kernel/D3 import-layer leak (agent_os import)",
         "file": "runtime.py",
         "old": "from .engine import EngineInputs, build_invalidation_result, run_invalidation_engine",
         "new": "from lhos.agent_os.services import lease_service  # A28 MUTATION\nfrom .engine import EngineInputs, build_invalidation_result, run_invalidation_engine",
@@ -297,7 +326,8 @@ MUTATIONS: list[dict] = [
     },
     # A29 — Goal reopened by agent-authored Patch (forged reopen regardless of dep)
     {
-        "id": "A29", "name": "Goal reopened regardless of dependency",
+        "id": "A29",
+        "name": "Goal reopened regardless of dependency",
         "file": "engine.py",
         "old": "            if tid in cone.affected_node_ids:",
         "new": "            if True:  # A29 MUTATION: forged reopen regardless of dep",
@@ -305,7 +335,8 @@ MUTATIONS: list[dict] = [
     },
     # A30 — second invalidation during repair ignored (pin base version)
     {
-        "id": "A30", "name": "second invalidation ignored (base version pinned)",
+        "id": "A30",
+        "name": "second invalidation ignored (base version pinned)",
         "file": "engine.py",
         "old": "    cone = compute_invalidation_cone(\n        inp.graph_id,\n        inp.current_version,",
         "new": "    cone = compute_invalidation_cone(\n        inp.graph_id,\n        0,  # A30 MUTATION: ignore base_graph_version mismatch",
@@ -327,10 +358,15 @@ def apply_mutation(path: Path, m: dict) -> None:
 def run_tests(timeout_s: int = 300) -> dict:
     """Run the entire focused D3 suite with -q --tb=no -x."""
     cmd = [
-        str(PY), "-m", "pytest",
+        str(PY),
+        "-m",
+        "pytest",
         FOCUSED_TEST_DIR,
-        "-q", "--tb=no", "-x",
-        "-p", "no:cacheprovider",
+        "-q",
+        "--tb=no",
+        "-x",
+        "-p",
+        "no:cacheprovider",
         "--no-header",
         "-ra",
     ]
@@ -338,8 +374,11 @@ def run_tests(timeout_s: int = 300) -> dict:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
     except subprocess.TimeoutExpired:
         return {
-            "rc": 3, "passed": 0, "failed": 1,
-            "failed_tests": ["<timeout>"], "raw": "",
+            "rc": 3,
+            "passed": 0,
+            "failed": 1,
+            "failed_tests": ["<timeout>"],
+            "raw": "",
         }
     out = proc.stdout + proc.stderr
     passed = 0
@@ -357,7 +396,7 @@ def run_tests(timeout_s: int = 300) -> dict:
             tok = ls.split()[1] if len(ls.split()) > 1 else ""
             if tok:
                 failed_tests.append(tok)
-        elif ("error" in ls.lower() and "::" in ls):
+        elif "error" in ls.lower() and "::" in ls:
             # collection errors / assertion failures surfaced under -x
             tok = ls.split()[0]
             if tok and "::" in tok:
@@ -450,17 +489,19 @@ def main() -> int:
                 if backup.exists():
                     shutil.move(str(backup), str(path))
 
-        results.append({
-            "id": mid,
-            "name": m["name"],
-            "target": path.name,
-            "status": status,
-            "failing_test": failing_test,
-            "n_passed": n_passed,
-            "n_failed": n_failed,
-            "hint": m["hint"],
-            "detail": error_msg or (m.get("skip_note") if m.get("skip") else None),
-        })
+        results.append(
+            {
+                "id": mid,
+                "name": m["name"],
+                "target": path.name,
+                "status": status,
+                "failing_test": failing_test,
+                "n_passed": n_passed,
+                "n_failed": n_failed,
+                "hint": m["hint"],
+                "detail": error_msg or (m.get("skip_note") if m.get("skip") else None),
+            }
+        )
 
     # Clean up any stray .bak files.
     for m in MUTATIONS:
@@ -470,19 +511,25 @@ def main() -> int:
 
     # ── write artifacts ─────────────────────────────────────────────────────
     json_path = ART / "mutation-results-v2.json"
-    json_path.write_text(json.dumps({
-        "spec_section": "§26",
-        "artifact": "mutation-results-v2.json",
-        "run_time": _now(),
-        "summary": {
-            "total": len(MUTATIONS),
-            "killed": tally["killed"],
-            "equivalent": tally["equivalent"],
-            "skipped": tally["skipped"],
-            "survived": tally["survived"],
-        },
-        "mutations": results,
-    }, indent=2) + "\n")
+    json_path.write_text(
+        json.dumps(
+            {
+                "spec_section": "§26",
+                "artifact": "mutation-results-v2.json",
+                "run_time": _now(),
+                "summary": {
+                    "total": len(MUTATIONS),
+                    "killed": tally["killed"],
+                    "equivalent": tally["equivalent"],
+                    "skipped": tally["skipped"],
+                    "survived": tally["survived"],
+                },
+                "mutations": results,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
 
     killed_cnt = tally["killed"]
     pct = (killed_cnt / len(MUTATIONS)) * 100 if len(MUTATIONS) else 0.0
@@ -505,9 +552,7 @@ def main() -> int:
     for r in results:
         ft = r["failing_test"] or "—"
         det = (r["detail"] or "").replace("|", "\\|").replace("\n", " ")[:120]
-        md.append(
-            f"| {r['id']} | {r['name']} | {r['target']} | **{r['status']}** | {ft} | {det} |"
-        )
+        md.append(f"| {r['id']} | {r['name']} | {r['target']} | **{r['status']}** | {ft} | {det} |")
     md.append("")
     md.append("## Notes")
     md.append("")

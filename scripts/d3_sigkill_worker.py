@@ -10,6 +10,7 @@ engine computes the invalidation result, and we expose:
 The parent uses the 'reverify' boundary to obtain the reference (no-crash)
 result and kills at S1..S5.
 """
+
 # ruff: noqa
 from __future__ import annotations
 
@@ -30,7 +31,8 @@ from lhos.runtimes.invalidation.models import InvalidationCause
 
 
 class _Val:
-    def __init__(self, v: str): self.value = v
+    def __init__(self, v: str):
+        self.value = v
 
 
 class TNode:
@@ -57,9 +59,13 @@ def build_graph() -> dict:
     across every restart)."""
     tasks = {f"T{i}": TNode(f"T{i}", "verified") for i in range(12)}
     edges = [
-        depends_on("T1", "T0"), depends_on("T2", "T1"), depends_on("T3", "T2"),
-        depends_on("T4", "T3"), depends_on("T5", "T4"),  # main chain
-        depends_on("T7", "T6"), depends_on("T8", "T7"),  # independent branch
+        depends_on("T1", "T0"),
+        depends_on("T2", "T1"),
+        depends_on("T3", "T2"),
+        depends_on("T4", "T3"),
+        depends_on("T5", "T4"),  # main chain
+        depends_on("T7", "T6"),
+        depends_on("T8", "T7"),  # independent branch
     ]
     return {"tasks": tasks, "edges": edges}
 
@@ -71,16 +77,25 @@ def compute_deterministic(boundary: str) -> dict:
     edges = graph["edges"]
     # Seed T0 => main chain (T1..T5) stale; independent branch (T6,T7,T8) preserved.
     cause = InvalidationCause(
-        cause_id="c:A", graph_id="g", graph_version=1,
+        cause_id="c:A",
+        graph_id="g",
+        graph_version=1,
         cause_type="ARTIFACT_VERSION_SUPERSEDED",
-        source_node_id="T0", artifact_id="A", old_version=0, new_version=1,
+        source_node_id="T0",
+        artifact_id="A",
+        old_version=0,
+        new_version=1,
         reason="seed T0",
     )
     # boundary hooks: we only need ONE deterministic compute; the boundary
     # distinguishes where the parent kills.
     inp = EngineInputs(
-        graph_id="g", current_version=1, task_nodes=tasks,
-        goal_nodes={}, evidence_nodes={}, edges=edges,
+        graph_id="g",
+        current_version=1,
+        task_nodes=tasks,
+        goal_nodes={},
+        evidence_nodes={},
+        edges=edges,
         explicit_causes=(cause,),
     )
     er = run_invalidation_engine(inp)
@@ -99,6 +114,6 @@ def compute_deterministic(boundary: str) -> dict:
         open(os.path.join(marker_dir, "ready"), "w").write("1")
         # keep the process alive at the boundary until killed
         import time
+
         time.sleep(60)
     return result
-
