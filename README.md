@@ -1,18 +1,27 @@
 # LongHorizonOS (lhos)
 
-> **LongHorizonOS is a deterministic agent microkernel beneath a dynamic verified graph control plane.**
+> LongHorizonOS is a state-centric agent operating architecture composed of a
+> deterministic execution plane and an evidence-backed semantic control plane.
+> The **Agent OS** subsystem provides process, action, capability, lease,
+> persistence, artifact, and context primitives (the execution plane); the
+> semantic control plane (Verified Progress Graph, Multi-Agent Scheduler,
+> Causal Invalidation/Repair) determines progress, readiness, and repair.
+> ("Agent OS" = the microkernel + system-services subsystem, NOT the whole
+> system.)
 
-A Verified Progress Graph runtime for long-horizon agents. The trusted
-execution plane (process/action journal, capability/lease/signal, versioned
-Artifact FS, namespace isolation) guarantees crash-consistent execution.
-The semantic control plane coordinates multi-agent work through
-evidence-backed progress:
+## Core Architecture V1: FROZEN
 
-- **Verified Progress Runtime** — deterministic semantically-closed Task/Goal
-  state graph; evidence-backed VERIFIED derivation.
-- **Graph-derived Multi-Agent Scheduler** — eligibility, deterministic matching,
-  kernel-backed exclusive TaskClaims, per-agent concurrency, crash reassignment,
-  projection, reconciliation, replayable audit log.
+Microkernel · STABLE · Artifact FS / Namespace · STABLE · Context VM · STABLE ·
+Verified Progress Graph · STABLE · Multi-Agent Scheduler · STABLE · Causal
+Invalidation / Local Repair · STABLE.
+
+Canonical specification: `docs/architecture/LONGHORIZONOS-CORE-V1.md`.
+Freeze record: `docs/architecture/CORE-V1-FREEZE.md`.  Milestone tag:
+`longhorizonos-core-v1`.
+
+Still future / product / ecosystem work (NOT part of Core V1): real model
+integrations, a developer-facing high-level SDK, CLI UX, browser tooling, and
+distributed scheduling.
 
 ## Current Status (Phase D3 — Version-aware causal invalidation and local repair implemented)
 
