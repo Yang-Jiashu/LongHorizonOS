@@ -78,7 +78,7 @@ def validate_evidence(
     # D1-I? : Action PID must match evidence.produced_by_pid.
     # Without this, a committed action in process P_X can fabricate a VERIFIED
     # Task for process P_Y — breaking process isolation at the semantic layer.
-    if getattr(action, 'pid', None) != evidence.produced_by_pid:
+    if getattr(action, "pid", None) != evidence.produced_by_pid:
         return _fail(
             VPGCode.EVIDENCE_SOURCE_ACTION_WRONG_PID,
             f"action.pid={getattr(action, 'pid', None)!r} != produced_by_pid={evidence.produced_by_pid!r}",

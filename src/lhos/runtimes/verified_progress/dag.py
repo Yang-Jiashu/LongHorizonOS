@@ -80,7 +80,7 @@ def detect_cycle(
                 child = children[idx]
                 if state[child] == IN_STACK:
                     cycle_start = path.index(child)
-                    return path[cycle_start:] + [child]
+                    return [*path[cycle_start:], child]
                 if state[child] == UNVISITED:
                     stack.append((child, 0))
             else:

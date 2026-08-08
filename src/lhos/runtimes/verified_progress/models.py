@@ -3,7 +3,7 @@
 Defines GraphRecord, GraphVersion, edge binding types, ArtifactVersionBinding,
 and the discriminated VPGNode hierarchy (Goal/Task/ArtifactRef/Verification/Evidence).
 
-Reference: Phase D1 spec, sections 7–10.
+Reference: Phase D1 spec, sections 7-10.
 
 All nodes and edges are Pydantic BaseModels.  All derived state (VERIFIED,
 STALE, CLOSED, INVALID) is produced deterministically by the Runtime —

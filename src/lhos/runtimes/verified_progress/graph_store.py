@@ -527,7 +527,6 @@ class GraphStore:
         """Drop the materialized projection (keeps patch/event history) so it
         can be rebuilt via projection replay."""
         with self.conn:
-            placeholders = ",".join("?" * len(_graph_node_ids(self.conn, graph_id))) or "''"
             node_ids = _graph_node_ids(self.conn, graph_id)
             if node_ids:
                 self.conn.execute(
