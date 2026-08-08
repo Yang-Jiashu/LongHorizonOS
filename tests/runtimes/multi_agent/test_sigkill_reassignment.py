@@ -171,8 +171,8 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
                 kernel._process_service.get_process(p) is not None
                 and kernel._process_service.get_process(p).state.value not in {"exited", "failed"}
             ),
-            vpg_task_verified=lambda tid: False,
-            vpg_task_stale=lambda tid: False,
+            vpg_task_verified=lambda graph_id, task_id: False,
+            vpg_task_stale=lambda graph_id, task_id: False,
             lease_lookup=lambda c: None,
             release_lease=lambda lid: True,
         )
@@ -209,8 +209,8 @@ def test_k4_lease_expiry_reclaim_marks_lost(trial):
         [],
         lease_is_live=lambda lid: False,  # expired / reclaimed
         process_is_alive=lambda pid: True,
-        vpg_task_verified=lambda tid: False,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: None,
         release_lease=lambda lid: True,
     )
@@ -242,8 +242,8 @@ def test_k5_alive_with_active_lease_stays_active(trial):
         [],
         lease_is_live=lambda lid: True,
         process_is_alive=lambda pid: True,
-        vpg_task_verified=lambda tid: False,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: type("L", (), {"lease_id": "lease-ok"})(),
         release_lease=lambda lid: True,
     )

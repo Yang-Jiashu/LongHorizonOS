@@ -56,8 +56,8 @@ def reconcile(
     # Authoritative lookups (injected; NEVER from the scheduler projection):
     lease_is_live: Any,  # (lease_id) -> bool  (looks up Kernel leases)
     process_is_alive: Any,  # (pid) -> bool       (looks up Kernel process)
-    vpg_task_verified: Any,  # (task_id) -> bool   (looks up VPG validity)
-    vpg_task_stale: Any,  # (task_id) -> bool   (STale / not dispatchable)
+    vpg_task_verified: Any,  # (graph_id, task_id) -> bool
+    vpg_task_stale: Any,  # (graph_id, task_id) -> bool
     lease_lookup: Any,  # (claim) -> lease_info | None
     release_lease: Any,  # (lease_id) -> bool
     clock_now: Any = _now,
@@ -153,7 +153,7 @@ def _reconcile_active_claim(
         return
 
     # 3. Task verified by VPG -> claim COMPLETED, lease released.
-    if vpg_task_verified(claim.task_id):
+    if vpg_task_verified(claim.graph_id, claim.task_id):
         try:
             if claim.lease_id:
                 release_lease(claim.lease_id)

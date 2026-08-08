@@ -50,10 +50,10 @@ def test_reconcile_no_issues_when_everything_consistent():
     def process_is_alive(pid):
         return True
 
-    def vpg_verified(tid):
+    def vpg_verified(graph_id, task_id):
         return False
 
-    def vpg_stale(tid):
+    def vpg_stale(graph_id, task_id):
         return False
 
     def lease_lookup(claim):
@@ -91,8 +91,8 @@ def test_reconcile_process_dead_marks_claim_lost():
         [],
         lease_is_live=lease_is_live,
         process_is_alive=process_is_alive,
-        vpg_task_verified=lambda tid: False,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lease_lookup,
         release_lease=lambda lid: True,
         clock_now=_now,
@@ -109,8 +109,8 @@ def test_reconcile_vanished_lease_marks_lost_and_releases():
         [],
         lease_is_live=lambda lid: False,
         process_is_alive=lambda pid: True,
-        vpg_task_verified=lambda tid: False,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: None,
         release_lease=lambda lid: True,
         clock_now=_now,
@@ -128,8 +128,8 @@ def test_reconcile_task_verified_completes_claim():
         [],
         lease_is_live=lambda lid: True,
         process_is_alive=lambda pid: True,
-        vpg_task_verified=lambda tid: True,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: True,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: _lease("lease-1"),
         release_lease=lambda lid: True,
         clock_now=_now,
@@ -146,8 +146,8 @@ def test_reconcile_orphan_proposed_claim_no_kernel_lease():
         [],
         lease_is_live=lambda lid: False,
         process_is_alive=lambda pid: True,
-        vpg_task_verified=lambda tid: False,
-        vpg_task_stale=lambda tid: False,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: None,
         release_lease=lambda lid: True,
         clock_now=_now,
@@ -186,6 +186,66 @@ def test_detect_invariants_violations_d2_i7_dead_process():
         process_is_alive=lambda pid: False,
     )
     assert any("D2-I7" in v for v in violations)
+
+
+def test_session_reconcile_does_not_crash_with_active_claim(world):
+    """Section 32 regression: SchedulerSession.reconcile() is the public entry
+    and must not crash when there is at least one ACTIVE claim.  Before the
+    fix it raised ``TypeError`` because `MultiAgentScheduler._vpg_task_verified`
+    is a 2-arg (graph_id, task_id) helper but `reconciliation.reconcile`
+    invokes the `vpg_task_verified(task_id)` callback with a single arg.
+
+    Uses the real Kernel-backed ``world`` fixture so the claim's lease is
+    persisted and found back by reconcile (the FakeVPG/_NullLease in
+    ``fake_scheduler`` deliberately does not track leases)."""
+    from lhos.runtimes.verified_progress.patches import (
+        AddNodeOp,
+        GraphPatchProposal,
+    )
+    from tests.runtimes.multi_agent.helpers import scheduler_with_agents
+
+    pid = world.kernel._process_service.spawn("a").pid
+    sch = scheduler_with_agents(
+        world,
+        {"a": {"supported_task_kinds": ("*",),
+                "specializations": ("python",)}},
+    )
+    gid = world.vpg_rt.create_graph(owner_pid=pid).graph_id
+    v = world.vpg_rt.get_graph(gid).current_version
+    patch = GraphPatchProposal(
+        graph_id=gid,
+        expected_graph_version=v,
+        author_pid=pid,
+        idempotency_key="add-t1",
+        operations=(
+            AddNodeOp(
+                node_id="t1",
+                graph_id=gid,
+                node_type="task",
+                created_by_pid=pid,
+                task_kind="code_review",
+                metadata={"scheduler": {
+                    "task_kind": "code_review",
+                    "required_specializations": ["python"],
+                    "required_tools": [],
+                }},
+            ),
+        ),
+    )
+    world.vpg_rt.submit_patch(patch)
+    sch.schedule_once(gid)
+    active = [c for c in sch.claims
+              if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
+    assert len(active) == 1, "precondition: one ACTIVE claim exists"
+
+    # This must NOT raise TypeError (the original failure mode).
+    res = sch.reconcile()
+    # After reconcile on a healthy ACTIVE claim: nothing lost, nothing completed.
+    post_active = [c for c in sch.claims
+                   if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
+    assert len(post_active) == 1
+    assert res.claims_marked_lost == 0
+    assert res.claims_completed == 0
 
 
 def _now():
