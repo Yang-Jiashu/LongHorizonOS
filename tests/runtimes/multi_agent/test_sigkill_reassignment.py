@@ -168,8 +168,8 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
             [],
             lease_is_live=lambda lid: False,
             process_is_alive=lambda p: (
-                kernel._process_service.get_process(p) is not None
-                and kernel._process_service.get_process(p).state.value not in {"exited", "failed"}
+                (proc := kernel._process_service.get_process(p)) is not None
+                and proc.state.value not in {"exited", "failed"}
             ),
             vpg_task_verified=lambda graph_id, task_id: False,
             vpg_task_stale=lambda graph_id, task_id: False,

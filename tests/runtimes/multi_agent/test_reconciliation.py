@@ -31,7 +31,9 @@ def _lease(lease_id, live=True, expires_in_secs=1800):
     from datetime import datetime, timedelta
 
     class _L:
-        pass
+        lease_id: str = ""
+        expires_at: object = None
+        _live: bool = True
 
     l = _L()
     l.lease_id = lease_id
@@ -207,8 +209,7 @@ def test_session_reconcile_does_not_crash_with_active_claim(world):
     pid = world.kernel._process_service.spawn("a").pid
     sch = scheduler_with_agents(
         world,
-        {"a": {"supported_task_kinds": ("*",),
-                "specializations": ("python",)}},
+        {"a": {"supported_task_kinds": ("*",), "specializations": ("python",)}},
     )
     gid = world.vpg_rt.create_graph(owner_pid=pid).graph_id
     v = world.vpg_rt.get_graph(gid).current_version
@@ -224,25 +225,25 @@ def test_session_reconcile_does_not_crash_with_active_claim(world):
                 node_type="task",
                 created_by_pid=pid,
                 task_kind="code_review",
-                metadata={"scheduler": {
-                    "task_kind": "code_review",
-                    "required_specializations": ["python"],
-                    "required_tools": [],
-                }},
+                metadata={
+                    "scheduler": {
+                        "task_kind": "code_review",
+                        "required_specializations": ["python"],
+                        "required_tools": [],
+                    }
+                },
             ),
         ),
     )
     world.vpg_rt.submit_patch(patch)
     sch.schedule_once(gid)
-    active = [c for c in sch.claims
-              if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
+    active = [c for c in sch.claims if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
     assert len(active) == 1, "precondition: one ACTIVE claim exists"
 
     # This must NOT raise TypeError (the original failure mode).
     res = sch.reconcile()
     # After reconcile on a healthy ACTIVE claim: nothing lost, nothing completed.
-    post_active = [c for c in sch.claims
-                   if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
+    post_active = [c for c in sch.claims if c.task_id == "t1" and c.state == ClaimState.ACTIVE]
     assert len(post_active) == 1
     assert res.claims_marked_lost == 0
     assert res.claims_completed == 0
