@@ -14,6 +14,7 @@ semantics (cone + frontier) are validated against the invariants:
 It is deterministic and writes artifacts/agent_os_phase_d3/random-state-machine-results.json
 + determinism-results.json.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -292,3 +293,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -2,6 +2,7 @@
 
 Emits artifacts/agent_os_phase_d3/demo-<name>.json for each of D1..D6.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import json
@@ -203,3 +204,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

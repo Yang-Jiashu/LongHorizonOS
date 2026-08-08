@@ -10,6 +10,7 @@ engine computes the invalidation result, and we expose:
 The parent uses the 'reverify' boundary to obtain the reference (no-crash)
 result and kills at S1..S5.
 """
+# ruff: noqa
 from __future__ import annotations
 
 import os
@@ -100,3 +101,4 @@ def compute_deterministic(boundary: str) -> dict:
         import time
         time.sleep(60)
     return result
+

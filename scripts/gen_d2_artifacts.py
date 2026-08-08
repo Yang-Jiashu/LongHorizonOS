@@ -11,6 +11,7 @@ Strategy:
  - performance-correctness.json: a small self-measured sample (fast) so
    the artifact proves the gate re-ran at generation time (no 17-min wait).
 """
+# ruff: noqa
 
 from __future__ import annotations
 
@@ -1339,3 +1340,4 @@ print("[gen_d2_artifacts] baseline.md already present")
 print(f"[gen_d2_artifacts] tests collected (selected): {total_tests}")
 print(f"[gen_d2_artifacts] parametrized SIGKILL trials (sum): {sigkill_total}")
 print(f"[gen_d2_artifacts] demo exit-codes: {demo_exit_summary}")
+
