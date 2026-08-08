@@ -6,6 +6,8 @@ the backing Kernel lease.
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from lhos.runtimes.multi_agent import (
     AgentDescriptor,
     AgentRegistry,
@@ -125,10 +127,10 @@ class _LeaseRecorder(_NullLease):
 
 class _L:
     def __init__(self, resource_id):
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         self.lease_id = f"lease-{resource_id}"
         self.resource_id = resource_id
-        self.expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        self.expires_at = datetime.now(UTC) + timedelta(minutes=30)
 
 
 class _NullCap:

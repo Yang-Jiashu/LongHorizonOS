@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from lhos.runtimes.multi_agent.projections import SchedulerProjection
-from lhos.runtimes.multi_agent.recovery import (
-    projection_fingerprint,
-    rebuild_projection,
-)
 from lhos.runtimes.multi_agent.models import (
     AgentDescriptor,
     AttemptState,
     ClaimState,
     ScheduledExecutionAttempt,
     TaskClaim,
+)
+from lhos.runtimes.multi_agent.projections import SchedulerProjection
+from lhos.runtimes.multi_agent.recovery import (
+    projection_fingerprint,
+    rebuild_projection,
 )
 
 

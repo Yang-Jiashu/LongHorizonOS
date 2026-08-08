@@ -4,10 +4,10 @@ from __future__ import annotations
 import pytest
 
 from lhos.runtimes.multi_agent import (
+    TERMINAL_CLAIM_STATES,
     AgentDescriptor,
     ClaimState,
     TaskRequirements,
-    TERMINAL_CLAIM_STATES,
 )
 
 

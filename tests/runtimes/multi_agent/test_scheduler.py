@@ -4,7 +4,7 @@ controllable FakeVPG so we can confirm the full scheduling pass
 
 from __future__ import annotations
 
-from lhos.runtimes.multi_agent import AgentDescriptor, ClaimState
+from lhos.runtimes.multi_agent import ClaimState
 from tests.runtimes.multi_agent.helpers import FakeVPG, fake_scheduler
 
 

@@ -9,7 +9,7 @@ Key invariants:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .errors import (
     KernelLeaseRequired,
@@ -19,7 +19,7 @@ from .models import ClaimState, TaskClaim
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ClaimManager:

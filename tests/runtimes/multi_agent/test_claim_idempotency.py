@@ -7,7 +7,6 @@ has already linearised a claim for within the same graph version.
 
 from __future__ import annotations
 
-from lhos.runtimes.multi_agent import AgentDescriptor, AgentRegistry
 from tests.runtimes.multi_agent.helpers import FakeVPG, fake_scheduler
 
 

@@ -13,15 +13,14 @@ Kernel process history, or Kernel lease history.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from .errors import KernelLeaseRequired
-from .models import ClaimState, ScheduledExecutionAttempt, TaskClaim
+from .models import AttemptState, ClaimState, ScheduledExecutionAttempt, TaskClaim
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass
@@ -184,7 +183,7 @@ def _reconcile_attempt(
     if attempt.state.value in {"dispatched", "running"} and not process_is_alive(
         attempt.process_id
     ):
-        attempt.state = "crashed"
+        attempt.state = AttemptState.CRASHED
         attempt.ended_at = _now()
         attempt.error = "process_dead_attempt_crashed"
         res.add(

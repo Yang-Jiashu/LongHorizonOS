@@ -11,8 +11,10 @@ Kernel Lease acquisition.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Any
+
+from .protocols import LeaseProvider
 
 DEFAULT_CLAIM_TTL = timedelta(minutes=30)
 
@@ -26,7 +28,11 @@ class LeaseAdapter:
     """Thin adapter over a LeaseProvider with the Scheduler's resource-URI
     conventions baked in."""
 
-    def __init__(self, provider: Any, ttl: timedelta = DEFAULT_CLAIM_TTL) -> None:
+    def __init__(
+        self,
+        provider: LeaseProvider,
+        ttl: timedelta = DEFAULT_CLAIM_TTL,
+    ) -> None:
         self._provider = provider
         self._ttl = ttl
 
@@ -65,8 +71,8 @@ class LeaseAdapter:
         exp = getattr(lease, "expires_at", None)
         if exp is None:
             return True  # no expiry = permanent
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         if isinstance(exp, str):
             exp = datetime.fromisoformat(exp)
-        return datetime.now(timezone.utc).timestamp() <= exp.timestamp()
+        return datetime.now(UTC).timestamp() <= exp.timestamp()

@@ -18,7 +18,7 @@ Eligible(agent, task) must satisfy ALL ten predicates:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .models import AgentCapabilitySnapshot, AgentDescriptor, EligibilityResult
@@ -75,9 +75,13 @@ def evaluate_eligibility(
             f"capacity exhausted ({active_claims_for_agent}/{agent.max_concurrency})"
         )
 
-    if task_kind and agent.supported_task_kinds:
-        # special value "*" means "any kind"
-        if "*" not in agent.supported_task_kinds and task_kind not in agent.supported_task_kinds:
+    # special value "*" means "any kind"
+    if (
+        task_kind
+        and agent.supported_task_kinds
+        and "*" not in agent.supported_task_kinds
+        and task_kind not in agent.supported_task_kinds
+    ):
             reasons.append(
                 f"task_kind {task_kind!r} not in supported_task_kinds "
                 f"{list(agent.supported_task_kinds)}"
@@ -146,4 +150,4 @@ def capture_capabilities(agent_id: str, capability_checker: Any) -> AgentCapabil
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)

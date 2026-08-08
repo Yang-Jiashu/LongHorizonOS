@@ -13,15 +13,13 @@ Scheduler owns NO resource authority — the Kernel Lease does.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .eligibility import evaluate_eligibility
 from .lease_adapter import DEFAULT_CLAIM_TTL, claim_resource_uri
 from .matching import match_deterministic_best_fit_v1
 from .models import (
-    AgentDescriptor,
-    AttemptState,
     ClaimState,
     EligibilityResult,
     MatchDecision,
@@ -31,21 +29,19 @@ from .models import (
 )
 from .projections import (
     active_claim_count_by_agent,
-    active_claims_for_task,
-    latest_attempt_for_task,
 )
-from .reconciliation import ReconciliationResult, reconcile
+from .reconciliation import ReconciliationResult
 from .requirements import decode_task_requirements
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _uuid() -> str:
     from uuid import uuid4
 
-    return uuid4.hex  # type: ignore[return-value]
+    return uuid4().hex
 
 
 class ScheduleResult:
@@ -146,7 +142,6 @@ class MultiAgentScheduler:
 
         Returns ScheduleResult with dispatched + skipped reasons.
         """
-        from .attempts import AttemptManager
         from .events import SchedulerEventType, record_event
 
         # Authoritative VPG frontier.
@@ -269,9 +264,10 @@ class MultiAgentScheduler:
                 continue
 
             claims_this_pass += 1
+            existing = self.get_claim(task_id)
+            claim_id = existing.claim_id if existing is not None else ""
             result.mark_dispatched(
-                task_id, decision.selected_agent_id,
-                self.get_claim(task_id).claim_id if self.get_claim(task_id) else "",
+                task_id, decision.selected_agent_id, claim_id,
             )
             active_by_agent[decision.selected_agent_id] = (
                 active_by_agent.get(decision.selected_agent_id, 0) + 1
@@ -533,10 +529,10 @@ class MultiAgentScheduler:
         return getattr(proc, "state", None) not in ("exited", "failed")
 
     def _vpg_task_verified(self, graph_id: str, task_id: str) -> bool:
-        return self._vpg.task_validity(graph_id, task_id) == "verified"
+        return bool(self._vpg.task_validity(graph_id, task_id) == "verified")
 
     def _vpg_task_stale(self, graph_id: str, task_id: str) -> bool:
-        return self._vpg.task_validity(graph_id, task_id) == "stale"
+        return bool(self._vpg.task_validity(graph_id, task_id) == "stale")
 
     def _lease_lookup_for_claim(self, claim: TaskClaim) -> Any | None:
         leases = self._leases.list_for_task(claim.graph_id, claim.task_id)

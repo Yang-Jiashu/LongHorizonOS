@@ -7,11 +7,12 @@ exposed on the ``World`` fixture.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from lhos.agent_os.sdk.client import create_kernel
 from lhos.runtimes.verified_progress import VerifiedProgressRuntime
-
 from tests.runtimes.multi_agent.test_providers import (
     FakeFactsMinimal,
     KernelCapabilityProvider,
@@ -78,7 +79,6 @@ def graph(world: World, facts: FakeFactsMinimal):
 
     Returns (graph_id, world_world, rt).
     """
-    from lhos.runtimes.multi_agent.test_providers import FakeFactsWithCommittedAction
     rt = VerifiedProgressRuntime(":memory:")
     rec = rt.create_graph(owner_pid="agent-1")
     return rec.graph_id, world, rt

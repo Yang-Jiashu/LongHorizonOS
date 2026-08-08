@@ -1,8 +1,6 @@
 """D2-I4: each Task gets at most one ACTIVE claim."""
 from __future__ import annotations
 
-import pytest
-
 from lhos.runtimes.multi_agent import AgentDescriptor, AgentRegistry, create_scheduler
 
 
@@ -70,7 +68,8 @@ def test_schedule_until_idle_never_creates_duplicate_active(world):
 
 def _make_task_patch(world, gid, tid, kind, sched_specs):
     from lhos.runtimes.verified_progress.patches import (
-        AddNodeOp, GraphPatchProposal,
+        AddNodeOp,
+        GraphPatchProposal,
     )
     return GraphPatchProposal(
         graph_id=gid,

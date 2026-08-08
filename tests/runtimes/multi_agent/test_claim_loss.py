@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from lhos.runtimes.multi_agent.claims import ClaimManager
 from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
 from lhos.runtimes.multi_agent.models import ClaimState
@@ -9,10 +11,10 @@ from lhos.runtimes.multi_agent.models import ClaimState
 
 class _L:
     def __init__(self, lease_id, resource_id):
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
         self.lease_id = lease_id
         self.resource_id = resource_id
-        self.expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        self.expires_at = datetime.now(UTC) + timedelta(minutes=30)
 
 
 class _Leases:
@@ -81,8 +83,8 @@ def test_assert_active_has_live_lease_raises_when_missing():
     # PROPOSED claim: invariant only fires for ACTIVE.
     try:
         mgr.assert_active_has_live_lease(c)
-    except KernelLeaseRequired:
-        raise AssertionError("PROPOSED claim should not trip ACTIVE-only invariant")
+    except KernelLeaseRequired as exc:
+        raise AssertionError("PROPOSED claim should not trip ACTIVE-only invariant") from exc
     # Force an ACTIVE claim without lease_id to trip the invariant.
     c.state = ClaimState.ACTIVE
     c.lease_id = None

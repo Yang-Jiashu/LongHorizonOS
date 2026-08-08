@@ -48,7 +48,7 @@ def _to_tuple(v: object) -> tuple[str, ...]:
 
 
 def _as_int(v: object, default: int) -> int:
-    if v is None:
+    if v is None or not isinstance(v, (int, float, str, bytes, bytearray)):
         return default
     try:
         return int(v)
@@ -58,6 +58,8 @@ def _as_int(v: object, default: int) -> int:
 
 def _as_int_or_none(v: object) -> int | None:
     if v is None:
+        return None
+    if not isinstance(v, (int, float, str, bytes, bytearray)):
         return None
     try:
         return int(v)

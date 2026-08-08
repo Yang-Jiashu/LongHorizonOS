@@ -15,10 +15,10 @@ Classes:
 
 from __future__ import annotations
 
+import contextlib
 import os
 import signal
 import subprocess
-import sys
 
 import pytest
 
@@ -118,10 +118,8 @@ def test_k2_dead_agent_not_eligible(trial):
         pcb = kernel._process_service.get_process(pid)
         assert pcb is not None
     finally:
-        try:
+        with contextlib.suppress(Exception):
             proc.kill()
-        except Exception:
-            pass
         cleanup_temp_db(db)
 
 
@@ -137,8 +135,8 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
         with open(marker) as f:
             pid = f.read().strip()
         from lhos.agent_os.sdk.client import create_kernel
-        from lhos.runtimes.multi_agent.reconciliation import reconcile
         from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
+        from lhos.runtimes.multi_agent.reconciliation import reconcile
 
         kernel = create_kernel(db)
         # The worker process becomes the agent's "process". Kill it.
@@ -164,10 +162,8 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
         assert res.claims_marked_lost == 1
         assert claims[0].state == ClaimState.LOST
     finally:
-        try:
+        with contextlib.suppress(Exception):
             proc.kill()
-        except Exception:
-            pass
         cleanup_temp_db(db)
 
 
@@ -175,8 +171,8 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
 def test_k4_lease_expiry_reclaim_marks_lost(trial):
     """Reclaiming expired leases via the Kernel expires leases that have
     passed their TTL -> reconcile LOSTs the orphaned claim."""
-    from lhos.runtimes.multi_agent.reconciliation import reconcile
     from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
+    from lhos.runtimes.multi_agent.reconciliation import reconcile
 
     claims = [TaskClaim(
         claim_id="c", graph_id="g", graph_version=1, task_id="t",
@@ -199,8 +195,8 @@ def test_k4_lease_expiry_reclaim_marks_lost(trial):
 def test_k5_alive_with_active_lease_stays_active(trial):
     """When the process is alive AND the lease is live, reconcile must NOT
     LOST the claim."""
-    from lhos.runtimes.multi_agent.reconciliation import reconcile
     from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
+    from lhos.runtimes.multi_agent.reconciliation import reconcile
 
     claims = [TaskClaim(
         claim_id="c", graph_id="g", graph_version=1, task_id="t",
@@ -224,10 +220,10 @@ def test_k5_alive_with_active_lease_stays_active(trial):
 def test_k6_exactly_one_active_after_reconcile(trial):
     """Multi-agent fleet with several ACTIVE claims — reconcile must never
     produce a second ACTIVE claim for the same task."""
-    from lhos.runtimes.multi_agent.reconciliation import detect_invariants_violations
-    from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
-
     import uuid
+
+    from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
+    from lhos.runtimes.multi_agent.reconciliation import detect_invariants_violations
     claims = [
         TaskClaim(
             claim_id=f"c-{uuid.uuid4().hex[:8]}",

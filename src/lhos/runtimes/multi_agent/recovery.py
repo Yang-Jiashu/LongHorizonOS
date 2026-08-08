@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .models import ClaimState
@@ -17,7 +17,7 @@ from .projections import SchedulerProjection
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def rebuild_projection(
@@ -58,8 +58,8 @@ def projection_fingerprint(proj: SchedulerProjection) -> str:
         for a in proj.attempts.values()
     )
     loads = sorted(
-        (l.agent_id, l.active_claims, l.max_concurrency)
-        for l in proj.loads.values()
+        (load.agent_id, load.active_claims, load.max_concurrency)
+        for load in proj.loads.values()
     )
     payload = json.dumps(
         {"agents": agents, "claims": claims, "attempts": attempts, "loads": loads},

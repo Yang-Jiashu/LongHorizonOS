@@ -45,11 +45,10 @@ def test_scheduler_source_file_forbidden_imports():
 def test_scheduler_package_runtime_no_kernel_modules():
     """Walking the lhos.runtimes.multi_agent package, no imported module
     should resolve to lhos.agent_os internals."""
-    import lhos.runtimes.multi_agent as d2_pkg
-
-    import lhos.agent_os.kernel  # noqa: F401  (ensure it exists)
-    import lhos.agent_os.services  # noqa: F401
+    import lhos.agent_os.kernel
+    import lhos.agent_os.services
     import lhos.agent_os.storage  # noqa: F401
+    import lhos.runtimes.multi_agent as d2_pkg
 
     forbidden = (
         "lhos.agent_os.kernel",

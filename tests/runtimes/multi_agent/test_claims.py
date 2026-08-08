@@ -1,9 +1,7 @@
 """Claim lifecycle and Kernel-lease binding."""
 from __future__ import annotations
 
-import pytest
-
-from lhos.runtimes.multi_agent import ClaimState, TaskClaim
+from lhos.runtimes.multi_agent import ClaimState
 from lhos.runtimes.multi_agent.claims import ClaimManager
 from lhos.runtimes.multi_agent.lease_adapter import claim_resource_uri
 

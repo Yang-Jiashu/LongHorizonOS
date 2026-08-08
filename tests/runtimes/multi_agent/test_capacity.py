@@ -86,8 +86,8 @@ def test_underutilized_agent_gets_more_claims(world):
 
 
 def test_active_count_by_agent_helper():
+    from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
     from lhos.runtimes.multi_agent.projections import active_claim_count_by_agent
-    from lhos.runtimes.multi_agent.models import TaskClaim, ClaimState
 
     claims = [
         TaskClaim(graph_id="g", graph_version=1, task_id="t1", agent_id="a1",

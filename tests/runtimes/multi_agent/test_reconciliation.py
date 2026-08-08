@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
 from lhos.runtimes.multi_agent.reconciliation import (
     detect_invariants_violations,
@@ -20,14 +22,14 @@ def _claim(**kw):
 
 
 def _lease(lease_id, live=True, expires_in_secs=1800):
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     class _L:
         pass
 
     l = _L()
     l.lease_id = lease_id
-    l.expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in_secs)
+    l.expires_at = datetime.now(UTC) + timedelta(seconds=expires_in_secs)
     l._live = live
     return l
 
@@ -166,5 +168,5 @@ def test_detect_invariants_violations_d2_i7_dead_process():
 
 
 def _now():
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc)
+    from datetime import datetime
+    return datetime.now(UTC)

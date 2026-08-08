@@ -6,14 +6,13 @@ the latter only by observing VPG task validity == VERIFIED.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from .models import AttemptState, ScheduledExecutionAttempt
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AttemptManager:

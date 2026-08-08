@@ -1,9 +1,7 @@
 """D2-I10: Eligibility must be deterministic and auditable."""
 from __future__ import annotations
 
-import pytest
-
-from lhos.runtimes.multi_agent import AgentDescriptor, TaskRequirements
+from lhos.runtimes.multi_agent import AgentDescriptor
 from lhos.runtimes.multi_agent.eligibility import evaluate_eligibility
 
 

@@ -15,6 +15,7 @@ FakeVPG exposes exactly that surface with mutable internal state.
 
 from __future__ import annotations
 
+from datetime import UTC
 from typing import Any
 
 from lhos.runtimes.verified_progress.models import (
@@ -221,11 +222,11 @@ class _ProcStub:
 
 class _LeaseStub:
     def __init__(self, resource_id: str, pid: str, ttl: Any) -> None:
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         self.lease_id = f"lease-{resource_id}"
         self.resource_id = resource_id
         self.owner_pid = pid
-        self.acquired_at = datetime.now(timezone.utc)
+        self.acquired_at = datetime.now(UTC)
         ttl_secs = int(ttl.total_seconds()) if isinstance(ttl, timedelta) else 1800
         self.expires_at = self.acquired_at + timedelta(seconds=ttl_secs)

@@ -13,6 +13,7 @@ tests, callers pass a file-backed path; for unit tests, ":memory:" is fine.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import shutil
@@ -219,10 +220,8 @@ def spawn_worker(args: list[str], **kw: Any) -> subprocess.Popen:
 
 
 def kill_and_wait(proc: subprocess.Popen, *, timeout: float = SIGKILL_TIMEOUT) -> int:
-    try:
+    with contextlib.suppress(ProcessLookupError):
         os.kill(proc.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
     try:
         return proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
