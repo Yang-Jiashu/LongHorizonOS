@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from .models import ClaimState
 from .projections import SchedulerProjection
 
 
@@ -81,7 +82,7 @@ def finalize_after_restart(
     """
     tally: dict[str, int] = {"claims_marked_lost": 0, "orphan_leases_released": 0}
     for c in list(claims):
-        if c.state.value != "active":
+        if c.state != ClaimState.ACTIVE:
             continue
         if c.lease_id and not lease_is_live(c.lease_id):
             try:
@@ -89,7 +90,7 @@ def finalize_after_restart(
                 tally["orphan_leases_released"] += 1
             except Exception:
                 pass
-            c.state.value = "lost"
+            c.state = ClaimState.LOST
             c.released_at = _now()
             c.reason = "restart_no_live_lease"
             tally["claims_marked_lost"] += 1
@@ -101,7 +102,7 @@ def finalize_after_restart(
                     tally["orphan_leases_released"] += 1
                 except Exception:
                     pass
-            c.state.value = "lost"
+            c.state = ClaimState.LOST
             c.released_at = _now()
             c.reason = "restart_process_dead"
             tally["claims_marked_lost"] += 1
