@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quick:
+    name: Fast checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+      - name: Lint
+        run: |
+          ruff check src/lhos tests/
+      - name: Format
+        run: ruff format --check src/lhos examples/ tests/
+      - name: Typecheck
+        run: mypy src/lhos
+
+  core-correctness:
+    name: Core correctness (Agent OS, D1, D2, D3, SDK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install ".[dev]"
+      - name: Agent OS
+        run: pytest tests/agent_os -q
+      - name: D1 VPG
+        run: pytest tests/runtimes/verified_progress -q
+      - name: D2
+        run: pytest tests/runtimes/multi_agent -q
+      - name: D3 invalidation + VPG guardian
+        run: |
+          pytest tests/runtimes/verified_progress/invalidation -q
+          pytest tests/sdk/observability -q
+        # NOTE: core correctness jobs HARD-FAIL; no retries/allow-failure.
+
+  product-surface:
+    name: SDK / CLI / demos / benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install ".[dev]"
+      - name: SDK / CLI / demo / bench
+        run: |
+          pytest tests/sdk -q
+          pytest tests/cli -q
+          pytest tests/demo -q
+          pytest tests/benchmarks -q
+
+  fresh-wheel-smoke:
+    name: Fresh wheel outside repo (killer demo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel
+        run: pip install build && python -m build --wheel
+      - name: Fresh install + outside-repo smoke
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl pydantic pyyaml networkx
+          cd /tmp
+          /tmp/smoke/bin/lhos --help
+          /tmp/smoke/bin/lhos demo recovery-repair
+
+  quick-benchmark:
+    name: Quick semantic-repair benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install ".[dev]"
+      - name: Quick benchmark
+        run: lhos benchmark semantic-repair --quick
+    # schedule/opt-in: benchmark-quick is ~90s; full only on scheduled/release.

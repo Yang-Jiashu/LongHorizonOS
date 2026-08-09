@@ -106,6 +106,21 @@ def _fresh_two_ref_manifest(env: dict) -> ContextManifest:
 _load_cache: dict[int, ContextManifest] = {}
 
 
+@pytest.fixture(autouse=True)
+def _clear_load_cache():
+    """Clear the module-global _load_cache between tests.
+
+    _cached_load keys the cache by ``id(env)``.  In a large single-process run
+    Python may reuse a freed dict's memory address, so a *previous* test's env
+    can collide with a *later* test's env id, returning a stale manifest and
+    causing order-dependent results (the E6 full-suite flake).  Clearing the
+    cache before each test removes that cross-test leakage.
+    """
+    _load_cache.clear()
+    yield
+    _load_cache.clear()
+
+
 def _cached_load(env: dict):
     """Return a memoised (manifest, loaded) for this env so tests that
     compare across multiple load() calls see identical pinned pages."""
@@ -531,6 +546,21 @@ class TestMutation10_DeterministicTieBreak:
 class TestMutation11_SnapshotRestoreHashVerified:
     def test_baseline_snapshot_materialized_hash_matches_loaded(self, env: dict) -> None:
         _, loaded = _cached_load(env)
+        snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
+        assert snap.materialized_hash == loaded.materialized_hash
+
+    def test_regression_cache_cleared_between_tests(self, env: dict) -> None:
+        """E6 full-suite flake regression: the module-global _load_cache was keyed
+        by ``id(env)`` but never cleared between tests, so a freed dict's memory
+        address (reused by a later test) returned a stale manifest, making
+        materialized_hash order-dependent.  The autouse fixture clears the cache
+        before each test, so ``id(env)`` must NOT contain a stale entry from a
+        prior test here."""
+        # The autouse fixture ran before this test body, clearing any entry a
+        # previous test might have left under this (or any reused) env id.
+        assert id(env) not in _load_cache, "stale cache entry leaked across tests"
+        m, loaded = _cached_load(env)
+        assert loaded is not None and getattr(loaded, "context_id", None), "stale/None load"
         snap = env["ctx_sdk"].snapshot(pid="p1", context_id=loaded.context_id)
         assert snap.materialized_hash == loaded.materialized_hash
 

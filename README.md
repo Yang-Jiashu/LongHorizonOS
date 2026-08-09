@@ -44,6 +44,39 @@ lhos demo recovery-repair --json   # machine-readable summary
 Docs: `docs/demos/RECOVERY-REPAIR.md`.  (The `lhos` CLI is the Core V1 surface;
 the legacy spec-20 CLI is reachable via `lhos legacy`.)
 
+## Install
+
+Requires Python 3.11+.
+
+```bash
+pip install .            # from a source checkout
+# or, from a built release artifact:
+pip install dist/lhos-0.1.0-py3-none-any.whl
+```
+
+Editable/dev install (runs tests, lints, demos): `make install` then `make test`.
+
+## 30-second SDK quickstart
+
+```python
+from lhos.sdk import Agent, AgentOS, Goal, scripted_executor
+
+os_ = AgentOS(":memory:")                                   # composition root
+os_.add_agent(Agent("coder", specializations=("python",)))  # real Kernel process
+
+goal = Goal("Hello")
+goal.task("Write hello", agent="coder",
+          verify=scripted_executor(artifact_id="hello.txt", version=1))
+
+result = os_.run(goal, max_dispatches=4)   # Scheduler claims + dispatches
+print(result.task_states, result.verified)  # VPG derives VERIFIED from evidence
+```
+
+Runnable copy: `examples/quickstart/hello_world.py`.  A Task without a verifier
+stays **UNVERIFIED** by design (fail-closed); attach a `Verifier` (callback /
+command / scripted) to close it with evidence.  Full guide: `docs/QUICKSTART.md`.
+Concepts: `docs/CONCEPTS.md`.  Python API: `docs/sdk/`.
+
 ## Current Status (Phase D3 — Version-aware causal invalidation and local repair implemented)
 
 Verified Progress Runtime — implemented
