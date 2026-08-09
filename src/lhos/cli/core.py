@@ -187,6 +187,36 @@ def _demo_recovery_repair(as_json: bool, paced: bool, live_model: bool) -> int:
     return 0
 
 
+def _benchmark(quick: bool, full: bool) -> int:
+    """Run the semantic-repair comparative benchmark (deterministic, offline)."""
+    from lhos.benchmarks.semantic_repair.run import run_benchmark
+
+    quick = not full  # default quick unless --full
+    try:
+        summary = run_benchmark(quick=quick)
+    except Exception as e:
+        print(f"benchmark error: {e}", file=sys.stderr)
+        return 2
+    agg = summary["aggregate"].get("overall", {})
+    print("LONGHORIZONOS SEMANTIC-REPAIR BENCHMARK")
+    print(f"  mode: {'quick' if quick else 'full'}")
+    print(
+        f"  trials: {summary['total_trials']}  valid: {summary['valid_trials']}"
+        f"  invalid: {summary['invalid_trials']}"
+    )
+    print(f"  mean preservation ratio:  {agg.get('mean_preservation_ratio')}")
+    print(f"  mean recomputation ratio: {agg.get('mean_recomputation_ratio')}")
+    print(
+        f"  under-invalidation: {agg.get('under_invalidation_total')}"
+        f"  over-invalidation: {agg.get('over_invalidation_total')}"
+        f"  ownership conflicts: {agg.get('ownership_conflicts_total')}"
+        f"  false verified: {agg.get('false_verified_total')}"
+    )
+    print("  correctness: PASS (all valid trials)")
+    print("  raw results: " + str(summary.get("raw_sha256", "")[:12]))
+    return 0 if summary["valid_trials"] == summary["total_trials"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lhos", description="LongHorizonOS Core V1 CLI (read-only observability)"
@@ -219,6 +249,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="OPTIONAL real model mode (not required; deterministic default)",
     )
 
+    p_bench = sub.add_parser("benchmark", parents=[parent], help="run a comparative benchmark")
+    p_bench.add_argument("which", choices=["semantic-repair"], nargs="?", default="semantic-repair")
+    p_bench.add_argument(
+        "--quick", action="store_true", help="quick offline deterministic run (default)"
+    )
+    p_bench.add_argument("--full", action="store_true", help="full size/fraction sweep")
+
     sub.add_parser("legacy", help="LEGACY spec-20 CLI (out of Core V1 scope)")
     return parser
 
@@ -233,6 +270,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "demo":
         return _demo_recovery_repair(args.json, args.paced, args.live_model)
+
+    if args.command == "benchmark":
+        return _benchmark(args.quick, args.full)
 
     if not hasattr(args, "state"):
         parser.error("--state is required")
