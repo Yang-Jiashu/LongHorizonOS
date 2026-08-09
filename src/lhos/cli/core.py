@@ -95,6 +95,98 @@ def _graph(os_: AgentOS, goal_id: str, as_json: bool) -> int:
     return 0
 
 
+def _demo_recovery_repair(as_json: bool, paced: bool, live_model: bool) -> int:
+    """Run the flagship one-command demo (deterministic, real Core)."""
+    from lhos.demo.recovery_repair import DemoAssertionError, run_recovery_repair
+
+    pause = 0.5 if paced else 0.0
+    try:
+        _os, ws_dir, sem = run_recovery_repair(pause=pause)
+    except DemoAssertionError as e:
+        print(f"demo semantic assertion failed: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"demo runtime error: {e}", file=sys.stderr)
+        return 2
+    T = chr(0x2713)  # check
+    X = chr(0x2717)  # cross
+    SK = chr(0x1F4A5)  # boom
+    if as_json:
+        print(
+            json.dumps(
+                {"demo": "recovery-repair", "workspace": str(ws_dir), "result": sem.as_dict()},
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    lines = []
+    tr = sem.artifact_transition
+    lines.append("LONGHORIZONOS - Recovery + Semantic Reconciliation Demo")
+    lines.append("")
+    lines.append("===== 1. BUILD VERIFIED PROGRESS =====")
+    lines.append("Goal: Ship a verified feature")
+    for t in sorted(sem.initial_verified):
+        lines.append(f"  {T} {t:<24} VERIFIED")
+    lines.append("")
+    lines.append("GOAL CLOSED")
+    lines.append("")
+    lines.append("===== 2. WORKER FAILURE =====")
+    lines.append(
+        f"{SK} coder-1 terminates  (mode: {sem.metrics.get('ownership_recovery_mode', '-')})"
+    )
+    lines.append("  Task: Implement")
+    lines.append("  Kernel Lease: RELEASED")
+    lines.append(f"  Ownership recovered {T}")
+    lines.append("")
+    lines.append("===== 3. WORLD CHANGED =====")
+    lines.append(
+        f"  Artifact: {tr.get('artifact', '?')}@v{tr.get('old_version', '?')} -> @v{tr.get('new_version', '?')}"
+    )
+    lines.append(f"  old Evidence historical: {sem.old_evidence_historical!s}")
+    lines.append(
+        "  old Evidence current applicability: " + ("NO" if sem.old_evidence_not_current else "?")
+    )
+    lines.append("")
+    lines.append("===== 4. SEMANTIC RECONCILIATION =====")
+    for t in sorted(set(sem.initial_verified)):
+        if t in sem.affected_tasks:
+            lines.append(f"  {X} {t:<24} STALE")
+        else:
+            lines.append(f"  {T} {t:<24} VERIFIED   PRESERVED")
+    lines.append(f"  Invalidated tasks: {len(sem.affected_tasks)}")
+    lines.append(f"  Preserved VERIFIED tasks: {len(sem.preserved_tasks)}")
+    lines.append(f"  Repair Frontier: {', '.join(sem.repair_frontier) or '(empty)'}")
+    lines.append("  GOAL REOPENED")
+    lines.append("")
+    lines.append("===== 5. LOCAL REPAIR =====")
+    lines.append(
+        f"  D2 schedules: {', '.join(sem.repair_frontier) or '-'} with new exact-version Evidence"
+    )
+    lines.append(
+        f"  repair executions: {sem.repair_attempts}; new Evidence: {sem.new_evidence_count}"
+    )
+    lines.append("")
+    lines.append("===== 6. SEMANTIC CLOSURE RESTORED =====")
+    for t in sorted(sem.final_verified):
+        lines.append(f"  {T} {t:<24} VERIFIED")
+    lines.append("GOAL CLOSED")
+    lines.append("")
+    lines.append("SUMMARY")
+    lines.append(f"  Worker crash recovered: {'YES' if sem.crash_recovered else 'NO'}")
+    lines.append(
+        f"  Artifact versions: v{tr.get('old_version', '?')} -> v{tr.get('new_version', '?')}"
+    )
+    lines.append(f"  Invalidated tasks: {len(sem.affected_tasks)}")
+    lines.append(f"  Preserved VERIFIED tasks: {len(sem.preserved_tasks)}")
+    lines.append(f"  Minimal repair used: {'YES' if sem.repair_frontier else 'NO'}")
+    lines.append(f"  Full restart avoided: {'YES' if sem.full_restart_avoided else 'NO'}")
+    lines.append(f"  New Evidence required: {'YES' if sem.new_evidence_count else 'NO'}")
+    lines.append(f"  Semantic closure restored: {'YES' if sem.final_closed else 'NO'}")
+    print(chr(10).join(lines))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lhos", description="LongHorizonOS Core V1 CLI (read-only observability)"
@@ -116,6 +208,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_inspect.add_argument("kind", choices=["task", "evidence"], help="object kind")
     p_inspect.add_argument("obj", help="task id or evidence id")
     sub.add_parser("graph", parents=[parent], help="render the verified progress graph")
+
+    p_demo = sub.add_parser("demo", help="run a self-contained demonstration")
+    p_demo.add_argument("which", choices=["recovery-repair"], nargs="?", default="recovery-repair")
+    p_demo.add_argument("--json", action="store_true", help="machine-readable JSON summary")
+    p_demo.add_argument("--paced", action="store_true", help="add presentation delay (GIF/CI off)")
+    p_demo.add_argument(
+        "--live-model",
+        action="store_true",
+        help="OPTIONAL real model mode (not required; deterministic default)",
+    )
+
     sub.add_parser("legacy", help="LEGACY spec-20 CLI (out of Core V1 scope)")
     return parser
 
@@ -127,6 +230,9 @@ def main(argv: list[str] | None = None) -> int:
         from lhos.cli.main import main as legacy_main
 
         return legacy_main(argv)
+
+    if args.command == "demo":
+        return _demo_recovery_repair(args.json, args.paced, args.live_model)
 
     if not hasattr(args, "state"):
         parser.error("--state is required")

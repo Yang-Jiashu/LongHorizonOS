@@ -23,6 +23,27 @@ Still future / product / ecosystem work (NOT part of Core V1): real model
 integrations, a developer-facing high-level SDK, CLI UX, browser tooling, and
 distributed scheduling.
 
+## See the difference
+
+Run the flagship once and watch a real worker crash get recovered, a real
+ArtifactVersion change turn only the affected work stale (while unrelated
+**VERIFIED** work stays preserved), and a **minimal** repair frontier re-close the
+Goal with new exact-version Evidence — no full restart.
+
+```bash
+lhos demo recovery-repair          # deterministic, no API key
+lhos demo recovery-repair --json   # machine-readable summary
+```
+
+- Worker crash → **execution ownership recovered**
+- Artifact change → **old Evidence loses current applicability** (history intact)
+- Only affected work becomes **STALE**; unrelated **VERIFIED work is preserved**
+- A **minimal Repair Frontier** is derived; only necessary work reruns
+- Repair requires **new exact-version Evidence**; Goal re-closes
+
+Docs: `docs/demos/RECOVERY-REPAIR.md`.  (The `lhos` CLI is the Core V1 surface;
+the legacy spec-20 CLI is reachable via `lhos legacy`.)
+
 ## Current Status (Phase D3 — Version-aware causal invalidation and local repair implemented)
 
 Verified Progress Runtime — implemented

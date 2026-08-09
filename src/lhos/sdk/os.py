@@ -527,6 +527,10 @@ class AgentOS:
         self._last_repair = outcome
         return outcome
 
+    def clear_repair(self) -> None:
+        """Clear the last D3 repair overlay (used after reclosure)."""
+        self._last_repair = None
+
     # ── real workspace <-> ArtifactVersion bridge (E2, §15/§16) ─────────────
     def register_workspace_artifact(self, workspace, rel: str, version: int) -> str:
         """Register a real workspace file's current bytes as the exact
