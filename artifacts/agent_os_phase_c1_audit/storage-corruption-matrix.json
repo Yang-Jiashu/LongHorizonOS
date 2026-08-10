@@ -1,0 +1,8 @@
+{
+  "corruption_types_executed": 4,
+  "cas_corruption": "passed",
+  "journal_meta_corruption": "passed",
+  "orphan_artifact_projection": "passed",
+  "orphan_staged_transaction": "passed",
+  "recorded_at": "2026-08-06T00:00:00Z"
+}
