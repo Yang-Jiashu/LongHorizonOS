@@ -22,12 +22,16 @@ def decode_task_requirements(
     """
     meta = task_node_payload.get("metadata") or {}
     sched = meta.get("scheduler") if isinstance(meta, dict) else {}
+    sdk = meta.get("sdk") if isinstance(meta, dict) else {}
     if not isinstance(sched, dict):
         sched = {}
+    if not isinstance(sdk, dict):
+        sdk = {}
 
     return TaskRequirements(
         task_id=task_id,
         task_kind=sched.get("task_kind", "") or task_node_payload.get("task_kind", ""),
+        preferred_agent=str(sdk.get("agent", "")),
         required_specializations=_to_tuple(sched.get("required_specializations")),
         preferred_specializations=_to_tuple(sched.get("preferred_specializations")),
         required_tools=_to_tuple(sched.get("required_tools")),

@@ -104,6 +104,52 @@ def test_evidence_guardian_never_sets_verified_directly():
     assert res.task_states["T1"] in ("unverified", "invalid")
 
 
+def test_failed_attempts_release_leases_and_stop_at_budget():
+    os_ = AgentOS(":memory:")
+    os_.add_agent(Agent("a", specializations=("python",)))
+    calls = 0
+
+    def fail():
+        nonlocal calls
+        calls += 1
+        return VerificationOutcome(passed=False, artifact_id="x", version=1)
+
+    goal = Goal("G")
+    goal.task(
+        "T1",
+        agent="a",
+        verify=callback_verifier(fail),
+        max_attempts=2,
+    )
+    result = os_.run(goal, max_dispatches=8)
+    gid = os_._gid_for("G")
+
+    assert calls == 2
+    assert result.task_states["T1"] == "unverified"
+    assert [attempt.attempt_number for attempt in os_.scheduler.attempts] == [0, 1]
+    assert all(claim.state.value == "released" for claim in os_.scheduler.claims)
+    assert os_.kernel._lease_service.list_active_leases_for_resource(f"task://{gid}/T1") == []
+
+
+def test_successful_attempt_completes_claim_and_releases_lease():
+    os_ = AgentOS(":memory:")
+    os_.add_agent(Agent("a", specializations=("python",)))
+    goal = Goal("G")
+    goal.task(
+        "T1",
+        agent="a",
+        verify=scripted_executor(artifact_id="x", version=1),
+    )
+
+    result = os_.run(goal, max_dispatches=2)
+    gid = os_._gid_for("G")
+
+    assert "T1" in result.verified
+    assert os_.scheduler.claims[-1].state.value == "completed"
+    assert os_.scheduler.attempts[-1].state.value == "verified_semantically"
+    assert os_.kernel._lease_service.list_active_leases_for_resource(f"task://{gid}/T1") == []
+
+
 def test_verification_outcome_struct():
     o = VerificationOutcome(passed=True, artifact_id="a", version=1, content="c", evidence_note="e")
     assert o.passed and o.artifact_id == "a"
@@ -160,9 +206,62 @@ def test_repair_flow_marks_affected_preserves_unaffected():
     assert "T2" in rep.affected and "T4" in rep.affected
     assert "T1" in rep.preserved and "T3" in rep.preserved
     assert rep.frontier == ["T2"]  # minimal frontier
+    assert os_.vpg.inspect_node(os_._gid_for("Ship"), "T2").validity.value == "stale"
     # re-run restores closure
     r1 = os_.run(goal, max_dispatches=10)
     assert set(r1.verified) == {"T1", "T3", "T2", "T4"}
+
+
+def test_open_run_recovers_persistent_facts_without_mutation(tmp_path):
+    db = tmp_path / "state.sqlite"
+    manifest = tmp_path / "run.json"
+    os_ = AgentOS(str(db))
+    os_.add_agent(Agent("a", specializations=("python",)))
+    goal = Goal("G")
+    goal.task(
+        "T1",
+        agent="a",
+        verify=scripted_executor(artifact_id="x", version=1),
+    )
+    os_.run(goal, max_dispatches=2)
+    gid = os_._gid_for("G")
+    os_.save_run(str(manifest))
+    os_.close()
+    before = db.stat().st_mtime_ns
+
+    reopened = AgentOS.open_run(str(manifest))
+    try:
+        assert reopened.kernel is None
+        assert reopened._facts.latest("x") == 1
+        assert reopened.vpg.inspect_node(gid, "T1").validity.value == "verified"
+        assert reopened.result(gid).goal_state == "closed"
+    finally:
+        reopened.close()
+
+    assert db.stat().st_mtime_ns == before
+
+
+def test_open_run_missing_graph_fails_closed(tmp_path):
+    import json
+
+    from lhos.sdk import ConfigurationError
+
+    db = tmp_path / "state.sqlite"
+    manifest = tmp_path / "run.json"
+    os_ = AgentOS(str(db))
+    os_.add_agent(Agent("a", specializations=("python",)))
+    goal = Goal("G")
+    goal.task("T1", agent="a")
+    os_._compile_goal(goal)
+    os_.save_run(str(manifest))
+    os_.close()
+
+    raw = json.loads(manifest.read_text(encoding="utf-8"))
+    raw["goals"]["G"]["graph_id"] = "missing-graph"
+    manifest.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="will not rebuild"):
+        AgentOS.open_run(str(manifest))
 
 
 # ── result / status ────────────────────────────────────────────────────────

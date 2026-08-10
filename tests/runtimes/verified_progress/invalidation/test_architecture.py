@@ -44,7 +44,7 @@ _IMPORT_RE = re.compile(
 
 def test_d3_never_imports_kernel_or_d2():
     for p in _files(D3_SRC):
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         for m in _IMPORT_RE.finditer(src):
             raise AssertionError(f"{p} must not import kernel/D2 internal: {m.group(1)!r}")
         # stripped-line presence as exact module path is equally disallowed
@@ -65,7 +65,7 @@ def test_d3_never_calls_claim_or_dispatch_primitive():
         "KernelLeaseProvider",
     )
     for p in _files(D3_SRC):
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         for b in banned_call_sites:
             assert b not in src, f"{p} must not reference claim/dispatch primitive {b!r}"
 
@@ -73,5 +73,5 @@ def test_d3_never_calls_claim_or_dispatch_primitive():
 def test_d2_does_not_depend_on_d3():
     d2_files = _files(SRC / "runtimes" / "multi_agent")
     for p in d2_files:
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         assert "invalidation" not in src, f"{p} must not import D3"

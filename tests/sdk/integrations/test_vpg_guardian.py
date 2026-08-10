@@ -21,7 +21,7 @@ def test_integrations_never_import_core_private_storage():
     for p in INTEG.rglob("*.py"):
         if p.name == "__init__.py" or "__pycache__" in str(p):
             continue
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         for banned in (
             "lhos.runtimes.verified_progress.graph_store",
             "lhos.runtimes.multi_agent.scheduler",
@@ -38,7 +38,7 @@ def test_core_never_imports_integrations_or_sdk_agents():
         for p in root.rglob("*.py"):
             if "__pycache__" in str(p) or p.name == "__init__.py":
                 continue
-            src = p.read_text()
+            src = p.read_text(encoding="utf-8")
             assert "lhos.integrations" not in src, f"{p} must not import integrations"
 
 

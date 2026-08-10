@@ -11,24 +11,14 @@ Phase 2E enhancements:
 
 from __future__ import annotations
 
-import re
 import subprocess
 from datetime import datetime
 
 from lhos.domain.errors import ToolExecutionError
 from lhos.ports.tools import ToolMetadata, ToolRequest, ToolResult
+from lhos.subprocess_policy import CommandPolicyError, run_command
 
 _MAX_OUTPUT_CHARS = 50_000
-
-# Heuristic patterns that suggest credential or env-var access.
-_BLOCKED_PATTERNS = [
-    re.compile(r"\bprintenv\b", re.IGNORECASE),
-    re.compile(r"\benv\b(?!\s*/)", re.IGNORECASE),
-    re.compile(r"\$\{?[A-Z_]{3,}\}?", re.IGNORECASE),  # $VAR or ${VAR}
-    re.compile(r"/etc/passwd|/etc/shadow|\.ssh/", re.IGNORECASE),
-    re.compile(r"\bcurl\b|\bwget\b|\bnc\b|\bnetcat\b", re.IGNORECASE),
-    re.compile(r"\bssh\b|\bscp\b|\brsync\b", re.IGNORECASE),
-]
 
 
 def _now() -> datetime:
@@ -44,38 +34,40 @@ def _truncate(text: str, max_chars: int = _MAX_OUTPUT_CHARS) -> str:
 class ShellTool:
     name = "shell"
 
-    def __init__(self, allow_network: bool = False, max_output_chars: int = _MAX_OUTPUT_CHARS):
+    def __init__(
+        self,
+        allow_network: bool = False,
+        max_output_chars: int = _MAX_OUTPUT_CHARS,
+        *,
+        trusted: bool = False,
+        allow_shell: bool = False,
+    ):
         self._allow_network = allow_network
         self._max_output_chars = max_output_chars
+        self._trusted = trusted
+        self._allow_shell = allow_shell
 
     def execute(self, request: ToolRequest, workspace_dir: str) -> ToolResult:
         command = request.arguments.get("command")
         if not command:
             raise ToolExecutionError("shell tool requires arguments.command")
 
-        # Block suspicious patterns unless network is explicitly allowed.
-        if not self._allow_network:
-            for pattern in _BLOCKED_PATTERNS:
-                if pattern.search(command):
-                    raise ToolExecutionError(
-                        f"shell command blocked (potential credential/network access): "
-                        f"{command[:200]}"
-                    )
-
         started = _now()
         try:
-            proc = subprocess.run(
+            proc = run_command(
                 command,
-                shell=True,
                 cwd=workspace_dir,
-                capture_output=True,
-                text=True,
                 timeout=request.timeout_seconds,
+                trusted=self._trusted,
+                allow_shell=self._allow_shell,
+                allow_network=self._allow_network,
             )
         except subprocess.TimeoutExpired as exc:
             raise ToolExecutionError(
                 f"shell command timed out after {request.timeout_seconds}s: {command}"
             ) from exc
+        except CommandPolicyError as exc:
+            raise ToolExecutionError(f"shell command denied: {exc}") from exc
         finished = _now()
         return ToolResult(
             success=proc.returncode == 0,

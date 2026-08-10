@@ -31,6 +31,7 @@ class Goal:
         task_kind: str = "task",
         required_specializations: tuple[str, ...] | None = None,
         required_tools: tuple[str, ...] = (),
+        max_attempts: int | None = 3,
         metadata: dict | None = None,
     ) -> Task:
         t = Task(
@@ -41,6 +42,7 @@ class Goal:
             task_kind=task_kind,
             required_specializations=required_specializations,
             required_tools=required_tools,
+            max_attempts=max_attempts,
             metadata=metadata,
         )
         self.add_task(t)

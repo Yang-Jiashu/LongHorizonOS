@@ -46,6 +46,54 @@ def test_single_ready_task_dispatched():
     assert res.dispatched[0]["agent_id"] == "a1"
 
 
+def test_preferred_agent_wins_when_eligible():
+    vpg = FakeVPG()
+    sch = fake_scheduler(_two_agents(), fake_vpg=vpg)
+    vpg.add_ready_task(
+        "t1",
+        required_specializations=("python",),
+        metadata_extra={"sdk": {"agent": "a2"}},
+    )
+
+    result = sch.schedule_once(vpg.graph_id)
+
+    assert result.dispatched[0]["agent_id"] == "a2"
+
+
+def test_ineligible_preferred_agent_does_not_block_fallback():
+    vpg = FakeVPG()
+    agents = _two_agents()
+    agents["a2"]["specializations"] = ("review",)
+    sch = fake_scheduler(agents, fake_vpg=vpg)
+    vpg.add_ready_task(
+        "t1",
+        required_specializations=("python",),
+        metadata_extra={"sdk": {"agent": "a2"}},
+    )
+
+    result = sch.schedule_once(vpg.graph_id)
+
+    assert result.dispatched[0]["agent_id"] == "a1"
+
+
+def test_max_attempts_is_enforced_per_semantic_epoch():
+    vpg = FakeVPG()
+    sch = fake_scheduler(_two_agents(), fake_vpg=vpg)
+    vpg.add_ready_task(
+        "t1",
+        required_specializations=("python",),
+        metadata_extra={"scheduler": {"max_attempts": 1}},
+    )
+
+    first = sch.schedule_once(vpg.graph_id)
+    assert first.dispatched
+    sch.release_task(vpg.graph_id, "t1")
+    second = sch.schedule_once(vpg.graph_id)
+
+    assert second.dispatched == []
+    assert "max_attempts exhausted" in second.skipped[0][1]
+
+
 def test_second_schedule_same_task_skipped():
     """An existing ACTIVE claim means the task is not re-dispatched (D2-I4)."""
     vpg = FakeVPG()

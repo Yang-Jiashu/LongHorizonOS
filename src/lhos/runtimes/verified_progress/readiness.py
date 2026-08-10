@@ -82,6 +82,8 @@ def task_is_ready(
     """Check readiness predicate for a single TaskNode."""
     if task.lifecycle != NodeLifecycle.ADMITTED:
         return False
+    if task.validity == NodeValidity.STALE and not task.metadata.get("__repair_ready", False):
+        return False
     if task.validity not in {NodeValidity.UNVERIFIED, NodeValidity.STALE}:
         return False
     return _task_deps_all_verified(task.node_id, nodes, edges)

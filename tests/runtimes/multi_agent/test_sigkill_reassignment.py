@@ -19,6 +19,7 @@ import contextlib
 import os
 import signal
 import subprocess
+import sys
 
 import pytest
 
@@ -29,11 +30,12 @@ from tests.runtimes.multi_agent.test_providers import (
     wait_for_child_exit,
 )
 
-# Use the real venv interpreter for worker children.
-_PY = os.path.join(
-    os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, ".", ".venv", "bin", "python"
-)
-_PY = os.path.abspath(_PY)
+# Worker children run on the interpreter that is running the tests.
+_PY = sys.executable
+
+# Windows has no SIGKILL; os.kill(pid, SIGTERM) maps to TerminateProcess there,
+# which is equally uncatchable.
+_HARD_KILL = getattr(signal, "SIGKILL", signal.SIGTERM)
 
 
 # ── worker scripts (strings) ────────────────────────────────────────────
@@ -113,7 +115,7 @@ def test_k2_dead_agent_not_eligible(trial):
         with open(marker) as f:
             pid = f.read().strip()
         # Kill the agent immediately.
-        os.kill(proc.pid, signal.SIGKILL)
+        os.kill(proc.pid, _HARD_KILL)
         wait_for_child_exit(proc)
         from lhos.agent_os.sdk.client import create_kernel
 
@@ -147,7 +149,7 @@ def test_k3_lease_lost_after_kill_marks_claim_lost(trial):
 
         kernel = create_kernel(db)
         # The worker process becomes the agent's "process". Kill it.
-        os.kill(proc.pid, signal.SIGKILL)
+        os.kill(proc.pid, _HARD_KILL)
         wait_for_child_exit(proc)
         # Simulate an ACTIVE claim that was held by this agent.
         claims = [

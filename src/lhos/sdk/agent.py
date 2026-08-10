@@ -32,6 +32,8 @@ class Agent:
         matched against task required_specializations for deterministic matching.
     supported_task_kinds : tuple[str, ...] | None
         None => ("*",) (any kind).
+    supported_tools : tuple[str, ...] | None
+        Tools this Agent can execute for scheduler eligibility.
     capabilities : tuple[str, ...] | None
         resource patterns to grant (e.g. ("shell", "filesystem")).  If None, the
         agent gets a default broad grant for demo simplicity.
@@ -46,6 +48,7 @@ class Agent:
         executor: Any = None,
         specializations: tuple[str, ...] = ("python",),
         supported_task_kinds: tuple[str, ...] | None = None,
+        supported_tools: tuple[str, ...] | None = None,
         capabilities: tuple[str, ...] | None = None,
         max_concurrency: int = 4,
         cost_weight: float = 1.0,
@@ -57,6 +60,7 @@ class Agent:
         self.executor = executor
         self.specializations = tuple(specializations)
         self.supported_task_kinds = supported_task_kinds or ("*",)
+        self.supported_tools = None if supported_tools is None else tuple(supported_tools)
         self.capabilities = capabilities
         self.max_concurrency = max_concurrency
         self.cost_weight = cost_weight

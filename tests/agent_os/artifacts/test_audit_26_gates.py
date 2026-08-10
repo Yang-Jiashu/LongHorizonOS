@@ -344,7 +344,7 @@ class TestGate19_ArtifactFSDecoupled:
     def test_no_vpg_imports(self):
         import lhos.agent_os.artifacts.service as svc_mod
 
-        source = Path(svc_mod.__file__).read_text()
+        source = Path(svc_mod.__file__).read_text(encoding="utf-8")
         assert "runtimes" not in source
         assert "harnesses" not in source
         assert "vpg" not in source.lower()
@@ -548,10 +548,10 @@ class TestAll26GatesPass:
                 )
             },
         }
-        path = Path(
-            "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/"
-            "longhorizonos/artifacts/agent_os_phase_c1_audit/gate-verification.json"
+        path = (
+            Path(__file__).resolve().parents[3]
+            / "artifacts/agent_os_phase_c1_audit/gate-verification.json"
         )
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(summary, indent=2))
+        path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         assert path.exists()

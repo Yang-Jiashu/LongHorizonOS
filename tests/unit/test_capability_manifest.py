@@ -277,7 +277,9 @@ def test_runtime_does_not_import_hidden_oracle():
         try:
             mod = importlib.import_module(modname)
             source = (
-                Path(mod.__file__).read_text() if hasattr(mod, "__file__") and mod.__file__ else ""
+                Path(mod.__file__).read_text(encoding="utf-8")
+                if hasattr(mod, "__file__") and mod.__file__
+                else ""
             )
             assert "HiddenOracleSpec" not in source, f"module {modname} references HiddenOracleSpec"
             assert "to_hidden_oracle" not in source, f"module {modname} references to_hidden_oracle"
@@ -289,7 +291,7 @@ def test_no_oracle_access_in_transcript_source():
     """The transcript module must not import or reference oracle info."""
     import lhos.benchmarks.transcript as transcript_mod
 
-    source = Path(transcript_mod.__file__).read_text()
+    source = Path(transcript_mod.__file__).read_text(encoding="utf-8")
     assert "task.oracle.priorities" not in source, (
         "transcript module accesses task.oracle.priorities"
     )

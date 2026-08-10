@@ -38,7 +38,7 @@ class Database:
         self._run_migrations()
 
     def _run_migrations(self) -> None:
-        """Run additive migrations (never destructive; does not break replay)."""
+        """Run additive migrations atomically and fail closed."""
         if not MIGRATIONS_DIR.is_dir():
             return
         # Ensure migration tracking table exists.
@@ -59,26 +59,51 @@ class Database:
                 if sql_file.name == "001_llm_calls.sql":
                     self._ensure_llm_calls_columns()
                 continue
-            try:
-                # Pre-migration check for 003: detect duplicate data.
+            if self._migration_already_in_schema(sql_file.name):
+                self._mark_migration_applied(sql_file.name)
+                continue
+            with self.transaction():
                 if sql_file.name == "003_fix_execution_uniqueness.sql":
                     self._check_execution_duplicates()
-                self._conn.executescript(sql_file.read_text(encoding="utf-8"))
-                from datetime import datetime
+                self._execute_script(sql_file.read_text(encoding="utf-8"))
+                self._mark_migration_applied(sql_file.name)
 
+    def _migration_already_in_schema(self, name: str) -> bool:
+        if name == "001_llm_calls.sql":
+            return bool(
                 self._conn.execute(
-                    "INSERT INTO schema_migrations(name, applied_at) VALUES (?, ?)",
-                    (sql_file.name, datetime.now().astimezone().isoformat()),
-                )
-            except Exception:
-                # If the migration fails (e.g. duplicate column from newer schema),
-                # still mark it as applied so we don't retry every time.
-                from datetime import datetime
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='llm_calls'"
+                ).fetchone()
+            )
+        if name == "002_node_attempt_counters.sql":
+            columns = {row[1] for row in self._conn.execute("PRAGMA table_info(nodes)").fetchall()}
+            return {"verification_attempts", "parse_attempts", "tool_attempts"} <= columns
+        if name == "003_fix_execution_uniqueness.sql":
+            row = self._conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='executions'"
+            ).fetchone()
+            return bool(row and "UNIQUE(run_id, node_id, attempt_number)" in (row[0] or ""))
+        return False
 
-                self._conn.execute(
-                    "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
-                    (sql_file.name, datetime.now().astimezone().isoformat()),
-                )
+    def _mark_migration_applied(self, name: str) -> None:
+        from datetime import datetime
+
+        self._conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
+            (name, datetime.now().astimezone().isoformat()),
+        )
+
+    def _execute_script(self, script: str) -> None:
+        statement = ""
+        for line in script.splitlines(keepends=True):
+            statement += line
+            if sqlite3.complete_statement(statement):
+                sql = statement.strip()
+                if sql:
+                    self._conn.execute(sql)
+                statement = ""
+        if statement.strip():
+            self._conn.execute(statement)
 
     def _check_execution_duplicates(self) -> None:
         """Pre-migration check: detect duplicate (run_id, node_id, attempt_number).
@@ -97,16 +122,9 @@ class Database:
                 """
             ).fetchall()
             if dupes:
-                # Duplicates exist under the new constraint. The migration
-                # uses INSERT OR IGNORE, so only the first row per group
-                # will be kept. Log but don't fail.
-                import sys
-
-                print(
-                    f"WARNING: {len(dupes)} duplicate execution group(s) found "
-                    f"under UNIQUE(run_id, node_id, attempt_number). "
-                    f"INSERT OR IGNORE will keep the first occurrence.",
-                    file=sys.stderr,
+                raise RuntimeError(
+                    "migration 003 refused: duplicate execution identities "
+                    "would be discarded; repair the data before migrating"
                 )
         except sqlite3.OperationalError:
             # Table doesn't exist yet or has old schema — skip check.

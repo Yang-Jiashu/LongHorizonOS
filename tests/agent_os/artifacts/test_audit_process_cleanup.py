@@ -71,6 +71,30 @@ class TestProcessExitCleanup:
         p1_after = [lease for lease in active_after if lease.owner_pid == pid]
         assert len(p1_after) == 0
 
+    def test_release_all_for_pid_deletes_rows_and_journals_each_lease(self, kernel):
+        """Direct PID cleanup returns an exact count and journals every release."""
+        pcb = kernel._process_service.spawn("prog-direct-release")
+        pid = pcb.pid
+
+        self._acquire(kernel, pid, "model_slot:mock")
+        self._acquire(kernel, pid, "workspace:p1")
+
+        released = kernel._lease_service.release_all_for_pid(pid)
+
+        assert released == 2
+        rows = kernel._storage.query_all(
+            "SELECT lease_id FROM leases_projection WHERE owner_pid = ?",
+            (pid,),
+        )
+        assert rows == []
+
+        events = [
+            event
+            for event in kernel._journal.read_all()
+            if event.pid == pid and event.event_type == "LEASE_RELEASED"
+        ]
+        assert len(events) == 2
+
     def test_exit_journals_exited_event(self, kernel):
         """EXIT must emit a PROCESS_EXITED journal event with exit_code payload."""
         pcb = kernel._process_service.spawn("prog-journal")

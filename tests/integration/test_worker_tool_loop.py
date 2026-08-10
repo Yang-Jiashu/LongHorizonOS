@@ -140,7 +140,7 @@ class TestWorkerAdapterFileWrite:
 
         assert result.status == "claimed_done"
         assert (workspace / "config_loader.py").exists()
-        assert (workspace / "config_loader.py").read_text() == "def load(): pass"
+        assert (workspace / "config_loader.py").read_text(encoding="utf-8") == "def load(): pass"
 
     def test_tool_call_events_exist(self, tool_runtime, event_store):
         """TOOL_CALL_REQUESTED and TOOL_CALL_COMPLETED are both in the event log."""
@@ -231,7 +231,7 @@ class TestWorkerToolLoopReachesVerification:
         assert result.status == "claimed_done"
         assert result.tool_call_count == 3
         assert (workspace / "config.py").exists()
-        assert (workspace / "config.py").read_text() == "import json"
+        assert (workspace / "config.py").read_text(encoding="utf-8") == "import json"
 
         # All 4 LLM calls were made.
         assert len(client.requests) == 4

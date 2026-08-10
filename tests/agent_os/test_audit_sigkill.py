@@ -7,6 +7,8 @@ verifies recovery in a new process.
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -14,6 +16,10 @@ import textwrap
 from pathlib import Path
 
 import pytest
+
+# POSIX reports -SIGKILL. Windows has no SIGKILL and the crash script falls
+# back to SIGTERM, which surfaces as the numeric code 15.
+_HARD_KILL_RETURNCODES = (int(signal.SIGTERM), 1) if os.name == "nt" else (-int(signal.SIGKILL),)
 
 
 def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str:
@@ -58,7 +64,7 @@ def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str
                 # Tick 1: submit → BLOCKED
                 await kernel.tick()
                 # Kill before dispatch
-                os.kill(os.getpid(), sig.SIGKILL)
+                os.kill(os.getpid(), getattr(sig, "SIGKILL", sig.SIGTERM))
 
             elif CRASH_POINT == "B":
                 # IDEMPOTENT side effect happened, completion not committed
@@ -73,7 +79,7 @@ def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str
                 await kernel.tick()  # dispatch → crash_after_effect → "unknown"
                 # Action is RUNNING, effect recorded in driver
                 # Kill before recovery
-                os.kill(os.getpid(), sig.SIGKILL)
+                os.kill(os.getpid(), getattr(sig, "SIGKILL", sig.SIGTERM))
 
             elif CRASH_POINT == "C":
                 # NON_REVERSIBLE side effect, unknown inspect
@@ -86,7 +92,7 @@ def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str
                 program.reset()
                 await kernel.tick()  # submit
                 await kernel.tick()  # dispatch → crash
-                os.kill(os.getpid(), sig.SIGKILL)
+                os.kill(os.getpid(), getattr(sig, "SIGKILL", sig.SIGTERM))
 
             elif CRASH_POINT == "D":
                 # Action COMMITTED, Lease release not yet written
@@ -105,7 +111,7 @@ def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str
                 # Kill after commit but before lease release is journaled
                 # (In current impl, lease release happens in same tick as commit)
                 # So we kill after the tick completes
-                os.kill(os.getpid(), sig.SIGKILL)
+                os.kill(os.getpid(), getattr(sig, "SIGKILL", sig.SIGTERM))
 
             elif CRASH_POINT == "E":
                 # Signal generated but not consumed
@@ -116,7 +122,7 @@ def _write_crash_script(db_path: str, crash_point: str, result_path: str) -> str
                     payload={{"data": "test"}},
                 )
                 # Kill before signal is consumed
-                os.kill(os.getpid(), sig.SIGKILL)
+                os.kill(os.getpid(), getattr(sig, "SIGKILL", sig.SIGTERM))
 
         asyncio.run(run())
     """)
@@ -199,7 +205,7 @@ class TestSigkillRecovery:
             # Write and run crash script
             crash_script = _write_crash_script(db_path, "A", result_path)
             script_path = str(Path(tmpdir) / "crash.py")
-            Path(script_path).write_text(crash_script)
+            Path(script_path).write_text(crash_script, encoding="utf-8")
 
             # Run crash script — it should be killed
             proc = subprocess.run(
@@ -208,12 +214,12 @@ class TestSigkillRecovery:
                 capture_output=True,
             )
             # Process should have been killed (negative return code)
-            assert proc.returncode == -9  # SIGKILL
+            assert proc.returncode in _HARD_KILL_RETURNCODES
 
             # Now run recovery
             recovery_script = _write_recovery_script(db_path, result_path)
             recovery_path = str(Path(tmpdir) / "recover.py")
-            Path(recovery_path).write_text(recovery_script)
+            Path(recovery_path).write_text(recovery_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, recovery_path],
@@ -245,18 +251,18 @@ class TestSigkillRecovery:
 
             crash_script = _write_crash_script(db_path, "B", result_path)
             script_path = str(Path(tmpdir) / "crash.py")
-            Path(script_path).write_text(crash_script)
+            Path(script_path).write_text(crash_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, script_path],
                 timeout=10,
                 capture_output=True,
             )
-            assert proc.returncode == -9
+            assert proc.returncode in _HARD_KILL_RETURNCODES
 
             recovery_script = _write_recovery_script(db_path, result_path)
             recovery_path = str(Path(tmpdir) / "recover.py")
-            Path(recovery_path).write_text(recovery_script)
+            Path(recovery_path).write_text(recovery_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, recovery_path],
@@ -288,18 +294,18 @@ class TestSigkillRecovery:
 
             crash_script = _write_crash_script(db_path, "C", result_path)
             script_path = str(Path(tmpdir) / "crash.py")
-            Path(script_path).write_text(crash_script)
+            Path(script_path).write_text(crash_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, script_path],
                 timeout=10,
                 capture_output=True,
             )
-            assert proc.returncode == -9
+            assert proc.returncode in _HARD_KILL_RETURNCODES
 
             recovery_script = _write_recovery_script(db_path, result_path)
             recovery_path = str(Path(tmpdir) / "recover.py")
-            Path(recovery_path).write_text(recovery_script)
+            Path(recovery_path).write_text(recovery_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, recovery_path],
@@ -324,18 +330,18 @@ class TestSigkillRecovery:
 
             crash_script = _write_crash_script(db_path, "D", result_path)
             script_path = str(Path(tmpdir) / "crash.py")
-            Path(script_path).write_text(crash_script)
+            Path(script_path).write_text(crash_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, script_path],
                 timeout=10,
                 capture_output=True,
             )
-            assert proc.returncode == -9
+            assert proc.returncode in _HARD_KILL_RETURNCODES
 
             recovery_script = _write_recovery_script(db_path, result_path)
             recovery_path = str(Path(tmpdir) / "recover.py")
-            Path(recovery_path).write_text(recovery_script)
+            Path(recovery_path).write_text(recovery_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, recovery_path],
@@ -359,18 +365,18 @@ class TestSigkillRecovery:
 
             crash_script = _write_crash_script(db_path, "E", result_path)
             script_path = str(Path(tmpdir) / "crash.py")
-            Path(script_path).write_text(crash_script)
+            Path(script_path).write_text(crash_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, script_path],
                 timeout=10,
                 capture_output=True,
             )
-            assert proc.returncode == -9
+            assert proc.returncode in _HARD_KILL_RETURNCODES
 
             recovery_script = _write_recovery_script(db_path, result_path)
             recovery_path = str(Path(tmpdir) / "recover.py")
-            Path(recovery_path).write_text(recovery_script)
+            Path(recovery_path).write_text(recovery_script, encoding="utf-8")
 
             proc = subprocess.run(
                 [venv_python, recovery_path],

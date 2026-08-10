@@ -9,9 +9,12 @@ never sets validity directly.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Protocol
+
+from lhos.subprocess_policy import run_command
 
 
 @dataclass
@@ -35,12 +38,24 @@ def callback_verifier(fn: Callable[[], VerificationOutcome]) -> Verifier:
     return fn  # type: ignore[return-value]
 
 
-def command_verifier(command: str, *, artifact_id: str = "artifact", version: int = 1) -> Verifier:
-    """Verify that a shell command runs with exit 0 (deterministic)."""
-    import subprocess
+def command_verifier(
+    command: str | Sequence[str],
+    *,
+    artifact_id: str = "artifact",
+    version: int = 1,
+    cwd: str | Path | None = None,
+    trusted: bool = False,
+    allow_shell: bool = False,
+) -> Verifier:
+    """Verify a controlled local command without raw subprocess fallback."""
 
     def _run() -> VerificationOutcome:
-        proc = subprocess.run(command, shell=True, capture_output=True, text=True)
+        proc = run_command(
+            command,
+            cwd=cwd,
+            trusted=trusted,
+            allow_shell=allow_shell,
+        )
         return VerificationOutcome(
             passed=proc.returncode == 0,
             artifact_id=artifact_id,

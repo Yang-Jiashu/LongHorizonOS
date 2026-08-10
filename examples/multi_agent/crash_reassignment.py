@@ -60,7 +60,8 @@ def main() -> int:
         return pid != dead_pid
 
     rec = reconcile(
-        all_claims, [],
+        all_claims,
+        [],
         lease_is_live=lambda lid: False,
         process_is_alive=process_is_alive,
         vpg_task_verified=lambda tid: False,
@@ -75,8 +76,7 @@ def main() -> int:
     # Bump graph version (as VPG would) and re-run the scheduler.  The
     # surviving agent takes over.
     vpg.bump_version()
-    vpg.add_ready_task("t1", required_specializations=("python",),
-                       version=vpg.current_version)
+    vpg.add_ready_task("t1", required_specializations=("python",), version=vpg.current_version)
     r2 = sch.schedule_once(vpg.graph_id)
     assert len(r2.dispatched) == 1, r2.dispatched
     assert r2.dispatched[0]["agent_id"] == second_agent, r2.dispatched

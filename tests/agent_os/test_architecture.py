@@ -34,7 +34,7 @@ FORBIDDEN_DRIVER_IMPORTS = [
 def _extract_imports(file_path: Path) -> list[str]:
     """Extract all import module paths from a Python file."""
     try:
-        tree = ast.parse(file_path.read_text())
+        tree = ast.parse(file_path.read_text(encoding="utf-8"))
     except SyntaxError:
         return []
 

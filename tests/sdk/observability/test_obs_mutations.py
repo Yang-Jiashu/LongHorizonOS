@@ -62,7 +62,9 @@ def test_m05_repair_frontier_minimal():
     os_.add_agent(Agent("a", specializations=("python",)))
     g = Goal("G")
     t1 = g.task("T1", agent="a", verify=scripted_executor(artifact_id="a.py", version=1))
-    t2 = g.task("T2", agent="a", depends_on=(t1,), verify=scripted_executor(artifact_id="b.py", version=1))
+    t2 = g.task(
+        "T2", agent="a", depends_on=(t1,), verify=scripted_executor(artifact_id="b.py", version=1)
+    )
     os_.run(g, max_dispatches=4)
     os_._facts.add_version("a.py", 2, "v2")
     rep = os_.repair(g, artifact_id="a.py", new_artifact_version=2)
@@ -82,6 +84,7 @@ def test_m07_json_ordering_deterministic():
 # E3-M08: secrets redacted
 def test_m08_secret_redaction():
     from lhos.cli.core import _redact
+
     assert "secret" not in _redact("API_KEY=super-secret value").split("API_KEY=")[-1].split(" ")[0]
 
 

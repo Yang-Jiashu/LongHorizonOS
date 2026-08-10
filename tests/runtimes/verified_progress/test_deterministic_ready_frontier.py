@@ -155,6 +155,7 @@ class TestS30a_SameProcess100:
             assert rt.get_graph(gid).current_version == version_before
             assert len(sig0) > 0, "frontier should be non-empty (t0 is root)"
             assert "t0" in sig0
+            rt.close()
             _record(
                 "S30a", "same_process_100_identical", "all_identical",
                 f"identical={all_identical}; frontier_size={len(sig0)}; version={n}",
@@ -172,16 +173,16 @@ class TestS30b_ColdStart20:
             # Build once, then CLOSE rt so the next open is a true cold start.
             rt, gid = _build_500_dag(db_path, gid)
             sig0, proof0 = _frontier_signature(rt, gid)
-            del rt
+            rt.close()
             all_identical = True
             for i in range(20):
                 rt2 = VerifiedProgressRuntime(db_path)
                 s, p = _frontier_signature(rt2, gid)
                 if (s, p) != (sig0, proof0):
                     all_identical = False
-                    del rt2
+                    rt2.close()
                     break
-                del rt2
+                rt2.close()
             assert all_identical, "READY frontier must be identical across cold-start reconnections"
             _record(
                 "S30b", "cold_start_20_identical", "all_identical",
@@ -207,6 +208,7 @@ class TestS30c_RebuildLoop20:
                     all_identical = False
                     break
             assert all_identical, "READY frontier must be identical across rebuilds"
+            rt.close()
             _record(
                 "S30c", "rebuild_loop_20_identical", "all_identical",
                 f"identical={all_identical}; frontier_size={len(sig0)}",
@@ -237,7 +239,7 @@ class TestS30d_HashSeedVariants:
             gid = "s30d-gid"
             rt, gid = _build_500_dag(db_path, gid)
             sig0, proof0 = _frontier_signature(rt, gid)
-            del rt
+            rt.close()
             child_script_path = os.path.join(td, "_child_ready.py")
             with open(child_script_path, "w") as f:
                 f.write(_CHILD_SCRIPT)

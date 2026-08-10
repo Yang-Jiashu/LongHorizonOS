@@ -143,12 +143,14 @@ def snap(projections):
 class TestProjectionRebuild:
     def test_deterministic_projection_state(self):
         with tempfile.TemporaryDirectory() as tmpdir:
+            stores = []
 
             def build_state(idx):
                 from lhos.agent_os.storage.sqlite import SQLiteStorage
 
                 db_path = str(Path(tmpdir) / f"audit-{idx}.db")
                 storage = SQLiteStorage(db_path)
+                stores.append(storage)
                 journal = JournalService(storage)
                 _, proj, _, _ = _make_state(journal)
                 return proj
@@ -162,11 +164,20 @@ class TestProjectionRebuild:
             snap2 = snap(proj2)
             snap3 = snap(proj3)
 
-            with open("artifacts/agent_os_phase_c1_audit/projection-before.json", "w") as f:
+            for s in stores:
+                s.close()
+
+            with open(
+                "artifacts/agent_os_phase_c1_audit/projection-before.json", "w", encoding="utf-8"
+            ) as f:
                 json.dump(snap1, f, indent=2, default=str)
-            with open("artifacts/agent_os_phase_c1_audit/projection-rebuild-1.json", "w") as f:
+            with open(
+                "artifacts/agent_os_phase_c1_audit/projection-rebuild-1.json", "w", encoding="utf-8"
+            ) as f:
                 json.dump(snap2, f, indent=2, default=str)
-            with open("artifacts/agent_os_phase_c1_audit/projection-rebuild-2.json", "w") as f:
+            with open(
+                "artifacts/agent_os_phase_c1_audit/projection-rebuild-2.json", "w", encoding="utf-8"
+            ) as f:
                 json.dump(snap3, f, indent=2, default=str)
 
             # All snapshots should be identical (deterministic projections)

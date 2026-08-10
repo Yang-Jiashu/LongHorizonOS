@@ -14,7 +14,12 @@ def _make_os_with_repair():
     g = os_.goal("G")
     t1 = g.task("T1", agent="coder", verify=scripted_executor(artifact_id="a.py", version=1))
     t3 = g.task("T3", agent="coder", verify=scripted_executor(artifact_id="b.md", version=1))
-    t2 = g.task("T2", agent="coder", depends_on=(t1,), verify=scripted_executor(artifact_id="a2.py", version=1))
+    t2 = g.task(
+        "T2",
+        agent="coder",
+        depends_on=(t1,),
+        verify=scripted_executor(artifact_id="a2.py", version=1),
+    )
     os_.run(g, max_dispatches=6)
     os_._facts.add_version("a.py", 2, "v2")
     rep = os_.repair(g, artifact_id="a.py", new_artifact_version=2)
@@ -94,6 +99,7 @@ def test_json_is_deterministic_and_schema_versioned():
 
 def test_secret_redaction():
     from lhos.cli.core import _redact
+
     s = "bearer SECRET=abc123 endpoint https://x leak"
     r = _redact(s)
     assert "abc" not in r.split("SECRET=")[-1].split(" ")[0]
@@ -108,8 +114,12 @@ def test_large_graph_status_sanity():
     g = Goal("Big")
     prev = None
     for i in range(150):
-        t = g.task(f"T{i}", agent="a", depends_on=(prev,) if prev else (),
-                   verify=scripted_executor(artifact_id=f"a{i}", version=1))
+        t = g.task(
+            f"T{i}",
+            agent="a",
+            depends_on=(prev,) if prev else (),
+            verify=scripted_executor(artifact_id=f"a{i}", version=1),
+        )
         prev = t
     os_.run(g, max_dispatches=50)  # partial run; status must still be fast
 

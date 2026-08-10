@@ -110,6 +110,7 @@ class TaskRequirements(BaseModel):
 
     task_id: str
     task_kind: str = ""
+    preferred_agent: str = ""
 
     required_specializations: tuple[str, ...] = ()
     preferred_specializations: tuple[str, ...] = ()
@@ -240,11 +241,16 @@ class ScheduledExecutionAttempt(BaseModel):
 
     attempt_id: str = Field(default_factory=_uuid)
 
+    graph_id: str = ""
+    graph_version: int = 0
+    semantic_epoch: int = 0
+
     task_id: str
     claim_id: str
 
     agent_id: str
     process_id: str
+    attempt_number: int = 0
 
     state: AttemptState = AttemptState.DISPATCHED
     action_ids: tuple[str, ...] = ()

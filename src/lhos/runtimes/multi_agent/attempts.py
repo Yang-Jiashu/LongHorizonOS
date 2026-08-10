@@ -44,23 +44,38 @@ class AttemptManager:
         )
         return ordered[-1] if ordered else None
 
+    def latest_attempt_for_claim(self, claim_id: str) -> ScheduledExecutionAttempt | None:
+        ordered = sorted(
+            (a for a in self._attempts.values() if a.claim_id == claim_id),
+            key=lambda a: a.started_at,
+        )
+        return ordered[-1] if ordered else None
+
     # ── lifecycle ──────────────────────────────────────────────────────────
     def start_attempt(
         self,
         *,
         attempt_id: str,
+        graph_id: str = "",
+        graph_version: int = 0,
+        semantic_epoch: int = 0,
         task_id: str,
         claim_id: str,
         agent_id: str,
         process_id: str,
+        attempt_number: int = 0,
         action_ids: tuple[str, ...] = (),
     ) -> ScheduledExecutionAttempt:
         attempt = ScheduledExecutionAttempt(
             attempt_id=attempt_id,
+            graph_id=graph_id,
+            graph_version=graph_version,
+            semantic_epoch=semantic_epoch,
             task_id=task_id,
             claim_id=claim_id,
             agent_id=agent_id,
             process_id=process_id,
+            attempt_number=attempt_number,
             action_ids=action_ids,
             state=AttemptState.DISPATCHED,
             started_at=_now(),
@@ -96,3 +111,17 @@ class AttemptManager:
 
     def count_attempts_for_task(self, task_id: str) -> int:
         return sum(1 for a in self._attempts.values() if a.task_id == task_id)
+
+    def count_attempts_for_epoch(
+        self,
+        graph_id: str,
+        task_id: str,
+        semantic_epoch: int,
+    ) -> int:
+        return sum(
+            1
+            for attempt in self._attempts.values()
+            if attempt.graph_id == graph_id
+            and attempt.task_id == task_id
+            and attempt.semantic_epoch == semantic_epoch
+        )

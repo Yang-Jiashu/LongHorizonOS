@@ -189,7 +189,7 @@ class TestS24b_StaticSourceAudit:
         src_files = _collect_vpg_runtime_source_files()
         flagged: list[tuple[str, int, str]] = []
         for f in src_files:
-            lines = f.read_text().splitlines()
+            lines = f.read_text(encoding="utf-8").splitlines()
             for i, line in enumerate(lines, start=1):
                 stripped = line.strip()
                 if stripped.startswith("#"):

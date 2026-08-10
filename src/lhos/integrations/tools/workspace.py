@@ -36,7 +36,9 @@ class WorkspaceTool:
     def read(self, rel: str) -> ToolResult:
         try:
             p = self._resolve(rel)
-            return ToolResult(ok=True, value=p.read_text(), kind="workspace", action_id="")
+            return ToolResult(
+                ok=True, value=p.read_text(encoding="utf-8"), kind="workspace", action_id=""
+            )
         except Exception as e:
             return ToolResult(ok=False, error=str(e), kind="workspace")
 
@@ -45,7 +47,7 @@ class WorkspaceTool:
         try:
             p = self._resolve(rel)
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content)
+            p.write_text(content, encoding="utf-8")
             return ToolResult(ok=True, value=str(p), kind="workspace", action_id="")
         except Exception as e:
             return ToolResult(ok=False, error=str(e), kind="workspace")
@@ -79,4 +81,4 @@ class WorkspaceTool:
         return hashlib.sha256(p.read_bytes()).hexdigest()
 
     def byte_content(self, rel: str) -> str:
-        return self._resolve(rel).read_text()
+        return self._resolve(rel).read_text(encoding="utf-8")

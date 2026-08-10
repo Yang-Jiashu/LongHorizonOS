@@ -22,7 +22,7 @@ class FilesystemTool:
     def _resolve(self, workspace_dir: str, rel_path: str) -> Path:
         root = Path(workspace_dir).resolve()
         path = (root / rel_path).resolve()
-        if not str(path).startswith(str(root)):
+        if path != root and not path.is_relative_to(root):
             raise ToolExecutionError(f"path escapes workspace: {rel_path!r}")
         return path
 

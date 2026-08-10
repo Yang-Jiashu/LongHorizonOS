@@ -26,6 +26,7 @@ review = goal.task(
     "Review",
     agent="reviewer",
     depends_on=(impl,),
+    required_specializations=("review",),
     verify=scripted_executor(artifact_id="review.md", version=1),
 )
 

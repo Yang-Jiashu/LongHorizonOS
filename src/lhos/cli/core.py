@@ -95,7 +95,18 @@ def _graph(os_: AgentOS, goal_id: str, as_json: bool) -> int:
     return 0
 
 
-def _demo_recovery_repair(as_json: bool, paced: bool, live_model: bool) -> int:
+def _demo_glyphs() -> tuple[str, str, str]:
+    """check / cross / boom, downgraded to ASCII when stdout cannot encode them."""
+    fancy = (chr(0x2713), chr(0x2717), chr(0x1F4A5))
+    enc = getattr(sys.stdout, "encoding", None) or "ascii"
+    try:
+        "".join(fancy).encode(enc)
+    except (UnicodeEncodeError, LookupError):
+        return ("v", "x", "!!")
+    return fancy
+
+
+def _demo_recovery_repair(as_json: bool, paced: bool) -> int:
     """Run the flagship one-command demo (deterministic, real Core)."""
     from lhos.demo.recovery_repair import DemoAssertionError, run_recovery_repair
 
@@ -108,9 +119,7 @@ def _demo_recovery_repair(as_json: bool, paced: bool, live_model: bool) -> int:
     except Exception as e:
         print(f"demo runtime error: {e}", file=sys.stderr)
         return 2
-    T = chr(0x2713)  # check
-    X = chr(0x2717)  # cross
-    SK = chr(0x1F4A5)  # boom
+    T, X, SK = _demo_glyphs()
     if as_json:
         print(
             json.dumps(
@@ -243,12 +252,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_demo.add_argument("which", choices=["recovery-repair"], nargs="?", default="recovery-repair")
     p_demo.add_argument("--json", action="store_true", help="machine-readable JSON summary")
     p_demo.add_argument("--paced", action="store_true", help="add presentation delay (GIF/CI off)")
-    p_demo.add_argument(
-        "--live-model",
-        action="store_true",
-        help="OPTIONAL real model mode (not required; deterministic default)",
-    )
-
     p_bench = sub.add_parser("benchmark", parents=[parent], help="run a comparative benchmark")
     p_bench.add_argument("which", choices=["semantic-repair"], nargs="?", default="semantic-repair")
     p_bench.add_argument(
@@ -261,6 +264,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # A narrow console encoding (e.g. cp936) must not turn a rendered glyph into
+    # a crash; substitute instead of raising.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "legacy":
@@ -269,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         return legacy_main(argv)
 
     if args.command == "demo":
-        return _demo_recovery_repair(args.json, args.paced, args.live_model)
+        return _demo_recovery_repair(args.json, args.paced)
 
     if args.command == "benchmark":
         return _benchmark(args.quick, args.full)

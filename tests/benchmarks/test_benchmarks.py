@@ -68,7 +68,7 @@ def test_bench_harness_does_not_have_semantic_bypass():
     """Bench harness is measurement-only: it imports the SDK, never sets Core state."""
     import pathlib
 
-    src = pathlib.Path("src/lhos/benchmarks/semantic_repair/harness.py").read_text()
+    src = pathlib.Path("src/lhos/benchmarks/semantic_repair/harness.py").read_text(encoding="utf-8")
     assert "verified = True" not in src
     assert "stale = " not in src.replace("stale_set", "X")
 
@@ -76,7 +76,7 @@ def test_bench_harness_does_not_have_semantic_bypass():
 def test_bench_uses_real_core_not_fake():
     import pathlib
 
-    src = pathlib.Path("src/lhos/benchmarks/semantic_repair/harness.py").read_text()
+    src = pathlib.Path("src/lhos/benchmarks/semantic_repair/harness.py").read_text(encoding="utf-8")
     assert "os_.run" in src or "os_.repair" in src  # LongHorizonOS goes through the SDK
 
 
@@ -85,5 +85,5 @@ def test_bench_never_imports_core_privacy():
 
     for f in ["harness.py", "run.py"]:
         src = pathlib.Path("src/lhos/benchmarks/semantic_repair") / f
-        assert "verified_progress.graph_store" not in src.read_text()
-        assert "invalidation.cone" not in src.read_text()
+        assert "verified_progress.graph_store" not in src.read_text(encoding="utf-8")
+        assert "invalidation.cone" not in src.read_text(encoding="utf-8")

@@ -51,8 +51,11 @@ def main() -> int:
 
     attempts = AttemptManager()
     att = attempts.start_attempt(
-        attempt_id="att-1", task_id="t1", claim_id=claim.claim_id,
-        agent_id="a1", process_id=claim.process_id,
+        attempt_id="att-1",
+        task_id="t1",
+        claim_id=claim.claim_id,
+        agent_id="a1",
+        process_id=claim.process_id,
     )
     attempts.mark_running(att)
 

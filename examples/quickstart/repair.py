@@ -19,7 +19,10 @@ t1 = goal.task(
     "Research", agent="coder", verify=scripted_executor(artifact_id="research.md", version=1)
 )
 t3 = goal.task(
-    "Independent", agent="reviewer", verify=scripted_executor(artifact_id="analysis.md", version=1)
+    "Independent",
+    agent="reviewer",
+    required_specializations=("review",),
+    verify=scripted_executor(artifact_id="analysis.md", version=1),
 )
 t2 = goal.task(
     "Implement",
@@ -31,6 +34,7 @@ t4 = goal.task(
     "Review",
     agent="reviewer",
     depends_on=(t2,),
+    required_specializations=("review",),
     verify=scripted_executor(artifact_id="review.md", version=1),
 )
 

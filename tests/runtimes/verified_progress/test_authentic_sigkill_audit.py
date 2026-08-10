@@ -268,10 +268,12 @@ _CHILD_SCRIPT = textwrap.dedent(
     """
 )
 
+_HARD_KILL = getattr(signal, "SIGKILL", signal.SIGTERM)  # Windows: SIGTERM -> TerminateProcess
+
 
 def _read_hb(path: str):
     try:
-        return json.loads(Path(path).read_text())
+        return json.loads(Path(path).read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return None
 
@@ -295,7 +297,7 @@ def _run_trial(child_script: Path, db_path: Path, hb_path: Path, target_stage: i
                 break
             hb = _read_hb(str(hb_path))
             if hb and hb[0] == "READY" and int(hb[1]) == target_stage:
-                os.kill(proc.pid, signal.SIGKILL)
+                os.kill(proc.pid, _HARD_KILL)
                 killed_here = True
                 break
             if hb and hb[0] == "OVERSHOOT":
@@ -305,7 +307,7 @@ def _run_trial(child_script: Path, db_path: Path, hb_path: Path, target_stage: i
         if proc.poll() is None:
             # Safety: force-kill any straggler so the test cannot hang.
             try:
-                os.kill(proc.pid, signal.SIGKILL)
+                os.kill(proc.pid, _HARD_KILL)
                 killed_here = True
             except ProcessLookupError:
                 pass

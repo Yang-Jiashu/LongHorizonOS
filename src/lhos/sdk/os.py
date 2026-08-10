@@ -8,6 +8,8 @@ ownership (Kernel Lease), and repair.
 
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from lhos.agent_os.sdk.client import create_kernel
@@ -17,6 +19,7 @@ from lhos.runtimes.multi_agent import (
     create_scheduler,
 )
 from lhos.runtimes.verified_progress import VerifiedProgressRuntime
+from lhos.runtimes.verified_progress.graph_store import GraphStore
 from lhos.runtimes.verified_progress.models import ArtifactVersionBinding
 from lhos.runtimes.verified_progress.patches import (
     AddEdgeOp,
@@ -46,20 +49,93 @@ if TYPE_CHECKING:  # pragma: no cover
     from .verification import VerificationOutcome
 
 
+class _ReadOnlyProcessProvider:
+    def get(self, pid: str) -> Any | None:
+        return None
+
+    def list_all(self) -> list[Any]:
+        return []
+
+    def spawn(self, program_id: str | None = None) -> str:
+        raise ConfigurationError("read-only AgentOS cannot spawn processes")
+
+    def set_failed(self, pid: str) -> None:
+        raise ConfigurationError("read-only AgentOS cannot change process state")
+
+
+class _ReadOnlyLeaseProvider:
+    def acquire_exclusive(self, pid: str, resource_id: str, ttl) -> Any | None:
+        return None
+
+    def release(self, lease_id: str) -> bool:
+        return False
+
+    def release_all_for_pid(self, pid: str) -> int:
+        return 0
+
+    def get(self, lease_id: str) -> Any | None:
+        return None
+
+    def list_for_resource(self, resource_id: str) -> list[Any]:
+        return []
+
+    def list_for_pid(self, pid: str) -> list[Any]:
+        return []
+
+    def reclaim_expired(self) -> int:
+        return 0
+
+
+class _ReadOnlyCapabilityProvider:
+    def check(self, pid: str, resource: str, operation: str) -> bool:
+        return False
+
+    def capabilities_for(self, pid: str) -> list[Any]:
+        return []
+
+
 class AgentOS:
     """Top-level composition root for a Core-backed LongHorizonOS instance."""
 
-    def __init__(self, db_path: str = ":memory:", *, facts: FactsProvider | None = None) -> None:
+    def __init__(
+        self,
+        db_path: str = ":memory:",
+        *,
+        facts: FactsProvider | None = None,
+        read_only: bool = False,
+    ) -> None:
         self._db_path = db_path
-        self._kernel = create_kernel(db_path)
-        self._facts = facts or FactsProvider()
+        self._read_only = read_only
+        self._kernel = None if read_only else create_kernel(db_path)
+        self._owns_facts = facts is None
+        self._facts = facts or FactsProvider(
+            db_path,
+            read_only=read_only,
+            action_service=None if self._kernel is None else self._kernel._action_service,
+        )
+        self._read_only_conn: sqlite3.Connection | None = None
+        vpg_store: GraphStore | str = db_path
+        if read_only and db_path != ":memory:":
+            resolved_db = Path(db_path).resolve()
+            if not resolved_db.exists():
+                raise ConfigurationError(f"read-only database not found: {resolved_db}")
+            self._read_only_conn = sqlite3.connect(
+                f"file:{resolved_db.as_posix()}?mode=ro",
+                uri=True,
+                check_same_thread=False,
+            )
+            vpg_store = GraphStore(self._read_only_conn, read_only=True)
         self._vpg = VerifiedProgressRuntime(
-            db_path, facts_artifact=self._facts, facts_kernel=self._facts
+            vpg_store, facts_artifact=self._facts, facts_kernel=self._facts
         )  # type: ignore[arg-type]
         self._vpg_surface = VPGFacade(self._vpg)
-        self._proc = KernelProcessProvider(self._kernel)
-        self._lease = KernelLeaseProvider(self._kernel)
-        self._cap = KernelCapabilityProvider(self._kernel)
+        self._proc = (
+            _ReadOnlyProcessProvider() if read_only else KernelProcessProvider(self._kernel)
+        )
+        self._lease = _ReadOnlyLeaseProvider() if read_only else KernelLeaseProvider(self._kernel)
+        self._cap = (
+            _ReadOnlyCapabilityProvider() if read_only else KernelCapabilityProvider(self._kernel)
+        )
         self._registry = AgentRegistry()
         self._scheduler = create_scheduler(
             self._registry,
@@ -75,18 +151,40 @@ class AgentOS:
         self._goal_gid: dict[str, str] = {}
         self._last_repair: RepairOutcome | None = None
 
+    def close(self) -> None:
+        """Release the kernel and VPG database handles."""
+        self._vpg.close()
+        if self._owns_facts:
+            self._facts.close()
+        if self._read_only_conn is not None:
+            self._read_only_conn.close()
+        if self._kernel is not None:
+            self._kernel.close()
+
+    def __enter__(self) -> AgentOS:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     # ── agents ───────────────────────────────────────────────────────────────
     def add_agent(self, agent: Agent) -> Agent:
+        if self._read_only:
+            raise ConfigurationError("read-only AgentOS cannot register agents")
         pid = self._proc.spawn(agent.name)
         agent._bind_process(pid)
-        caps = agent.capabilities or ("shell", "filesystem", "network")
+        caps = (
+            ("shell", "filesystem", "network") if agent.capabilities is None else agent.capabilities
+        )
         self._grant_capabilities(pid, caps)
         self._registry.register(
             AgentDescriptor(
                 agent_id=agent.name,
                 process_id=pid,
                 supported_task_kinds=agent.supported_task_kinds,
-                supported_tools=agent.supported_task_kinds,
+                supported_tools=(
+                    tuple(caps) if agent.supported_tools is None else agent.supported_tools
+                ),
                 specializations=tuple(sorted(agent.specializations)),
                 max_concurrency=agent.max_concurrency,
                 cost_weight=max(1, round(agent.cost_weight * 100)),
@@ -101,6 +199,8 @@ class AgentOS:
 
         from .providers import make_capability
 
+        if self._kernel is None:
+            raise ConfigurationError("read-only AgentOS cannot grant capabilities")
         for pat in caps:
             with contextlib.suppress(Exception):
                 self._kernel._capability_service.grant(
@@ -126,6 +226,7 @@ class AgentOS:
 
     def _compile_goal(self, goal: Goal) -> str:
         """Compile a Goal + Tasks into a real VPG patch; returns graph_id."""
+        self._goals.setdefault(goal.goal_id, goal)
         pid = self._owner_pid()
         gid = self._vpg.create_graph(owner_pid=pid).graph_id
         v = self._vpg.get_graph(gid).current_version
@@ -139,6 +240,20 @@ class AgentOS:
             )
         ]
         for t in goal.tasks:
+            metadata = dict(t.metadata)
+            scheduler_metadata = dict(metadata.get("scheduler", {}))
+            scheduler_metadata.update(
+                {
+                    "task_kind": t.task_kind,
+                    "required_specializations": list(t.required_specializations),
+                    "required_tools": list(t.required_tools),
+                    "max_attempts": t.max_attempts,
+                }
+            )
+            metadata["scheduler"] = scheduler_metadata
+            sdk_metadata = dict(metadata.get("sdk", {}))
+            sdk_metadata["agent"] = t.agent
+            metadata["sdk"] = sdk_metadata
             ops.append(
                 AddNodeOp(
                     node_id=t.task_id,
@@ -146,14 +261,7 @@ class AgentOS:
                     node_type="task",
                     created_by_pid=pid,
                     task_kind=t.task_kind,
-                    metadata={
-                        "scheduler": {
-                            "task_kind": t.task_kind,
-                            "required_specializations": list(t.required_specializations),
-                            "required_tools": list(t.required_tools),
-                        },
-                        "sdk": {"agent": t.agent},
-                    },
+                    metadata=metadata,
                 ),
             )
             ops.append(
@@ -192,6 +300,8 @@ class AgentOS:
 
     # ── run ──────────────────────────────────────────────────────────────────
     def run(self, goal: Goal, *, max_dispatches: int = 8, max_steps: int = 20) -> RunResult:
+        if self._read_only:
+            raise ExecutionError("read-only AgentOS cannot execute goals")
         self._goals.setdefault(goal.goal_id, goal)
         gid = self._gid_for(goal.goal_id, compile_if_missing=True)
         if gid is None:
@@ -209,7 +319,15 @@ class AgentOS:
             for d in res.dispatched:
                 task_id = d["task_id"]
                 agent_id = d["agent_id"]
-                self._execute_and_verify(gid, task_id, agent_id, goal)
+                claim = self._scheduler.active_claim_for_task(task_id, gid)
+                attempt_number = getattr(claim, "attempt_number", 0)
+                self._execute_and_verify(
+                    gid,
+                    task_id,
+                    agent_id,
+                    goal,
+                    attempt_number=attempt_number,
+                )
                 dispatched += 1
                 if dispatched >= max_dispatches:
                     break
@@ -218,7 +336,15 @@ class AgentOS:
                 break
         return self.result(gid)
 
-    def _execute_and_verify(self, gid: str, task_id: str, agent_id: str, goal: Goal) -> None:
+    def _execute_and_verify(
+        self,
+        gid: str,
+        task_id: str,
+        agent_id: str,
+        goal: Goal,
+        *,
+        attempt_number: int = 0,
+    ) -> None:
         """Execute a dispatched task's verifier and attach real Evidence.
 
         A task with no verifier/executor stays unverified (VPG-G2/G3): without
@@ -226,27 +352,58 @@ class AgentOS:
         """
         task = next((t for t in goal.tasks if t.task_id == task_id), None)
         if task is None or task.verify is None:
+            self._scheduler.release_task(gid, task_id, reason="missing_verifier")
             return  # fail-closed: no Evidence, no VERIFIED
         verifier = task.verify
         try:
             outcome = verifier()
         except Exception as e:
-            raise ExecutionError(f"executor failed for {task_id}", cause=e) from e
+            self._scheduler.release_task(
+                gid,
+                task_id,
+                reason=f"executor_failed:{type(e).__name__}",
+            )
+            return
 
         if not outcome.passed:
             # FAIL/INCONCLUSIVE => no VERIFIED; record failure
+            self._scheduler.release_task(gid, task_id, reason="verification_failed")
             return
+        latest_version = self._facts.latest(outcome.artifact_id)
+        if latest_version is not None and latest_version > outcome.version:
+            from dataclasses import replace
+
+            outcome = replace(outcome, version=latest_version)
         produced_pid = self._agent_pid.get(agent_id) or self._owner_pid()
-        self._facts.add_version(outcome.artifact_id, outcome.version, outcome.content or "")
-        self._facts.commit_action(f"sdk-act-{task_id}-{outcome.version}", pid=produced_pid)
-        self._attach_evidence(gid, task_id, agent_id, outcome, produced_pid)
+        current_version = self._facts.latest(outcome.artifact_id)
+        if current_version is None or current_version < outcome.version:
+            self._facts.add_version(outcome.artifact_id, outcome.version, outcome.content or "")
+        self._attach_evidence(
+            gid,
+            task_id,
+            agent_id,
+            outcome,
+            produced_pid,
+            attempt_number=attempt_number,
+        )
+        self._scheduler.observe_vpg(gid)
 
     def _attach_evidence(
-        self, gid: str, task_id: str, agent_id: str, outcome: VerificationOutcome, pid: str
+        self,
+        gid: str,
+        task_id: str,
+        agent_id: str,
+        outcome: VerificationOutcome,
+        pid: str,
+        *,
+        attempt_number: int = 0,
     ) -> None:
-        vid = f"V-{task_id}-{outcome.version}"
-        evid = f"E-{task_id}-{outcome.version}"
-        artref_id = f"AR-{task_id}-{outcome.version}"
+        suffix = "" if attempt_number == 0 else f"-a{attempt_number}"
+        vid = f"V-{task_id}-{outcome.version}{suffix}"
+        evid = f"E-{task_id}-{outcome.version}{suffix}"
+        artref_id = f"AR-{task_id}-{outcome.version}{suffix}"
+        action_id = f"sdk-act-{task_id}-{outcome.version}{suffix}"
+        self._facts.commit_action(action_id, pid=pid)
         binding = ArtifactVersionBinding(
             canonical_uri=f"vpg://{outcome.artifact_id}",
             artifact_id=outcome.artifact_id,
@@ -261,7 +418,7 @@ class AgentOS:
                 graph_id=gid,
                 expected_graph_version=cur,
                 author_pid=pid,
-                idempotency_key=f"pin-{task_id}-{outcome.version}",
+                idempotency_key=f"pin-{task_id}-{outcome.version}{suffix}",
                 operations=(
                     AddNodeOp(
                         node_id=artref_id,
@@ -292,7 +449,7 @@ class AgentOS:
                 graph_id=gid,
                 expected_graph_version=cur,
                 author_pid=pid,
-                idempotency_key=f"verify-{task_id}-{outcome.version}",
+                idempotency_key=f"verify-{task_id}-{outcome.version}{suffix}",
                 operations=(
                     AddNodeOp(
                         node_id=vid,
@@ -301,7 +458,7 @@ class AgentOS:
                         created_by_pid=pid,
                         verification_kind="command_result",
                         obligation={"kind": "produced_artifact"},
-                        source_action_id=f"sdk-act-{task_id}-{outcome.version}",
+                        source_action_id=action_id,
                         metadata={"scheduler": {"task_kind": task_id}},
                     ),
                     AddNodeOp(
@@ -312,7 +469,7 @@ class AgentOS:
                         evidence_kind="command_result",
                         result="pass",
                         source_verification_id=vid,
-                        evidence_source_action_id=f"sdk-act-{task_id}-{outcome.version}",
+                        evidence_source_action_id=action_id,
                         artifact_bindings=(binding,),
                         produced_by_pid=pid,
                     ),
@@ -339,16 +496,31 @@ class AgentOS:
         task_states = {tid: n.validity.value for tid, n in tasks.items()}
         verified = [t for t, s in task_states.items() if s == "verified"]
         stale = [t for t, s in task_states.items() if s == "stale"]
-        ready = [t for t, s in task_states.items() if s in ("unverified", "stale")]
+        ready = [candidate.task_id for candidate in self._vpg.query_ready_frontier(gid)]
+        goal_nodes = {n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "goal"}
+        goal_node = next(iter(goal_nodes.values()), None)
         owner = {}
         for claim in self._scheduler.claims:
-            owner[claim.task_id] = claim.agent_id
+            if claim.graph_id != gid:
+                continue
+            state = getattr(claim.state, "value", claim.state)
+            if state in {"active", "acquiring"} or claim.task_id not in owner:
+                owner[claim.task_id] = claim.agent_id
         artifacts = {}
         for aid, vs in self._facts.versions().items():
             for ver in vs:
-                artifacts[aid] = (ver, self._facts.read_hash(self._owner_pid(), aid, ver) or "")
+                artifacts[aid] = (
+                    ver,
+                    self._facts.read_hash("sdk-observer", aid, ver) or "",
+                )
         return RunResult(
             goal_id=gid,
+            goal_state=(
+                "closed"
+                if goal_node is not None
+                and getattr(goal_node.lifecycle, "value", goal_node.lifecycle) == "closed"
+                else "open"
+            ),
             task_states=task_states,
             verified=verified,
             stale=stale,
@@ -371,7 +543,7 @@ class AgentOS:
             stale=r.stale,
             ready=r.ready,
             unverified=[t for t, s in r.task_states.items() if s == "unverified"],
-            goal_closed=(not r.ready),
+            goal_closed=(r.goal_state == "closed"),
             owner_by_task=r.owner_by_task,
         )
 
@@ -431,6 +603,8 @@ class AgentOS:
     def repair(
         self, goal: Goal, *, new_artifact_version: int | None = None, artifact_id: str | None = None
     ) -> RepairOutcome:
+        if self._read_only:
+            raise ExecutionError("read-only AgentOS cannot mutate or repair graphs")
         """Run D3 invalidation on a goal and return affected/preserved/frontier.
 
         If `new_artifact_version` and `artifact_id` are given, the SDK first
@@ -524,6 +698,11 @@ class AgentOS:
             frontier=[c.task_id for c in ir.frontier.candidates],
             causes=[c.reason for c in ir.causes],
         )
+        self._vpg.refresh_derived_state(
+            gid,
+            author_pid=self._owner_pid(),
+            reason="D3 artifact/invalidation refresh",
+        )
         self._last_repair = outcome
         return outcome
 
@@ -547,9 +726,15 @@ class AgentOS:
     def apply_workspace_mutation(
         self, workspace, rel: str, content: str, *, next_version: int | None = None
     ) -> int:
+        if self._read_only:
+            raise ExecutionError("read-only AgentOS cannot mutate workspaces")
         """Write to the real workspace, then register the new ArtifactVersion.
         Returns the new version (so D3 later sees applicability loss)."""
-        workspace.write(rel, content)
+        written = workspace.write(rel, content)
+        if written is False or getattr(written, "ok", True) is False:
+            detail = getattr(written, "error", "")
+            suffix = f": {detail}" if detail else ""
+            raise ExecutionError(f"workspace write failed for {rel!r}{suffix}")
         ver = next_version or (self._facts.latest(rel) or 0) + 1
         self._facts.add_version(rel, ver, content)
         return ver
@@ -574,8 +759,13 @@ class AgentOS:
         durable in the db.)"""
         import json
 
+        manifest_file = Path(manifest_path).resolve()
+        if self._db_path == ":memory:":
+            raise ConfigurationError(
+                "cannot save a reopenable run manifest for an in-memory database"
+            )
         manifest = {
-            "db_path": self._db_path,
+            "db_path": str(Path(self._db_path).resolve()),
             "goals": {gid: self._serialize_goal(g) for gid, g in self._goals.items()},
             "agents": [
                 {
@@ -587,7 +777,8 @@ class AgentOS:
                 for a in self._agents.values()
             ],
         }
-        with open(manifest_path, "w") as f:
+        manifest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(manifest_file, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2)
 
     def _serialize_goal(self, g: Goal) -> dict:
@@ -602,6 +793,8 @@ class AgentOS:
                     "task_kind": t.task_kind,
                     "required_specializations": list(t.required_specializations),
                     "required_tools": list(t.required_tools),
+                    "max_attempts": t.max_attempts,
+                    "metadata": t.metadata,
                 }
                 for t in g.tasks
             ],
@@ -612,22 +805,30 @@ class AgentOS:
         """Re-open a saved run (read-only observability; does not re-run)."""
         import json
 
-        with open(manifest_path) as f:
+        with open(manifest_path, encoding="utf-8") as f:
             m = json.load(f)
-        os_ = cls(m.get("db_path", ":memory:"))
-        for ag in m.get("agents", []):
-            os_.add_agent(
-                Agent(
-                    ag["name"],
-                    specializations=tuple(ag.get("specializations", ("python",))),
-                    max_concurrency=ag.get("max_concurrency", 4),
-                    cost_weight=ag.get("cost_weight", 1.0),
-                )
+        manifest = Path(manifest_path).resolve()
+        raw_db_path = m.get("db_path", ":memory:")
+        if raw_db_path != ":memory:":
+            db_path = (
+                str((manifest.parent / raw_db_path).resolve())
+                if not Path(raw_db_path).is_absolute()
+                else raw_db_path
             )
+        else:
+            db_path = raw_db_path
+        os_ = cls(db_path, read_only=True)
         for gid, gm in m.get("goals", {}).items():
             g = os_.goal(gid)
             stored_gid = gm.get("graph_id")
-            if stored_gid and os_.vpg.get_graph(stored_gid) is not None:
+            graph_exists = False
+            if stored_gid:
+                try:
+                    os_.vpg.get_graph(stored_gid)
+                    graph_exists = True
+                except Exception:
+                    graph_exists = False
+            if stored_gid and graph_exists:
                 # Reuse the durable graph; do NOT re-compile (keeps verified state).
                 os_._goal_gid[gid] = stored_gid
                 for t in gm.get("tasks", []):
@@ -644,24 +845,14 @@ class AgentOS:
                             t.get("required_specializations", ["python"])
                         ),
                         required_tools=tuple(t.get("required_tools", [])),
+                        max_attempts=t.get("max_attempts", 3),
+                        metadata=t.get("metadata", {}),
                     )
             else:
-                for t in gm.get("tasks", []):
-                    deps = [
-                        next((tt for tt in g.tasks if tt.task_id == d), None)
-                        for d in t.get("depends_on", [])
-                    ]
-                    g.task(
-                        t["task_id"],
-                        agent=t.get("agent", ""),
-                        depends_on=tuple(x for x in deps if x is not None),
-                        task_kind=t.get("task_kind", "task"),
-                        required_specializations=tuple(
-                            t.get("required_specializations", ["python"])
-                        ),
-                        required_tools=tuple(t.get("required_tools", [])),
-                    )
-                os_._compile_goal(g)
+                raise ConfigurationError(
+                    f"stored graph {stored_gid!r} for goal {gid!r} is missing; "
+                    "read-only recovery will not rebuild or mutate the run"
+                )
         return os_
 
 
@@ -674,10 +865,10 @@ def _render_tree(node_id: str, deps, sv, lines, seen, prefix: str, is_last: bool
         return
     seen.add(node_id)
     tv = sv.tasks.get(node_id, {})
-    mark = {"verified": "\u2713", "stale": "\u2717", "unverified": ".", "invalid": "!"}.get(
+    mark = {"verified": "v", "stale": "x", "unverified": ".", "invalid": "!"}.get(
         tv.get("validity", ""), "?"
     )
-    star = " \u2605 REPAIR" if tv.get("in_repair_frontier") else ""
+    star = " * REPAIR" if tv.get("in_repair_frontier") else ""
     branch = "`-- " if is_last else "|-- "
     lines.append(f"{prefix}{branch}{mark} {node_id} [{tv.get('validity', '?').upper()}]{star}")
     children = sorted(deps.get(node_id, []))

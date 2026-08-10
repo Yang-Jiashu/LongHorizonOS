@@ -49,7 +49,7 @@ def run_benchmark(quick: bool = True, out_dir: str | None = None) -> dict:
 
     # write raw trials
     raw_path = out / "raw" / "trials.jsonl"
-    with open(raw_path, "w") as f:
+    with open(raw_path, "w", encoding="utf-8") as f:
         for t in trials:
             f.write(json.dumps(t) + "\n")
 
@@ -65,7 +65,7 @@ def run_benchmark(quick: bool = True, out_dir: str | None = None) -> dict:
         "aggregate": agg,
         "raw_sha256": _sha256(raw_path),
     }
-    with open(out / "summaries" / "summary.json", "w") as f:
+    with open(out / "summaries" / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     return summary
 

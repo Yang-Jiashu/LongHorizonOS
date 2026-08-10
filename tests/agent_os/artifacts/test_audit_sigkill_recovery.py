@@ -31,12 +31,16 @@ from typing import ClassVar
 
 import pytest
 
+# Windows has no SIGKILL; os.kill(pid, SIGTERM) maps to TerminateProcess there,
+# which is equally uncatchable — the worker still dies without cleanup.
+_HARD_KILL = getattr(signal, "SIGKILL", signal.SIGTERM)
+
 WORKER_PROGRAM = """\
 import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, "{src_path}")
+sys.path.insert(0, {src_path!r})
 
 from lhos.agent_os.storage.sqlite import SQLiteStorage
 from lhos.agent_os.services.journal import JournalService
@@ -111,7 +115,7 @@ def _run_worker(scenario: str, tmpdir: Path, src_path: str) -> Path:
 
     # Wait for marker (ready signal)
     for _ in range(100):  # 10 seconds max
-        if marker.exists() and marker.read_text().strip() == "ready":
+        if marker.exists() and marker.read_text(encoding="utf-8").strip() == "ready":
             break
         time.sleep(0.1)
     else:
@@ -124,7 +128,7 @@ def _run_worker(scenario: str, tmpdir: Path, src_path: str) -> Path:
         )
 
     # SIGKILL
-    os.kill(proc.pid, signal.SIGKILL)
+    os.kill(proc.pid, _HARD_KILL)
     proc.wait()
 
     return db_path

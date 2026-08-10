@@ -56,6 +56,7 @@ class PatchValidationRequest:
     current_edges: list[VPGEdge]
     facts_artifact: ArtifactFactProvider | None
     facts_kernel: KernelEventProvider | None
+    allow_empty_operations: bool = False
 
 
 class PatchValidationResult:
@@ -314,7 +315,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
     graph_id = patch.graph_id
     proposed_version = patch.expected_graph_version + 1
 
-    if len(patch.operations) == 0:
+    if len(patch.operations) == 0 and not getattr(req, "allow_empty_operations", False):
         raise VPGError(VPGCode.PATCH_EMPTY, "patch has no operations")
     if len(patch.operations) > MAX_PATCH_OPS:
         raise VPGError(

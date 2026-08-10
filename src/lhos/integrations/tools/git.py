@@ -25,7 +25,7 @@ class GitTool:
         return f"git({self.workspace_root})"
 
     def _sh(self, command: str, *, check_capability=None) -> ToolResult:
-        sh = self.shell or ShellTool(capability=self.capability)
+        sh = self.shell or ShellTool(capability=self.capability, trusted=True)
         cwd = Path(self.workspace_root)
 
         # re-bind capability to 'git' via a wrapper check

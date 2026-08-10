@@ -22,7 +22,7 @@ def _files(root: pathlib.Path) -> list[pathlib.Path]:
 
 def test_sdk_never_imports_tests():
     for p in _files(SDK):
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         assert "tests" not in src, f"{p} must not import tests"
 
 
@@ -39,7 +39,7 @@ def test_sdk_never_imports_legacy_plane():
         "lhos.verification",
     )
     for p in _files(SDK):
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         for banned in legacy:
             assert banned not in src, f"{p} must not import {banned!r}"
 
@@ -55,7 +55,7 @@ def test_sdk_imports_only_public_core_api():
         "from lhos.runtimes.invalidation",
     )
     for p in _files(SDK):
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         for line in src.splitlines():
             ls = line.strip()
             if ls.startswith("from lhos") or ls.startswith("import lhos"):
@@ -72,6 +72,6 @@ def test_core_never_imports_sdk():
             or str(p).endswith("/sdk/__init__.py")
         ):
             continue
-        if "lhos.sdk" in p.read_text():
+        if "lhos.sdk" in p.read_text(encoding="utf-8"):
             imports_sdk.append(str(p))
     assert imports_sdk == [], f"Core must never import the SDK: {imports_sdk}"

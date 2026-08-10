@@ -84,6 +84,33 @@ class TestAtomicAcquire:
                 "p2", [{"resource_id": "resource:R1", "mode": "exclusive"}]
             )
 
+    def test_conflict_records_waiter_and_event(
+        self,
+        lease_service: LeaseService,
+        storage: SQLiteStorage,
+        journal: JournalService,
+    ) -> None:
+        lease_service.atomic_acquire("p1", [{"resource_id": "resource:R1", "mode": "exclusive"}])
+
+        with pytest.raises(LeaseAcquisitionFailed):
+            lease_service.atomic_acquire(
+                "p2", [{"resource_id": "resource:R1", "mode": "exclusive"}]
+            )
+
+        waiter = storage.query_one(
+            "SELECT pid, resource_id FROM lease_waiters WHERE pid = ? AND resource_id = ?",
+            ("p2", "resource:R1"),
+        )
+        assert waiter == {"pid": "p2", "resource_id": "resource:R1"}
+
+        failures = [
+            event
+            for event in journal.read_all()
+            if event.pid == "p2" and event.event_type == "LEASE_ACQUIRE_FAILED"
+        ]
+        assert len(failures) == 1
+        assert failures[0].payload["resource_id"] == "resource:R1"
+
 
 class TestRelease:
     def test_release_by_id(self, lease_service: LeaseService) -> None:

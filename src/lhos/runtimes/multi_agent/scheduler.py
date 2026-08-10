@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from .attempts import AttemptManager
 from .eligibility import evaluate_eligibility
 from .lease_adapter import DEFAULT_CLAIM_TTL, claim_resource_uri
 from .matching import match_deterministic_best_fit_v1
@@ -96,6 +97,7 @@ class MultiAgentScheduler:
         self._idempotent_keys: set[str] = set(idempotent_keys or set())
 
         self._claims_ = ClaimManager(self._leases)
+        self._attempts_ = AttemptManager()
         self._claims: list[TaskClaim] = []
         self._attempts: list[ScheduledExecutionAttempt] = []
         self._match_log: list[MatchDecision] = []
@@ -114,11 +116,18 @@ class MultiAgentScheduler:
     def match_log(self) -> list[MatchDecision]:
         return list(self._match_log)
 
-    def get_claim(self, task_id: str) -> TaskClaim | None:
+    def get_claim(self, task_id: str, graph_id: str | None = None) -> TaskClaim | None:
         for c in self._claims:
-            if c.task_id == task_id and c.state == ClaimState.ACTIVE:
+            if (
+                c.task_id == task_id
+                and (graph_id is None or c.graph_id == graph_id)
+                and c.state == ClaimState.ACTIVE
+            ):
                 return c
         return None
+
+    def get_attempt_for_claim(self, claim_id: str) -> ScheduledExecutionAttempt | None:
+        return self._attempts_.latest_attempt_for_claim(claim_id)
 
     # ── scheduling pass ─────────────────────────────────────────────────────
     def schedule_once(
@@ -161,7 +170,7 @@ class MultiAgentScheduler:
             task_id = candidate.task_id
 
             # Existing active claim: skip (per D2-I4 we never create a 2nd).
-            existing = self.get_claim(task_id)
+            existing = self.get_claim(task_id, graph_id)
             if existing is not None:
                 result.skipped.append((task_id, f"active claim {existing.claim_id}"))
                 continue
@@ -177,6 +186,20 @@ class MultiAgentScheduler:
                 result.skipped.append((task_id, "task payload missing"))
                 continue
             req = decode_task_requirements(task_id, payload)
+            semantic_epoch = self._semantic_epoch(payload, current_version)
+            attempts_in_epoch = self._attempts_.count_attempts_for_epoch(
+                graph_id,
+                task_id,
+                semantic_epoch,
+            )
+            if req.max_attempts is not None and attempts_in_epoch >= max(req.max_attempts, 0):
+                result.skipped.append(
+                    (
+                        task_id,
+                        f"max_attempts exhausted ({attempts_in_epoch}/{req.max_attempts})",
+                    )
+                )
+                continue
 
             # Idempotency key: graph+task+version+agent composite is the
             # canonical repeat-scheduling key (Section 30).
@@ -227,6 +250,7 @@ class MultiAgentScheduler:
                 eligible_agents=agent_pool,
                 active_claims_by_agent=active_by_agent,
                 preferred_specializations=req.preferred_specializations,
+                preferred_agent=req.preferred_agent,
             )
             self._match_log.append(decision)
             self._events.append(
@@ -242,19 +266,26 @@ class MultiAgentScheduler:
             )
 
             # ── acquire exclusive kernel lease ───────────────────────────
+            attempt_number = sum(
+                1
+                for claim in self._claims
+                if claim.graph_id == graph_id and claim.task_id == task_id
+            )
             acquired = self._acquire_claim(
                 graph_id=graph_id,
                 task_id=task_id,
                 graph_version=current_version,
-                claim_id=f"claim-{task_id}-{current_version}",
+                claim_id=f"claim-{graph_id}-{task_id}-{current_version}-{attempt_number}",
                 agent_id=decision.selected_agent_id,
+                attempt_number=attempt_number,
+                semantic_epoch=semantic_epoch,
             )
             if not acquired:
                 result.skipped.append((task_id, "claim race lost / kernel refused lease"))
                 continue
 
             claims_this_pass += 1
-            existing = self.get_claim(task_id)
+            existing = self.get_claim(task_id, graph_id)
             claim_id = existing.claim_id if existing is not None else ""
             result.mark_dispatched(
                 task_id,
@@ -301,6 +332,8 @@ class MultiAgentScheduler:
         graph_version: int,
         claim_id: str,
         agent_id: str,
+        attempt_number: int = 0,
+        semantic_epoch: int = 0,
     ) -> bool:
         from .events import SchedulerEventType, record_event
 
@@ -376,6 +409,7 @@ class MultiAgentScheduler:
             agent_id=agent_id,
             process_id=agent.process_id,
             lease_resource=resource,
+            attempt_number=attempt_number,
         )
         self._claims_.mark_acquiring(claim)
         self._events.append(
@@ -391,6 +425,18 @@ class MultiAgentScheduler:
         self._claims.append(claim)
 
         if self._claims_.try_acquire_lease(claim):
+            attempt = self._attempts_.start_attempt(
+                attempt_id=f"attempt-{graph_id}-{task_id}-{attempt_number}",
+                graph_id=graph_id,
+                graph_version=current,
+                semantic_epoch=semantic_epoch,
+                task_id=task_id,
+                claim_id=claim.claim_id,
+                agent_id=agent_id,
+                process_id=agent.process_id,
+                attempt_number=attempt_number,
+            )
+            self._attempts.append(attempt)
             self._events.append(
                 record_event(
                     SchedulerEventType.CLAIM_LEASE_ACQUIRED,
@@ -400,6 +446,21 @@ class MultiAgentScheduler:
                     claim_id=claim.claim_id,
                     graph_version=current,
                     reason=claim.reason or "",
+                )
+            )
+            self._events.append(
+                record_event(
+                    SchedulerEventType.EXECUTION_DISPATCHED,
+                    graph_id=graph_id,
+                    task_id=task_id,
+                    agent_id=agent_id,
+                    claim_id=claim.claim_id,
+                    attempt_id=attempt.attempt_id,
+                    graph_version=current,
+                    metadata={
+                        "attempt_number": attempt_number,
+                        "semantic_epoch": semantic_epoch,
+                    },
                 )
             )
             return True
@@ -412,6 +473,25 @@ class MultiAgentScheduler:
 
         if claim.state != ClaimState.ACTIVE:
             return
+        attempt = self.get_attempt_for_claim(claim.claim_id)
+        if attempt is not None:
+            if attempt.state.value not in {
+                "succeeded_operationally",
+                "verified_semantically",
+            }:
+                self._attempts_.mark_operationally_succeeded(attempt)
+            self._attempts_.mark_semantically_verified(attempt)
+            self._events.append(
+                record_event(
+                    SchedulerEventType.EXECUTION_SEMANTICALLY_VERIFIED,
+                    graph_id=claim.graph_id,
+                    task_id=claim.task_id,
+                    agent_id=claim.agent_id,
+                    claim_id=claim.claim_id,
+                    attempt_id=attempt.attempt_id,
+                    graph_version=claim.graph_version,
+                )
+            )
         self._claims_.complete(claim)
         self._events.append(
             record_event(
@@ -441,6 +521,46 @@ class MultiAgentScheduler:
             )
         )
 
+    def release_task(
+        self,
+        graph_id: str,
+        task_id: str,
+        *,
+        reason: str = "execution_failed",
+        retry: bool = True,
+    ) -> None:
+        """Release Kernel-backed ownership after one operational attempt.
+
+        VPG validity is deliberately untouched.  If the task is still present
+        in the authoritative ready frontier, a later scheduling pass may issue
+        a new claim and acquire a new Kernel lease.
+        """
+        from .events import SchedulerEventType, record_event
+
+        claim = self.get_claim(task_id, graph_id)
+        if claim is not None and claim.graph_id == graph_id:
+            attempt = self.get_attempt_for_claim(claim.claim_id)
+            if attempt is not None:
+                self._attempts_.mark_failed(attempt, error=reason)
+                self._events.append(
+                    record_event(
+                        SchedulerEventType.EXECUTION_FAILED,
+                        graph_id=graph_id,
+                        task_id=task_id,
+                        agent_id=claim.agent_id,
+                        claim_id=claim.claim_id,
+                        attempt_id=attempt.attempt_id,
+                        graph_version=claim.graph_version,
+                        reason=reason,
+                    )
+                )
+            self.release_claim(claim, reason=reason)
+        if retry:
+            prefix = f"{graph_id}:{task_id}:v"
+            self._idempotent_keys = {
+                key for key in self._idempotent_keys if not key.startswith(prefix)
+            }
+
     # ── VPG observation hook ───────────────────────────────────────────────
     def observe_vpg(self, graph_id: str) -> dict[str, int]:
         """Poll VPG state and derive scheduler-side state transitions:
@@ -449,6 +569,8 @@ class MultiAgentScheduler:
         """
         tally: dict[str, int] = {"claims_completed": 0}
         for claim in list(self._claims):
+            if claim.graph_id != graph_id:
+                continue
             if claim.state != ClaimState.ACTIVE:
                 continue
             validity = self._vpg.task_validity(graph_id, claim.task_id)
@@ -534,6 +656,19 @@ class MultiAgentScheduler:
     @staticmethod
     def _claim_idempotency_key(graph_id: str, task_id: str, graph_version: int) -> str:
         return f"{graph_id}:{task_id}:v{graph_version}"
+
+    @staticmethod
+    def _semantic_epoch(payload: dict[str, Any], graph_version: int) -> int:
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            return graph_version
+        stale_at = metadata.get("__stale_at_version")
+        created_at = payload.get("created_in_version")
+        if isinstance(stale_at, int):
+            return stale_at
+        if isinstance(created_at, int):
+            return created_at
+        return graph_version
 
     def _idependent_mark_idempotent(self, key: str) -> None:
         self._idempotent_keys.add(key)

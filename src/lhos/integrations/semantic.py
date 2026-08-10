@@ -33,7 +33,7 @@ class CommandVerifier:
         cwd=None,
         workspace: object | None = None,
     ) -> None:
-        self.command = command if isinstance(command, str) else " ".join(command)
+        self.command = command
         self.artifact_id = artifact_id
         self.version = version
         self.content = content
@@ -44,21 +44,22 @@ class CommandVerifier:
     def __call__(self) -> VerificationOutcome:
         # If a WorkspaceTool is provided and a file with artifact_id exists, ingest
         # its current bytes as the verification content (real file -> artifact).
-        if self.workspace is not None and self.content is None:
+        content = self.content
+        if self.workspace is not None and content is None:
             reader = getattr(self.workspace, "byte_content", None)
             if reader is not None:
                 import contextlib
 
                 with contextlib.suppress(Exception):
-                    self.content = reader(self.artifact_id)
+                    content = reader(self.artifact_id)
         r = self.shell.run(self.command, cwd=self.cwd)
         passed = r.ok
         return VerificationOutcome(
             passed=passed,
             artifact_id=self.artifact_id,
             version=self.version,
-            content=self.content
-            if self.content is not None
+            content=content
+            if content is not None
             else (r.value.get("stdout", "") if isinstance(r.value, dict) else str(r.value)),
             evidence_note=f"command: {self.command} exit={r.value.get('exit_code') if isinstance(r.value, dict) else '?'}",
             details={"tool_result": r.value, "kind": "command"},

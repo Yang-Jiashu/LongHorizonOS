@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
+ROOT = Path(__file__).resolve().parents[3]
 DEMO_MODULE = "tests.agent_os.artifacts.demo"
 
 
@@ -42,7 +42,8 @@ class TestDemoExecution:
     def test_full_demo_run(self, run, demo_module) -> None:
         """Run complete demo script — must succeed 3x in a row."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
+            f"import sys; sys.path.insert(0, {str(ROOT / 'src')!r}); "
+            f"from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
@@ -61,7 +62,8 @@ class TestDemoExecution:
     def test_demo_no_warnings(self, run, demo_module) -> None:
         """Demo must not produce runtime warnings or exceptions in output."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
+            f"import sys; sys.path.insert(0, {str(ROOT / 'src')!r}); "
+            f"from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
@@ -77,7 +79,8 @@ class TestDemoExecution:
     def test_demo_output_contains_all_sections(self, demo_module) -> None:
         """Demo output must cover all 6 demo sections."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
+            f"import sys; sys.path.insert(0, {str(ROOT / 'src')!r}); "
+            f"from {DEMO_MODULE} import main; main()"
         )
         result = subprocess.run(
             [sys.executable, "-c", runner],
@@ -106,7 +109,8 @@ class TestDemoExecution:
         UUIDs/hashes will differ, so we compare structural line counts.
         """
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); from {DEMO_MODULE} import main; main()"
+            f"import sys; sys.path.insert(0, {str(ROOT / 'src')!r}); "
+            f"from {DEMO_MODULE} import main; main()"
         )
         results = []
         for _ in range(2):
@@ -164,7 +168,7 @@ class TestDemoAuditRecorder:
     def test_record_demo_results(self) -> None:
         """Execute demo and record structured results."""
         runner = (
-            f"import sys; sys.path.insert(0, '{ROOT}/src'); "
+            f"import sys; sys.path.insert(0, {str(ROOT / 'src')!r}); "
             f"from tests.agent_os.artifacts.demo import main; "
             f"main()"
         )

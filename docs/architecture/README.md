@@ -24,6 +24,27 @@ system and are described in full in `LONGHORIZONOS-CORE-V1.md`:
 - **Multi-Agent Scheduler** — eligibility from live Kernel state, deterministic best-fit matching, Kernel-backed exclusive TaskClaims, per-agent concurrency, projection/reconciliation/recovery, replayable audit log.
 - **Causal Invalidation / Local Repair** — version-aware invalidation cone over DEPENDS_ON edges, preservation of unaffected VERIFIED work, minimal Repair Frontier, incremental re-verification.
 
+## Authority and closed loops
+
+- The **VPG is the only semantic authority and the source of the scheduling
+  frontier**. It derives readiness, verification, staleness, Goal lifecycle,
+  invalidation, and repair from graph structure plus durable facts.
+- The **Scheduler is policy, not authority or ownership**. It consumes the live
+  VPG frontier and Kernel eligibility state, then requests execution; it does
+  not duplicate graph semantics.
+- The **Kernel owns execution resources**. Exclusive ResourceLease acquisition
+  is the linearization point for a TaskClaim, with release on every terminal
+  attempt path.
+- An **Agent is analogous to a user process**. It may execute Actions and
+  produce Artifact/Evidence facts under capabilities, but cannot directly set
+  semantic states.
+
+Execution closes through:
+`VPG frontier -> Scheduler -> Kernel Lease -> Agent -> Evidence -> VPG`.
+
+World changes close through:
+`ArtifactVersion change -> STALE cone -> Goal reopen -> Repair Frontier -> new Evidence -> Goal closure`.
+
 ## Not part of Core V1
 
 Core V1 is the frozen foundation. On top of it sit evolving product/ecosystem

@@ -230,7 +230,7 @@ class TestDriverKernelBoundary:
         for f in driver_files:
             if f.name == "__init__.py":
                 continue
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
             tree = ast.parse(content)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import | ast.ImportFrom):
@@ -254,7 +254,7 @@ class TestDriverKernelBoundary:
         for f in driver_files:
             if f.name == "__init__.py":
                 continue
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
             if "process_service" in content or "ProcessService" in content:
                 violations.append(f.name)
 
@@ -280,7 +280,7 @@ class TestDriverKernelBoundary:
         for f in driver_files:
             if f.name == "__init__.py":
                 continue
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
             # Check for SQL or projection references
             if "projection" in content.lower():
                 violations.append(f"{f.name}: references 'projection'")

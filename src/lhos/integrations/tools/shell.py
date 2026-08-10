@@ -10,8 +10,11 @@ VPG path can make a task VERIFIED.
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+
+from lhos.subprocess_policy import CommandPolicyError, run_command
 
 from .base import ToolResult
 
@@ -28,10 +31,13 @@ class ShellTool:
     capability: str = "shell"
     timeout_s: float = 15.0
     max_output_chars: int = 32_000
+    trusted: bool = False
+    allow_shell: bool = False
+    allow_network: bool = False
 
     def run(
         self,
-        command: str,
+        command: str | Sequence[str],
         *,
         cwd: str | Path | None = None,
         env: dict[str, str] | None = None,
@@ -43,23 +49,25 @@ class ShellTool:
                 ok=False, error=f"capability {self.capability!r} denied", kind="shell"
             )
         try:
-            proc = subprocess.run(
+            proc = run_command(
                 command,
-                shell=True,
-                cwd=str(cwd) if cwd else None,
-                env=dict(env) if env else None,
-                capture_output=True,
-                text=True,
+                cwd=cwd,
+                env=env,
                 timeout=self.timeout_s,
+                trusted=self.trusted,
+                allow_shell=self.allow_shell,
+                allow_network=self.allow_network,
             )
         except subprocess.TimeoutExpired:
             return ToolResult(
                 ok=False, error=f"shell timeout after {self.timeout_s}s", kind="shell"
             )
+        except CommandPolicyError as e:
+            return ToolResult(ok=False, error=f"shell denied: {e}", kind="shell")
         except Exception as e:
             return ToolResult(ok=False, error=f"shell failed: {e}", kind="shell")
-        out = (proc.stdout or "")[: self.max_output_chars]
-        err = (proc.stderr or "")[: self.max_output_chars]
+        out = proc.stdout[: self.max_output_chars]
+        err = proc.stderr[: self.max_output_chars]
         return ToolResult(
             ok=proc.returncode == 0,
             value={"exit_code": proc.returncode, "stdout": out, "stderr": err},

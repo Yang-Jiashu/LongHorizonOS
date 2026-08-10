@@ -39,6 +39,7 @@ def build_status_view(os_: AgentOS, goal_id: str) -> StatusView:
         n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "artifact_ref"
     }
     evidence = {n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "evidence"}
+    goal_nodes = {n.node_id: n for n in nodes.values() if getattr(n, "node_type", "") == "goal"}
 
     # ownership from scheduler claims + Kernel Lease authority
     owner_by_task: dict[str, str | None] = {}
@@ -68,12 +69,8 @@ def build_status_view(os_: AgentOS, goal_id: str) -> StatusView:
         evidence_task.setdefault(evid, task)
 
     sv = StatusView(goal_id=goal_id, goal_state="OPEN", version=version)
-    affected: set[str] = set(os_._last_repair.affected) if os_._last_repair else set()
     for tid, node in tasks.items():
         tv = TaskView(task_id=tid, lifecycle=_lifecycle_str(node), validity=_validity_str(node))
-        if tid in affected:
-            # D3 overlay: this task's semantic validity is now STALE (projection only)
-            tv.validity = "stale"
         tv.owner = owner_by_task.get(tid)
         tv.lease_active = lease_active.get(tid)
         # artifact produced (task -> artifact_ref via produces)
@@ -116,10 +113,7 @@ def build_status_view(os_: AgentOS, goal_id: str) -> StatusView:
         if tv.lease_active is not None:
             sv.leases[tid] = tv.lease_active
 
-    # ready = stale/unverified whose deps are verified (approx; real readiness
-    # uses VPG, but here we expose the derived frontier + ready candidates)
-    sv.ready = [t for t in sv.stale if not _depends_on_stale(t, edges, tasks, sv.stale)]
-    sv.ready.sort()
+    sv.ready = [candidate.task_id for candidate in os_.vpg.query_ready_frontier(gid)]
     sv.verified.sort()
     sv.stale.sort()
     sv.unverified.sort()
@@ -148,9 +142,8 @@ def build_status_view(os_: AgentOS, goal_id: str) -> StatusView:
             else:
                 sv.repair_frontier.append(t)
         sv.repair_frontier.sort()
-    sv.goal_state = (
-        "CLOSED" if not sv.ready else ("REOPENED" if os_._last_repair is not None else "OPEN")
-    )
+    goal_node = next(iter(goal_nodes.values()), None)
+    sv.goal_state = _lifecycle_str(goal_node).upper() if goal_node is not None else "OPEN"
     return sv
 
 

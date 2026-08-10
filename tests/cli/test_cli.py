@@ -17,8 +17,12 @@ def _make_run(tmp_path, mutation: bool = False) -> str:
     g = os_.goal("G")
     t1 = g.task("Inspect", agent="coder", verify=scripted_executor(artifact_id="a.py", version=1))
     g.task("Independent", agent="coder", verify=scripted_executor(artifact_id="b.md", version=1))
-    g.task("Implement", agent="coder", depends_on=(t1,),
-           verify=scripted_executor(artifact_id="a2.py", version=1))
+    g.task(
+        "Implement",
+        agent="coder",
+        depends_on=(t1,),
+        verify=scripted_executor(artifact_id="a2.py", version=1),
+    )
     os_.run(g, max_dispatches=8)
     if mutation:
         os_._facts.add_version("a.py", 2, "v2")
@@ -31,7 +35,11 @@ def _make_run(tmp_path, mutation: bool = False) -> str:
 def _cli(args: list[str], manifest: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "lhos.cli.core", *args, "--state", manifest],
-        capture_output=True, text=True, timeout=60)
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
 
 def test_cli_status_human(tmp_path):
     m = _make_run(tmp_path, mutation=True)
@@ -92,16 +100,30 @@ def test_cli_query_is_non_mutating_graph_version(tmp_path):
 
 def test_cli_legacy_route(tmp_path, monkeypatch):
     """`lhos legacy` routes to the legacy spec-20 CLI without crashing."""
-    r = subprocess.run([sys.executable, "-m", "lhos.cli.core", "legacy", "--help"],
-                       capture_output=True, text=True, timeout=30)
+    r = subprocess.run(
+        [sys.executable, "-m", "lhos.cli.core", "legacy", "--help"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     # legacy --help should show the legacy subcommands
     assert ("init" in r.stdout) or ("usage" in r.stdout)
 
 
 def test_cli_state_not_found(tmp_path):
-    r = subprocess.run([sys.executable, "-m", "lhos.cli.core", "status", "--state",
-                        str(tmp_path / "missing.json")],
-                       capture_output=True, text=True, timeout=30)
+    r = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "lhos.cli.core",
+            "status",
+            "--state",
+            str(tmp_path / "missing.json"),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     assert r.returncode != 0
     assert "not found" in r.stderr
 

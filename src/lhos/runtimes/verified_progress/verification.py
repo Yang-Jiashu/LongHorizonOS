@@ -251,9 +251,7 @@ def task_is_verified(
         return False
 
     verifications = _find_verifications(task.node_id, nodes, edges)
-    if len(verifications) < max(1, task.required_verification_count):
-        return False
-
+    valid_verification_count = 0
     for v in verifications:
         evidence_list = _find_evidence_for_verification(v.node_id, nodes, edges)
         has_valid = any(
@@ -266,7 +264,9 @@ def task_is_verified(
             ).valid
             for ev in evidence_list
         )
-        if not has_valid:
-            return False
+        if has_valid:
+            valid_verification_count += 1
 
-    return _task_deps_verified(task, nodes, edges)
+    return valid_verification_count >= max(
+        1, task.required_verification_count
+    ) and _task_deps_verified(task, nodes, edges)

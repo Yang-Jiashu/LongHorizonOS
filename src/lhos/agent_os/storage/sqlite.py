@@ -29,12 +29,10 @@ class SQLiteStorage:
             isolation_level=None,  # autocommit; we manage transactions explicitly
             check_same_thread=False,
         )
-        # A single sqlite3.Connection permits only one in-flight write txn at a
-        # time even with check_same_thread=False. Begin an immediate txn from
-        # two threads concurrently raises "cannot start a transaction within a
-        # transaction", which is indistinguishable from a real programming error.
-        # Serialize write-txn entry so BEGIN IMMEDIATE/COMMIT pairs never overlap
-        # across threads. (LEASE-01 downstream.)
+        # A single sqlite3.Connection permits only one in-flight transaction at
+        # a time even with check_same_thread=False. Serialize every explicit
+        # BEGIN/COMMIT pair so an IMMEDIATE acquisition cannot overlap a deferred
+        # waiter/journal transaction on the same connection.
         self._write_lock = threading.Lock()
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
@@ -103,10 +101,9 @@ class _Tx:
         self.write_lock = write_lock
 
     def __enter__(self) -> _Tx:
-        # For write (IMMEDIATE) txns, acquire the storage-level lock first so
-        # concurrent threads cannot race through BEGIN IMMEDIATE. Readers and
-        # DEFERRED txns can proceed without the OS lock.
-        if self.immediate and self.write_lock is not None:
+        # Every explicit transaction shares one sqlite3.Connection, so all
+        # BEGIN/COMMIT pairs must be serialized across threads.
+        if self.write_lock is not None:
             self.write_lock.acquire()
         # BEGIN IMMEDIATE takes a write lock up front, blocking concurrent writers
         # so that a check-then-insert sequence inside the txn is serializable.
@@ -120,7 +117,7 @@ class _Tx:
             else:
                 self.conn.execute("ROLLBACK")
         finally:
-            if self.immediate and self.write_lock is not None:
+            if self.write_lock is not None:
                 self.write_lock.release()
 
     def execute(self, sql: str, params: tuple[Any, ...] = ()) -> sqlite3.Cursor:

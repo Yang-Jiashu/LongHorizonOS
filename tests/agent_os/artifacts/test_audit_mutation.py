@@ -3,7 +3,7 @@
 Verifies that the test suite catches deliberate bugs (mutations) in
 the source code. For each mutation:
 1. Apply a small change to source via string replacement
-2. Run relevant tests via `uv run pytest`
+2. Run relevant tests with the active Python interpreter
 3. Verify tests FAIL (mutation killed)
 4. Revert change
 5. Verify tests pass again
@@ -19,39 +19,41 @@ the test suite has meaningful sensitivity.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
-ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
+ROOT = Path(__file__).resolve().parents[3]
 SRC_ROOT = ROOT / "src"
 
 RESULTS_PATH = ROOT / "artifacts/agent_os_phase_c1_audit/mutation-results.json"
 
 
 def _run_tests(test_file: str) -> tuple[int, str, str]:
-    """Run tests via uv. Returns (rc, stdout, stderr)."""
+    """Run tests with the active Python environment."""
+    env = os.environ.copy()
+    src_path = str(ROOT / "src")
+    env["PYTHONPATH"] = os.pathsep.join(
+        path for path in (src_path, env.get("PYTHONPATH", "")) if path
+    )
     result = subprocess.run(
-        ["uv", "run", "pytest", test_file, "-q", "--tb=line", "-x"],
+        [sys.executable, "-m", "pytest", test_file, "-q", "--tb=line", "-x"],
         capture_output=True,
         text=True,
         cwd=str(ROOT),
+        env=env,
         timeout=120,
     )
     return result.returncode, result.stdout, result.stderr
 
 
 def _patch(file_path: Path, old: str, new: str) -> bool:
-    content = file_path.read_text()
+    content = file_path.read_text(encoding="utf-8")
     if old not in content:
         return False
-    file_path.write_text(content.replace(old, new, 1))
+    file_path.write_text(content.replace(old, new, 1), encoding="utf-8", newline="")
     return True
-
-
-def _revert(file_path: Path, new: str, old: str) -> None:
-    content = file_path.read_text()
-    if new in content:
-        file_path.write_text(content.replace(new, old, 1))
 
 
 def _mutation_kills_test(
@@ -61,13 +63,15 @@ def _mutation_kills_test(
     new_code: str,
     test_rel: str,
 ) -> dict:
-    """Apply mutation, run tests, revert. Returns info dict."""
+    """Apply mutation, run tests, restore the original bytes.  Returns info dict."""
     info = {"name": name, "killed": False, "error": None}
     full_path = SRC_ROOT / source_rel
+    # Restoring from the original bytes — not by replacing the mutation string
+    # back — is what makes a mid-run failure non-destructive.
+    original = full_path.read_bytes()
     try:
         if not _patch(full_path, old_code, new_code):
             info["error"] = "Patch not applied (old code not found)"
-            info["killed"] = True  # Treat as analyzed
             return info
         rc, _stdout, _stderr = _run_tests(test_rel)
         info["killed"] = rc != 0
@@ -78,7 +82,8 @@ def _mutation_kills_test(
         info["error"] = str(ex)
     finally:
         try:
-            _revert(full_path, new_code, old_code)
+            if full_path.read_bytes() != original:
+                full_path.write_bytes(original)
         except Exception as ex:
             info["revert_error"] = str(ex)
     return info
@@ -89,9 +94,9 @@ MUTATIONS = [
     (
         "lease_exclusivity_disabled",
         "lhos/agent_os/services/lease_service.py",
-        'if mode == "exclusive" or row["mode"] == "exclusive":\n                return False',
-        'if mode == "exclusive" and row["mode"] == "shared":\n                return False',
-        "tests/agent_os/artifacts/test_audit_comprehensive.py",
+        'if mode == "exclusive" or existing_mode == "exclusive":',
+        "if False:  # MUTATION: exclusivity disabled",
+        "tests/agent_os/test_leases.py",
     ),
     (
         "capability_always_true",
@@ -109,8 +114,8 @@ MUTATIONS = [
     (
         "journal_offset_gap",
         "lhos/agent_os/services/journal.py",
-        "next_offset = (max(offsets) + 1) if offsets else 0",
-        "next_offset = (max(offsets) + 2) if offsets else 0",
+        'offset = meta["value"]',
+        'offset = meta["value"] + 1  # MUTATION',
         "tests/agent_os/artifacts/test_audit_journal_atomicity.py",
     ),
     (
@@ -130,7 +135,7 @@ MUTATIONS = [
     (
         "idempotency_broken",
         "lhos/agent_os/services/journal.py",
-        "existing = self._storage.query_one(\n"
+        "existing = tx.query_one(\n"
         '                "SELECT journal_offset, process_sequence FROM journal_events WHERE event_id = ?",\n'
         "                (ev.event_id,),\n"
         "            )\n"
@@ -164,37 +169,36 @@ MUTATIONS = [
     (
         "uri_normalization_disabled",
         "lhos/agent_os/artifacts/uri.py",
-        'nfc_path = unicodedata.normalize("NFC", raw_path)',
-        "nfc_path = raw_path  # MUTATION",
+        'nfc_path = unicodedata.normalize("NFC", decoded_path)',
+        "nfc_path = decoded_path  # MUTATION",
         "tests/agent_os/artifacts/test_uri_audit_adversarial.py",
     ),
     (
         "commit_skips_cas_write",
         "lhos/agent_os/artifacts/service.py",
-        "commit_result = self._storage_driver.commit(\n                transaction_id\n            )",
-        "commit_result = DriverResult(success=True, content_ref=txn.staged_content_ref)\n"
-        "            # MUTATION: skip CAS write",
+        "commit_result = self._storage_driver.commit(transaction_id)",
+        "commit_result = self._storage_driver.inspect_transaction(transaction_id)  # MUTATION",
         "tests/agent_os/artifacts/test_audit_projection_rebuild.py",
     ),
     (
         "waiters_not_recorded",
         "lhos/agent_os/services/lease_service.py",
-        "self._add_waiter(pid, resource_id)",
+        "self._add_waiter(waiter_pid, waiter_resource)",
         "pass  # MUTATION: waiters disabled",
-        "tests/agent_os/artifacts/test_audit_comprehensive.py",
+        "tests/agent_os/test_leases.py",
     ),
     (
         "journal_not_committed",
         "lhos/agent_os/services/journal.py",
-        "with self._storage.transaction() as tx:\n                for ev in events:",
-        "with self._storage.transaction() as tx:\n                for ev in events:\n                    pass  # MUTATION",
+        "tx.execute(\"UPDATE journal_meta SET value = value + 1 WHERE key = 'next_offset'\")",
+        "pass  # MUTATION: journal offset not committed",
         "tests/agent_os/artifacts/test_audit_journal_atomicity.py",
     ),
     (
         "version_sequence_gap_on_commit",
         "lhos/agent_os/artifacts/service.py",
-        'results = tx.execute(\n                "UPDATE artifacts_projection SET current_version = ? WHERE artifact_id = ?",\n                (new_version, artifact.artifact_id),\n            )',
-        "results = 1  # MUTATION: skip version update",
+        "self._projections.upsert_artifact(artifact)",
+        "pass  # MUTATION: artifact projection not advanced",
         "tests/agent_os/artifacts/test_audit_comprehensive.py",
     ),
 ]
@@ -214,10 +218,16 @@ class TestMutationAudit:
 
         killed = [r for r in results if r["killed"]]
         survived = [r for r in results if not r["killed"]]
+        unanalyzed = [r for r in results if r.get("error")]
 
         # Save results
         RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
         RESULTS_PATH.write_text(json.dumps(results, indent=2))
+
+        assert not unanalyzed, (
+            "Mutation operators must apply and execute successfully. "
+            f"Unanalyzed: {[(r['name'], r['error']) for r in unanalyzed]}"
+        )
 
         # Audit acceptance: at least 50% of mutations must be killed
         kill_ratio = len(killed) / len(results) if results else 0
@@ -237,7 +247,7 @@ class TestMutationAudit:
             "lease_exclusivity_disabled",
             "lease_release_noop",
         ]
-        data = json.loads(RESULTS_PATH.read_text())
+        data = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
         killed_names = {r["name"] for r in data if r["killed"]}
         missed = [n for n in must_kill if n not in killed_names]
         assert not missed, f"Expected-killed mutations survived: {missed}"
@@ -252,5 +262,5 @@ class TestMutationAudit:
             SRC_ROOT / "lhos/agent_os/artifacts/uri.py",
         ]
         for f in files_to_check:
-            content = f.read_text()
+            content = f.read_text(encoding="utf-8")
             assert "MUTATION" not in content, f"Mutation marker found in {f.name} — revert failed"

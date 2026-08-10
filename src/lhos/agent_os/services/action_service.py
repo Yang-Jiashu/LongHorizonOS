@@ -49,9 +49,10 @@ class ActionService:
         side_effect_class: SideEffectClass = SideEffectClass.PURE,
         idempotency_key: str | None = None,
         timeout_seconds: int | None = None,
+        action_id: str | None = None,
     ) -> ActionControlBlock:
         acb = ActionControlBlock(
-            action_id=uuid4().hex,
+            action_id=action_id or uuid4().hex,
             pid=pid,
             device_type=device_type,
             operation=operation,

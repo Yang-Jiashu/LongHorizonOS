@@ -75,6 +75,8 @@ class LeaseService:
         # (_add_waiter, journal) MUST stay out of this txn: the storage uses
         # isolation_level=None, which forbids nested BEGINs.
         pending_waiters: list[tuple[str, str]] = []
+        failed_resource: str | None = None
+        failed_mode: str | None = None
         leases: list[ResourceLease] = []
         with self._storage.transaction(immediate=True) as tx:
             # Re-check availability within the write-locked txn.  SELECT→check→INSERT
@@ -89,16 +91,20 @@ class LeaseService:
                     (resource_id,),
                 )
                 for row in rows:
-                    row["owner_pid"]
                     existing_mode = row["mode"]
                     if mode == "exclusive" or existing_mode == "exclusive":
                         pending_waiters.append((pid, resource_id))
-                        raise LeaseAcquisitionFailed(pid, resource_id)
+                        failed_resource = resource_id
+                        failed_mode = mode
+                        break
+                if failed_resource is not None:
+                    break
 
             # All still available under the write lock — acquire atomically.
+            acquisition_claims = [] if pending_waiters else claims
             now = datetime.now(UTC)
             expires_at = now + ttl
-            for claim in claims:
+            for claim in acquisition_claims:
                 resource_id = claim["resource_id"]
                 mode = claim.get("mode", "exclusive")
                 lease = ResourceLease(
@@ -126,7 +132,7 @@ class LeaseService:
                     ),
                 )
             # Remove waiters for acquired resources.
-            for claim in claims:
+            for claim in acquisition_claims:
                 tx.execute(
                     "DELETE FROM lease_waiters WHERE pid = ? AND resource_id = ?",
                     (pid, claim["resource_id"]),
@@ -154,11 +160,14 @@ class LeaseService:
                     event_type="LEASE_ACQUIRE_FAILED",
                     payload={
                         "resource_id": waiter_resource,
-                        "mode": claims[0].get("mode", "exclusive") if claims else "exclusive",
+                        "mode": failed_mode or "exclusive",
                         "reason": "resource_busy",
                     },
                 )
             )
+
+        if failed_resource is not None:
+            raise LeaseAcquisitionFailed(pid, failed_resource)
 
         return leases
 

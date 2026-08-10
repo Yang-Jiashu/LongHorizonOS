@@ -1,48 +1,111 @@
-# LongHorizonOS — Recovery + Semantic Reconciliation Demo
+# Recovery and Semantic Reconciliation Demo
 
-## What this demo proves
-One command shows the Core's distinctive behavior end-to-end: worker crash →
-**execution ownership recovery**; ArtifactVersion mutation → **Evidence
-applicability loss**; **selective semantic invalidation**; **preserved VERIFIED
-work**; **minimal Repair Frontier**; D2 repair with **new exact-version Evidence**;
-and **semantic reclosure** (Goal CLOSED → REOPENED → CLOSED).
+This demo is the shortest way to understand what makes LongHorizonOS different.
+
+It exercises the real Core end to end:
+
+```text
+worker failure
+    -> execution ownership recovery
+
+ArtifactVersion change
+    -> old Evidence loses current applicability
+    -> affected tasks become STALE
+    -> unaffected VERIFIED work is preserved
+    -> the Graph derives a minimum Repair Frontier
+    -> new exact-version Evidence restores Goal closure
+```
 
 ## Run it
-```
-pip install .            # or install the wheel
+
+```bash
+pip install .
+
 lhos demo recovery-repair
-lhos demo recovery-repair --json      # machine-readable summary
-lhos demo recovery-repair --paced     # slower, GIF/video friendly
-lhos demo recovery-repair --live-model  # OPTIONAL real-model mode (not required)
+lhos demo recovery-repair --json
+lhos demo recovery-repair --paced
 ```
-No API key, no network, no tests, wheel-runnable outside the repo.  Deterministic.
 
-## Acts (all derived from REAL Core state — formatter never reconstructs truth)
-1. **Build verified progress** — a real Goal with 4 Tasks (Research→Implement→
-   Review causal branch + Independent Analysis branch) verified via real
-   Resources/Shell/Evidence → VPG derives VERIFIED → GOAL CLOSED.
-2. **Worker failure** — a real worker process SIGKILL (or controlled termination
-   fallback) → Kernel process FAILED → ownership reconciled.
-3. **World changed** — real workspace file `source.py@v1 → @v2` committed as an
-   exact ArtifactVersion via the Workspace↔Artifact bridge.
-4. **Semantic reconciliation** — real D3: old Evidence stays historical but loses
-   current applicability; only causal Tasks go STALE; the independent branch stays
-   VERIFIED/PRESERVED; minimal Repair Frontier = [Inspect]; Review stays blocked.
-5. **Local repair** — D2 re-schedules with new exact-version Evidence → VERIFIED,
-   frontier advances to Review → VERIFIED → GOAL CLOSED.
+The demo is deterministic, offline, and requires no API key. It can run from an
+installed wheel outside the repository.
 
-## Why this is not "full restart"
-`full_restart_avoided` is YES only because preserved VERIFIED work was NOT
-re-executed; `preserved_verified_tasks > 0` and those stayed verified through the
-mutation while only the minimally-affected set was repaired.
+## What happens
 
-## Deterministic default vs live-model
-Default uses a deterministic scripted executor + real Shell/Workspace (no API
-key).  `--live-model` may use an OpenAI-compatible provider, but goes through the
-same Core/VPG execution path with no extra semantic authority (DEMO-G10).
+### 1. Build verified progress
 
-## Parts which use real Core
-Kernel (process/lease), Verified Progress Graph (validity/closure),
-Multi-Agent Scheduler (claims/ownership), D3 (invalidation/Repair Frontier),
-Artifact FS bridge (exact ArtifactVersion), Shell verification, and E3
-observability read models (StatusView / graph renderer).  Nothing is hardcoded.
+The demo creates a Goal with two branches:
+
+```text
+Inspect -> Implement -> Review
+
+Independent Analysis
+```
+
+Tasks execute through Kernel-backed Agents and produce Evidence. The VPG derives
+the tasks as `VERIFIED` and closes the Goal.
+
+### 2. Recover from worker failure
+
+A worker process is terminated. The Kernel transitions the process state and
+releases the exclusive task Lease. Scheduler reconciliation recovers ownership
+without deleting semantic progress.
+
+### 3. Change the world
+
+The workspace artifact changes:
+
+```text
+source.py@v1 -> source.py@v2
+```
+
+The new content is registered as a real ArtifactVersion.
+
+### 4. Reconcile semantic truth
+
+Evidence bound to `source.py@v1` remains immutable historical evidence, but it
+is no longer current-applicable to `source.py@v2`.
+
+The invalidation runtime derives the causal affected cone:
+
+- affected tasks become `STALE`;
+- downstream tasks are invalidated through `DEPENDS_ON`;
+- unrelated tasks remain `VERIFIED`;
+- the closed Goal reopens;
+- the Graph derives the minimum Repair Frontier.
+
+The Scheduler does not contain invalidation semantics. It simply consumes the
+new frontier produced by the Graph.
+
+### 5. Repair locally
+
+Only frontier tasks are scheduled. Each stale task requires fresh Evidence
+created after invalidation and bound to the current ArtifactVersion.
+
+As repaired tasks verify, the Graph advances the frontier until the Goal closes
+again.
+
+## Why this is not a full restart
+
+The demo reports `full_restart_avoided = true` only when:
+
+- at least one previously verified task remains preserved;
+- preserved tasks are not re-executed;
+- only the causally affected set is repaired;
+- the final Goal returns to `CLOSED`.
+
+## Which parts are real
+
+The formatter reads the outcome from real runtime state. The demo uses:
+
+- Kernel Process and ResourceLease lifecycle;
+- Verified Progress Graph validity and Goal closure;
+- Multi-Agent Scheduler claims and attempts;
+- versioned Artifact facts;
+- exact-version Evidence;
+- causal invalidation and Repair Frontier derivation;
+- read-only status and graph projections.
+
+The scenario is scripted for determinism, but semantic truth is not hardcoded.
+Changing the execution provider does not grant it additional semantic
+authority: the VPG remains the source of `READY`, `VERIFIED`, `STALE`, and Goal
+closure.

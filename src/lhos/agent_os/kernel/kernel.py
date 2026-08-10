@@ -83,6 +83,10 @@ class AgentKernel:
         self.register_driver("model/mock", MockModelDriver())
         self.register_driver("tool/mock", MockDeviceDriver())
 
+    def close(self) -> None:
+        """Release the kernel's storage handle."""
+        self._storage.close()
+
     def register_driver(self, device_type: str, driver: Any) -> None:
         self._drivers[device_type] = driver
 

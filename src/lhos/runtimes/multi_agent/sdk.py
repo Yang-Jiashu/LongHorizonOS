@@ -40,8 +40,27 @@ class SchedulerSession:
     def match_log(self) -> list[Any]:
         return self._s.match_log
 
-    def active_claim_for_task(self, task_id: str) -> Any | None:
-        return self._s.get_claim(task_id)
+    def active_claim_for_task(self, task_id: str, graph_id: str | None = None) -> Any | None:
+        return self._s.get_claim(task_id, graph_id)
+
+    def attempt_for_claim(self, claim_id: str) -> Any | None:
+        return self._s.get_attempt_for_claim(claim_id)
+
+    def release_task(
+        self,
+        graph_id: str,
+        task_id: str,
+        *,
+        reason: str = "execution_failed",
+        retry: bool = True,
+    ) -> None:
+        """Release operational ownership without changing VPG semantics."""
+        self._s.release_task(
+            graph_id,
+            task_id,
+            reason=reason,
+            retry=retry,
+        )
 
     # ── reconcile ──────────────────────────────────────────────────────────
     def reconcile(self) -> Any:

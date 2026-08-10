@@ -70,12 +70,18 @@ def _fail(msg: str) -> None:
     raise DemoAssertionError(f"demo semantic assertion failed: {msg}")
 
 
+# Windows has no SIGKILL; os.kill(pid, SIGTERM) there maps to TerminateProcess,
+# which is likewise uncatchable — so the crash stays un-cleanable either way.
+HARD_KILL_SIGNAL = getattr(signal, "SIGKILL", signal.SIGTERM)
+HARD_KILL_MODE = "real SIGKILL" if hasattr(signal, "SIGKILL") else "real TerminateProcess"
+
+
 def _real_sigkill(pids) -> dict[str, Any]:
-    mode = "real SIGKILL"
+    mode = HARD_KILL_MODE
     for pid in pids:
         try:
-            os.kill(pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
+            os.kill(pid, HARD_KILL_SIGNAL)
+        except (ProcessLookupError, PermissionError, OSError):
             mode = "controlled process termination"
     return {"mode": mode, "pids": pids}
 
@@ -130,6 +136,7 @@ def run_recovery_repair(
         "Review",
         agent="reviewer",
         depends_on=(t2,),
+        required_specializations=("review",),
         verify=CommandVerifier(
             "true", artifact_id="review.md", version=1, shell=sh, cwd=str(ws_dir), workspace=ws
         ),

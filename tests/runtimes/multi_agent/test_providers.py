@@ -216,14 +216,18 @@ def make_capability(resource: str, ops: tuple[str, ...]) -> Capability:
 # ---------------------------------------------------------------------------
 SIGKILL_TIMEOUT = 60.0
 
+# Windows has no SIGKILL; there os.kill(pid, SIGTERM) maps to TerminateProcess,
+# which is equally uncatchable, so the child still dies without cleanup.
+HARD_KILL_SIGNAL = getattr(signal, "SIGKILL", signal.SIGTERM)
+
 
 def spawn_worker(args: list[str], **kw: Any) -> subprocess.Popen:
     return subprocess.Popen([sys.executable, *args], **kw)
 
 
 def kill_and_wait(proc: subprocess.Popen, *, timeout: float = SIGKILL_TIMEOUT) -> int:
-    with contextlib.suppress(ProcessLookupError):
-        os.kill(proc.pid, signal.SIGKILL)
+    with contextlib.suppress(ProcessLookupError, OSError):
+        os.kill(proc.pid, HARD_KILL_SIGNAL)
     try:
         return proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:

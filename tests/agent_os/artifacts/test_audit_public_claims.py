@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 from _pytest.config import get_config  # noqa: F401
 
-ROOT = Path("/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos")
+ROOT = Path(__file__).resolve().parents[3]
 README = ROOT / "README.md"
 
 
@@ -51,7 +51,7 @@ class TestREADMEClaims:
     )
     def test_readme_lists_implemented_features(self, claim: str) -> None:
         """README must list all implemented Phase C1 features."""
-        content = README.read_text()
+        content = README.read_text(encoding="utf-8")
         assert claim in content, f"README missing claim: '{claim}'"
 
     def test_readme_lists_not_yet_implemented(self) -> None:
@@ -68,7 +68,7 @@ class TestREADMEClaims:
         """
         import re as _re
 
-        content = README.read_text()
+        content = README.read_text(encoding="utf-8")
         match = _re.search(r"Not yet implemented:\n(.*?)(?:\n## |\Z)", content, _re.S)
         not_yet_block = match.group(1) if match else ""
 
@@ -102,7 +102,7 @@ class TestREADMEClaims:
         import re as _re
         import sys
 
-        content = README.read_text()
+        content = README.read_text(encoding="utf-8")
         # Look for a claim like "N tests" or similar
         matches = _re.findall(r"(\d+)\s+tests?", content)
         if matches:
@@ -130,12 +130,12 @@ class TestREADMEClaims:
 
     def test_readme_quickstart_makefile_targets(self) -> None:
         """README quickstart commands must work."""
-        content = README.read_text()
+        content = README.read_text(encoding="utf-8")
         make_targets = re.findall(r"make\s+(\w+)", content)
         if make_targets:
             makefile = ROOT / "Makefile"
             if makefile.exists():
-                makefile_content = makefile.read_text()
+                makefile_content = makefile.read_text(encoding="utf-8")
                 for target in set(make_targets):
                     # Strip trailing comments/punctuation
                     target_clean = target.strip()

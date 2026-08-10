@@ -1,286 +1,197 @@
-# LongHorizonOS (lhos)
+<div align="center">
 
-> LongHorizonOS is a state-centric agent operating architecture composed of a
-> deterministic execution plane and an evidence-backed semantic control plane.
-> The **Agent OS** subsystem provides process, action, capability, lease,
-> persistence, artifact, and context primitives (the execution plane); the
-> semantic control plane (Verified Progress Graph, Multi-Agent Scheduler,
-> Causal Invalidation/Repair) determines progress, readiness, and repair.
-> ("Agent OS" = the microkernel + system-services subsystem, NOT the whole
-> system.)
+# LongHorizonOS
 
-## Core Architecture V1: FROZEN
+### A state-centric operating runtime for long-horizon agents
 
-Microkernel · STABLE · Artifact FS / Namespace · STABLE · Context VM · STABLE ·
-Verified Progress Graph · STABLE · Multi-Agent Scheduler · STABLE · Causal
-Invalidation / Local Repair · STABLE.
+**The Graph decides what is true and what is ready.  
+The Kernel decides who owns execution. Agents do the work and submit Evidence.**
 
-Canonical specification: `docs/architecture/LONGHORIZONOS-CORE-V1.md`.
-Freeze record: `docs/architecture/CORE-V1-FREEZE.md`.  Milestone tag:
-`longhorizonos-core-v1`.
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-D22128)](LICENSE)
+[![Status](https://img.shields.io/badge/status-v0.1.0%20RC-orange)](docs/releases/v0.1.0.md)
+[![Core](https://img.shields.io/badge/Core%20V1-frozen-6f42c1)](docs/architecture/LONGHORIZONOS-CORE-V1.md)
 
-Still future / product / ecosystem work (NOT part of Core V1): real model
-integrations, a developer-facing high-level SDK, CLI UX, browser tooling, and
-distributed scheduling.
+English | [简体中文](README.zh-CN.md)
 
-## See the difference
+[Quick Start](#quick-start) · [Architecture](#architecture) ·
+[Demo](#run-the-closed-loop-demo) · [Documentation](#documentation)
 
-Run the flagship once and watch a real worker crash get recovered, a real
-ArtifactVersion change turn only the affected work stale (while unrelated
-**VERIFIED** work stays preserved), and a **minimal** repair frontier re-close the
-Goal with new exact-version Evidence — no full restart.
+</div>
 
-```bash
-lhos demo recovery-repair          # deterministic, no API key
-lhos demo recovery-repair --json   # machine-readable summary
+---
+
+## What is LongHorizonOS?
+
+Most agent frameworks organize calls, messages, or workflows. LongHorizonOS
+organizes **durable semantic progress**.
+
+It combines a microkernel-style execution plane with an evidence-backed
+**Verified Progress Graph (VPG)**. The VPG is not a visualization generated
+after a run: it is the live semantic control plane and the source of the
+scheduling frontier.
+
+When an artifact or external fact changes, LongHorizonOS preserves unaffected
+verified work, invalidates only the causal cone, reopens the Goal, and derives
+the minimum Repair Frontier required to close it again.
+
+> [!IMPORTANT]
+> The Scheduler selects policy; it does not invent truth. Task ownership starts
+> only after the Kernel grants an exclusive Lease. Agents cannot directly mark
+> a Task `VERIFIED` or close a Goal.
+
+## Why another agent runtime?
+
+Long-running agents need answers that a queue alone cannot provide:
+
+- What remains valid after the world changes?
+- Why is a task complete, and which artifact versions support that claim?
+- Who owns a task after a worker crashes?
+- Which work must be repaired, and which work must be preserved?
+- Can the runtime recover from durable state without replaying the whole plan?
+
+LongHorizonOS makes these questions explicit system invariants.
+
+## Architecture
+
+```mermaid
+flowchart TB
+    G["Verified Progress Graph<br/>semantic truth · READY/VERIFIED/STALE<br/>Goal closure · Repair Frontier"]
+    S["Graph-derived Scheduler<br/>eligibility · matching · retries · capacity"]
+    K["Microkernel<br/>Process · Action · Capability · Lease · Signal · Journal"]
+    A["Agents / Tools<br/>execute attempts · produce Artifacts + Evidence"]
+    R["Causal Invalidation<br/>applicability loss · local repair"]
+
+    G -->|"ready frontier"| S
+    S -->|"claim request"| K
+    K -->|"exclusive ownership"| A
+    A -->|"facts and Evidence"| G
+    G -->|"world change"| R
+    R -->|"STALE + repair frontier"| G
 ```
 
-- Worker crash → **execution ownership recovered**
-- Artifact change → **old Evidence loses current applicability** (history intact)
-- Only affected work becomes **STALE**; unrelated **VERIFIED work is preserved**
-- A **minimal Repair Frontier** is derived; only necessary work reruns
-- Repair requires **new exact-version Evidence**; Goal re-closes
+| Layer | Authority |
+|---|---|
+| **Graph / VPG** | Dependencies, semantic state, readiness, Goal lifecycle |
+| **Scheduler** | Agent matching, capacity, retry and dispatch policy |
+| **Kernel** | Processes, capabilities, exclusive ownership and recovery |
+| **Agent** | One execution attempt and its produced facts |
 
-Docs: `docs/demos/RECOVERY-REPAIR.md`.  (The `lhos` CLI is the Core V1 surface;
-the legacy spec-20 CLI is reachable via `lhos legacy`.)
+This does not attempt to treat every OS analogy literally. It directly adopts
+the mechanisms that provide useful invariants: explicit state, authority
+boundaries, durable journals, resource ownership and crash recovery.
 
-## Install
+## Key features
 
-Requires Python 3.11+.
+- **Verified progress** — immutable Evidence bound to exact ArtifactVersions.
+- **Causal repair** — deterministic invalidation with preserved verified work.
+- **Resource-safe execution** — Kernel Lease is the ownership linearization point.
+- **Crash-consistent state** — durable claims, attempts, journals and projections.
+- **Read-only observability** — inspect saved runs without mutating the Graph.
+- **Offline proof path** — the flagship demo requires no model key or network.
+
+Implemented subsystems:
+
+- Process / Action / Journal
+- Capability / Lease / Signal
+- Crash recovery
+- Versioned Artifact FS
+- Namespace isolation
+- Optimistic concurrency
+- Canonical URI security
+- Context VM, Verified Progress Graph and graph-derived multi-agent scheduling
+
+## Run the closed-loop demo
 
 ```bash
-pip install .            # from a source checkout
-# or, from a built release artifact:
-pip install dist/lhos-0.1.0-py3-none-any.whl
+python -m pip install .
+lhos demo recovery-repair
 ```
 
-Editable/dev install (runs tests, lints, demos): `make install` then `make test`.
+The demo exercises the real Kernel, VPG, Scheduler, Artifact bridge and
+invalidation runtime:
 
-## 30-second SDK quickstart
+```text
+verified Goal
+  -> worker failure and Lease recovery
+  -> ArtifactVersion changes
+  -> causal STALE propagation
+  -> minimum Repair Frontier
+  -> fresh Evidence
+  -> Goal closes again
+```
+
+Use `lhos demo recovery-repair --json` for machine-readable output.
+
+## Quick Start
 
 ```python
 from lhos.sdk import Agent, AgentOS, Goal, scripted_executor
 
-os_ = AgentOS(":memory:")                                   # composition root
-os_.add_agent(Agent("coder", specializations=("python",)))  # real Kernel process
+runtime = AgentOS(":memory:")
+runtime.add_agent(Agent("coder", specializations=("python",)))
 
-goal = Goal("Hello")
-goal.task("Write hello", agent="coder",
-          verify=scripted_executor(artifact_id="hello.txt", version=1))
+goal = Goal("Ship hello")
+goal.task(
+    "Write hello",
+    agent="coder",
+    verify=scripted_executor(artifact_id="hello.txt", version=1),
+)
 
-result = os_.run(goal, max_dispatches=4)   # Scheduler claims + dispatches
-print(result.task_states, result.verified)  # VPG derives VERIFIED from evidence
+result = runtime.run(goal, max_dispatches=4)
+print(result.goal_state)  # closed
 ```
 
-Runnable copy: `examples/quickstart/hello_world.py`.  A Task without a verifier
-stays **UNVERIFIED** by design (fail-closed); attach a `Verifier` (callback /
-command / scripted) to close it with evidence.  Full guide: `docs/QUICKSTART.md`.
-Concepts: `docs/CONCEPTS.md`.  Python API: `docs/sdk/`.
+A successful execution without valid Evidence remains unverified by design.
+See the [Quick Start guide](docs/QUICKSTART.md) for multi-agent execution and
+local repair.
 
-## Current Status (Phase D3 — Version-aware causal invalidation and local repair implemented)
+## Project status
 
-Verified Progress Runtime — implemented
-Graph-derived Multi-Agent Scheduler — implemented
-Version-aware causal invalidation and local repair — implemented
+**Core Architecture V1 is frozen.** The semantic and resource authority
+boundaries are stable. The public SDK, CLI and integrations remain release
+candidate surfaces.
 
-Implemented:
-
-- **Process / Action / Journal** — deterministic state machines, append-only event log
-- **Capability / Lease / Signal** — resource ownership, access control, inter-process signaling
-- **Crash recovery** — SIGKILL-resilient with exactly-once semantics and UNCERTAIN handling
-- **Versioned Artifact FS** — content-addressed immutable storage with atomic writes
-- **Namespace isolation** — private per-process namespaces, explicit readonly sharing
-- **Optimistic concurrency** — expected_version prevents lost updates
-- **Canonical URI security** — path traversal, encoding, and symlink defenses
-- **Datetime consistency** — all modules use UTC-aware stamps (X-01 / LEASE-04 / MOD-02 closed)
-- **Capability merge + atomic lease journaling** — concurrent-capability and lease acquisitions merge into single rows (CAP-02 / LEASE-01)
-- **Verified Progress Runtime (VPG)** — deterministic semantically-closed Task/Goal state graph; evidence-backed VERIFIED derivation; task-local artifact-version invalidation; deterministic READY frontier (priority DESC / topo depth ASC / created ASC / node_id ASC); atomic optimistic patch commit with composite-key idempotency; architecture boundary at L4 (no kernel-internal imports)
-- **Graph-derived Multi-Agent Scheduler (D2)** — eligibility (10-predicate deterministic filter using live Kernel Process/Capability state), deterministic best-fit matching (`match_deterministic_best_fit_v1`, integer score + agent_id tie-break, PYTHONHASHSEED- and insertion-order-independent), Kernel-backed exclusive TaskClaims (claim linearization point = exclusive ResourceLease acquisition), per-agent `max_concurrency`, projection + reconciliation + replayable audit log, crash reassignment via real POSIX SIGKILL + scheduler recovery. Architecture boundary: Scheduler imports only VPG public API + Agent OS public SDK — never kernel internals (D2-I1..D15 enforced, 20 forbidden deviations asserted, 120 authentic SIGKILL trials green)
-- **Version-aware causal invalidation and local repair (D3)** — version-aware causal invalidation; evidence applicability tracking; deterministic local semantic invalidation cone over DEPENDS_ON edges; preservation of unaffected VERIFIED work; deterministic minimal Repair Frontier; incremental re-verification (Goal reopens and closes via derivation). Authority boundary: D3 derives validity only — it never claims Tasks, never dispatches Agents, never mutates Artifact or Evidence history, and never teaches invalidation semantics to the Scheduler (D3-01..D3-20 mutation-killed).
-
-Semantic closure: Phase C1 all-23 UNCERTAIN items closed with regression tests (FIX) or spec text (DOC); 0 surviving mutations.
-Phase D1: VPG runtime — 214+ tests green across 27 test files; 5 flagship demos pass.
-Phase D2: Multi-Agent Scheduler — 253 tests green (across eligibility / matching / claims / capacity / attempts / completion / loss / reassignment / reconciliation / recovery / projection-replay / determinism / architecture / mutations / SIGKILL); 6 flagship demos pass; 0 surviving forbidden deviations (D2-01..D2-20).
-
-### Phases completed
-
-| Phase | Name | Key deliverables |
-|-------|------|------------------|
-| C1.2 | Capability / Lease / Signal | `src/lhos/agent_os/kernel/`, `src/lhos/agent_os/services/` capability + lease |
-| C1.1 | Graph / Namespace / Artifact FS v1 | `src/lhos/agent_os/artifacts/`, `src/lhos/agent_os/graph/` |
-| **C2** | **Version-bound Context VM** | **context snapshots, deterministic working sets, process-isolated working sets** |
-| **D1** | **Verified Progress Runtime** | **VPG runtime: models, DAG, patch protocol, evidence/verification/closure/readiness, projection, recovery, SDK; 5 demos** |
-| **D2** | **Graph-derived Multi-Agent Scheduler** | **eligibility + deterministic matching + Kernel-backed exclusive TaskClaims + per-agent concurrency + crash reassignment + Projection/Reconcile/Recovery + replayable audit log; 6 demos** |
-| **D3** | **Version-aware causal invalidation + local repair** | **evidence applicability tracking + deterministic invalidation cone + preserved-work preservation + minimal Repair Frontier + incremental re-verification; 6 demos** |
-
-### Phase C2 implementation locations
-
-| Layer | Path |
-|-------|------|
-| Models | `src/lhos/agent_os/context/models.py` |
-| Service | `src/lhos/agent_os/context/service.py` |
-| SDK | `src/lhos/agent_os/context/sdk.py` |
-| Demos | `examples/agent_os/context_*.py` (6 scripts) |
-| Tests | `tests/agent_os/context/` (21+ test files) |
-
-### Phase D1 / D2 implementation locations
-
-| Layer | Path |
-|-------|------|
-| Runtime package | `src/lhos/runtimes/verified_progress/` |
-| Public SDK | `src/lhos/runtimes/verified_progress/sdk.py` (`VerifiedProgressRuntime`) |
-| Demos | `examples/verified_progress/*.py` (6 scripts) |
-| Tests | `tests/runtimes/verified_progress/` (27+ test files) |
-
-### Phase D3 implementation locations
-
-| Layer | Path |
-|-------|------|
-| Runtime package | `src/lhos/runtimes/invalidation/` |
-| Public runtime | `src/lhos/runtimes/invalidation/runtime.py` (`InvalidationRuntime`) |
-| Tests | `tests/runtimes/verified_progress/invalidation/` (52 test cases) |
-
-### Phase D2 implementation locations
-
-| Layer | Path |
-|-------|------|
-| Scheduler package | `src/lhos/runtimes/multi_agent/` |
-| Scheduler SDK | `src/lhos/runtimes/multi_agent/sdk.py` (`create_scheduler`, `SchedulerSession`) |
-| Scheduler demos | `examples/multi_agent/*.py` (6 scripts: specialized pipeline, parallel ready, crash reassignment, no-eligible-agent, capacity, semantic/operational separation) |
-| Scheduler tests | `tests/runtimes/multi_agent/` (31 test files) |
+| Area | Status |
+|---|---|
+| Kernel, Artifact FS, Context VM | Implemented |
+| VPG, scheduling, invalidation, local repair | Implemented |
+| Python SDK and read-only CLI | Experimental |
+| Deterministic adapters and demos | Available |
+| Production sandboxing and hardening | In progress |
 
 Not yet implemented:
 
-- **Distributed multi-agent cluster** — out of scope
-- **General belief revision / LLM self-repair planner** — out of scope (D3 is deterministic, graph-derived, local repair only)
-- **Semantic contradiction solver** — out of scope
-- **Distributed repair cluster / multi-host consensus** — out of scope
-- Real distributed execution
-- Production security hardening
+- Distributed multi-agent cluster
+- General belief revision
+- distributed repair cluster
+- General-purpose LLM planner and autonomous self-healing
 
-## Quick start
+## Documentation
 
-```bash
-make install            # pip install -e .[dev]
-make test               # python -m pytest tests/ -x -q
+- [Core Architecture V1](docs/architecture/LONGHORIZONOS-CORE-V1.md)
+- [Concepts and authority model](docs/CONCEPTS.md)
+- [Quick Start](docs/QUICKSTART.md)
+- [Public Python API](docs/sdk/PUBLIC-API.md)
+- [Recovery and repair demo](docs/demos/RECOVERY-REPAIR.md)
+- [Semantic-repair benchmark](docs/benchmarks/SEMANTIC-REPAIR.md)
+- [Security policy](SECURITY.md)
 
-# Artifact FS demos
-python -m examples.agent_os.private_workspace
-python -m examples.agent_os.shared_readonly
-python -m examples.agent_os.optimistic_conflict
-python -m examples.agent_os.crash_recovery
-python -m examples.agent_os.multi_process_artifacts
-```
-
-## Architecture
-
-
-## Experiment modes (spec 25)
-
-Every mode reuses the same model (FakeWorker), tools, budget, verification,
-seed, task and workspace initialization — only runtime modules differ.
-
-| mode | engine | scheduler | invalidation | local repair | checkpoints |
-|---|---|---|---|---|---|
-| `transcript` | transcript baseline | — | no graph | no | none (restart from scratch on crash) |
-| `static_graph_fifo` | graph | fifo | off | off | noop |
-| `dynamic_graph_fifo` | graph | fifo | on | **off** (strands on must-invalidate) | noop |
-| `dynamic_graph_local_repair` | graph | fifo | on | on | noop |
-| `dynamic_graph_cost_aware` | graph | cost-aware | on | on | noop |
-| `full_lhos` | graph | cost-aware | on | on | filesystem + restore policies + trace |
-| `oracle_graph_fifo` | graph | oracle-priority fifo | on | on | noop |
-| `oracle_graph_cost_aware` | graph | cost-aware + oracle hint | on | on | noop |
-
-Oracle modes see the generator's true criticality as node `priority`; all
-other modes get `priority = 0`.
-
-## Scenario presets (spec 22.3)
-
-One deterministic generator, 14 presets, sizes Small=20 / Medium=50 /
-Large=100 / XL=200 nodes (spec 22.2): `serial_chain`, `wide_dag`,
-`branch_join`, `costly_critical_path`, `upstream_failure`,
-`constraint_change`, `artifact_modified`, `worker_crash`, `runtime_crash`,
-`post_tool_crash`, `alternative_paths`, `external_wait`, `noop_nodes`,
-`risky_shortcut`. Control variables (node count, depth, width, token cost,
-failure/constraint/artifact probabilities, crash point, retryability…) are
-recorded per task in `control_variables`.
-
-## Metrics glossary (spec 24)
-
-- **success / progress_ratio / failed_nodes / invalidated_nodes** — result metrics.
-- **input/output/total_tokens, model_calls, tool_calls, wall_time** — cost
-  metrics (tokens are modeled; `model_cost_usd`, `graph_maintenance_tokens`
-  and `verification_tokens` are honestly 0 with FakeWorker and deterministic
-  rules; `graph_maintenance_events` counts reconciler work instead).
-- **scheduler_time / checkpoint_time** — wall-clock instrumentation exported
-  in the terminal run event payload.
-- **Progress–Budget Curve / AUPBC-{token,time,tool-calls}** — normalized area
-  under the verified-progress vs budget curve (higher = progress earned
-  earlier/cheaper).
-- **Useful Work Ratio** — final-successful-attempt cost of VERIFIED nodes /
-  total execution cost.
-- **Replanning Amplification** — nodes actually re-executed after
-  invalidation / oracle true affected nodes (1.0 = perfect local repair,
-  0.0 = no repair, >1 = over-replanning).
-- **Invalidated Work Rate** — superseded-attempt cost / total cost.
-- **Recovery Overhead** — repeated cost after a crash / remaining estimated
-  cost at crash time.
-- **Critical-path Stretch** — simulated execution time / oracle
-  critical-path time (1.0 = optimal; FakeWorker runs instantly, so
-  per-attempt estimated times stand in for execution latency).
-
-## Configuration reference
-
-`RuntimeStack` consumes a plain dict (see `configs/` for YAML examples):
-
-```yaml
-scheduler:   {type: fifo | cost_aware, weights: {...}}
-budget:      {max_total_tokens: null, max_tool_calls: null, ...}
-checkpoint:  {type: noop | filesystem | git,
-              restore_on_failure: false, restore_on_crash: false,
-              after_verified_node: false}
-features:    {invalidation: true,   # false = static-graph ablation
-              local_repair: true}   # false = INVALIDATED nodes stay stranded
-telemetry:   {jsonl_trace: false, trace_directory: artifacts/traces}
-verification: {allow_llm_judge: false}
-```
-
-## Tests
+## Development
 
 ```bash
-make test    # 924 tests: unit + integration + e2e + audit regression gates
+python -m pip install -e ".[dev]"
+python -m pytest -q
 ```
 
-Coverage includes the state machine, DAG cycles, readiness, invalidation
-propagation, scheduler scores, context pruning, patch conflicts, budgets,
-evidence, leases, idempotency (spec 26.1), event replay, crash injection /
-resume (spec 26.2), plus Phase 8: generator determinism and schema validity
-for all 14 presets, metric functions on known cases, and end-to-end
-benchmark cells (3 modes × 2 seeds) with completeness, mode-contrast and
-reproducibility assertions (every field except wall-clock fields is
-bit-identical across reruns).
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md).
+Changes that move semantic authority out of the Graph or ownership away from
+Kernel Leases require an architecture proposal, not an ordinary patch.
 
-The spec 31 vertical slice — natural-language goal → initial graph → FIFO →
-compiled context → shell/file tools → command verifier → verified commit →
-crash → resume → completion, over a tiny Python repository task — is the
-end-to-end test `tests/e2e/test_tiny_repository_task.py`.
+---
 
-## Intentional deviations and honest stubs
+<div align="center">
 
-- Ports sketched as `async` are synchronous (single-worker MVP, spec 11.3);
-  the Benchmark Adapter (spec 23) keeps the spec's async signature over a
-  sync core.
-- CLAIMED_DONE → STALE exists only as a reconciler-level forced transition
-  (spec 15 pseudocode vs the section 6 machine).
-- The planner is the deterministic InitialGraphBuilder in every mode (no LLM
-  planner noise yet), so oracle modes currently differ from dynamic modes
-  only through priority hints and scheduling.
-- The transcript baseline models tokens as `len(context)//4` and restarts
-  from scratch on crash (no persistence — that is the baseline being
-  measured); it reuses the real verifier registry.
-- `alternative_paths` uses AND semantics (both branches execute; true OR-path
-  pruning is not modeled).
-- `llm_judge` remains a stub verifier (`allow_llm_judge: false` everywhere).
-- Rollback generations: after a checkpoint restore, idempotency keys gain a
-  `:gen<N>` suffix (N = CHECKPOINT_RESTORED count) so rolled-back tool
-  effects re-execute instead of replaying (spec 13.3/16.3).
+**Build agents that can explain what remains true after the world changes.**
+
+</div>

@@ -92,7 +92,7 @@ class TestSuccessfulCallLogging:
         logged.generate(_make_request())
 
         assert trace_path.exists()
-        lines = trace_path.read_text().strip().split("\n")
+        lines = trace_path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 1
         entry = json.loads(lines[0])
         assert entry["status"] == "success"
@@ -110,7 +110,7 @@ class TestSuccessfulCallLogging:
         db_count = db.conn.execute(
             "SELECT COUNT(*) FROM llm_calls WHERE run_id = ?", (run_id,)
         ).fetchone()[0]
-        jsonl_lines = trace_path.read_text().strip().split("\n")
+        jsonl_lines = trace_path.read_text(encoding="utf-8").strip().split("\n")
         assert db_count == len(jsonl_lines) == 2
 
     def test_db_jsonl_tokens_consistent(self, db, logger, trace_path, run_id):
@@ -122,7 +122,7 @@ class TestSuccessfulCallLogging:
         db_row = db.conn.execute(
             "SELECT total_tokens FROM llm_calls WHERE run_id = ?", (run_id,)
         ).fetchone()
-        jsonl_entry = json.loads(trace_path.read_text().strip())
+        jsonl_entry = json.loads(trace_path.read_text(encoding="utf-8").strip())
         assert db_row["total_tokens"] == jsonl_entry["total_tokens"] == 150
 
 
@@ -164,7 +164,7 @@ class TestProviderErrorLogging:
         with pytest.raises(ConnectionError):
             logged.generate(_make_request())
 
-        entry = json.loads(trace_path.read_text().strip())
+        entry = json.loads(trace_path.read_text(encoding="utf-8").strip())
         assert entry["status"] == "provider_error"
         assert entry["error_type"] == "ConnectionError"
 
@@ -258,5 +258,5 @@ class TestApiKeySafety:
         logged = LoggedLLMClient(inner=client, logger=logger, run_id=run_id)
         logged.generate(request)
 
-        trace_text = trace_path.read_text()
+        trace_text = trace_path.read_text(encoding="utf-8")
         assert "sk-test-key-12345" not in trace_text

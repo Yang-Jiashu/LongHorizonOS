@@ -2,9 +2,10 @@
   {
     "name": "lease_exclusivity_disabled",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/services/lease_service.py",
-    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+    "test_file": "tests/agent_os/test_leases.py"
   },
   {
     "name": "capability_always_true",
@@ -17,7 +18,8 @@
   {
     "name": "journal_offset_gap",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/services/journal.py",
     "test_file": "tests/agent_os/artifacts/test_audit_journal_atomicity.py"
   },
@@ -39,8 +41,10 @@
   },
   {
     "name": "idempotency_broken",
-    "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "killed": false,
+    "error": null,
+    "rc": 0,
+    "detail": "Tests passed (mutation survived \u2014 test gap)",
     "source": "lhos/agent_os/services/journal.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   },
@@ -62,36 +66,42 @@
   },
   {
     "name": "uri_normalization_disabled",
-    "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "killed": false,
+    "error": null,
+    "rc": 0,
+    "detail": "Tests passed (mutation survived \u2014 test gap)",
     "source": "lhos/agent_os/artifacts/uri.py",
     "test_file": "tests/agent_os/artifacts/test_uri_audit_adversarial.py"
   },
   {
     "name": "commit_skips_cas_write",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/artifacts/service.py",
     "test_file": "tests/agent_os/artifacts/test_audit_projection_rebuild.py"
   },
   {
     "name": "waiters_not_recorded",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/services/lease_service.py",
-    "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
+    "test_file": "tests/agent_os/test_leases.py"
   },
   {
     "name": "journal_not_committed",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/services/journal.py",
     "test_file": "tests/agent_os/artifacts/test_audit_journal_atomicity.py"
   },
   {
     "name": "version_sequence_gap_on_commit",
     "killed": true,
-    "error": "Patch not applied (old code not found)",
+    "error": null,
+    "rc": 1,
     "source": "lhos/agent_os/artifacts/service.py",
     "test_file": "tests/agent_os/artifacts/test_audit_comprehensive.py"
   }

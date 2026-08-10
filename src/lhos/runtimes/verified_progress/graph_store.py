@@ -185,15 +185,27 @@ class GraphStore:
     Accepts either a SQLAlchemy-style sqlite3 connection or a path string.
     """
 
-    def __init__(self, conn: sqlite3.Connection | str) -> None:
+    def __init__(self, conn: sqlite3.Connection | str, *, read_only: bool = False) -> None:
+        self._owns_conn = isinstance(conn, str)
+        self._read_only = read_only
         if isinstance(conn, str):
             self.conn = sqlite3.connect(conn)
         else:
             self.conn = conn
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
-        self.conn.execute("PRAGMA journal_mode = WAL")
-        self._init_schema()
+        if not self._read_only:
+            self.conn.execute("PRAGMA journal_mode = WAL")
+            self._init_schema()
+
+    def close(self) -> None:
+        """Release the sqlite connection — only if this store opened it."""
+        if self._owns_conn:
+            self.conn.close()
+
+    def _assert_writable(self) -> None:
+        if self._read_only:
+            raise PermissionError("read-only GraphStore cannot mutate projections")
 
     # ── schema ─────────────────────────────────────────────────────────────
     def _init_schema(self) -> None:
@@ -282,6 +294,7 @@ class GraphStore:
 
     # ── write helpers ──────────────────────────────────────────────────────
     def create_graph(self, record: GraphRecord) -> GraphRecord:
+        self._assert_writable()
         existing = self.get_record(record.graph_id)
         if existing is not None:
             raise VPGError(VPGCode.GRAPH_ALREADY_EXISTS, record.graph_id)
@@ -318,6 +331,7 @@ class GraphStore:
         return record
 
     def close_graph(self, graph_id: str) -> None:
+        self._assert_writable()
         with self.conn:
             self.conn.execute(
                 "UPDATE graphs SET closed = 1, updated_at = ? WHERE graph_id = ?",
@@ -330,6 +344,7 @@ class GraphStore:
         new_version: int,
         projection_hash: str,
     ) -> None:
+        self._assert_writable()
         with self.conn:
             rec = self.get_record(graph_id)
             if rec is None:
@@ -347,6 +362,7 @@ class GraphStore:
             )
 
     def commit_graph_version(self, gv: GraphVersion) -> None:
+        self._assert_writable()
         with self.conn:
             self.conn.execute(
                 "INSERT INTO graph_versions "
@@ -378,6 +394,7 @@ class GraphStore:
 
         Either everything succeeds, or the whole txn rolls back.
         """
+        self._assert_writable()
         ev_list = list(events)
         nd_list = list(nodes_to_upsert)
         ed_list = list(edges_to_upsert)
@@ -526,6 +543,7 @@ class GraphStore:
     def delete_projection(self, graph_id: str) -> None:
         """Drop the materialized projection (keeps patch/event history) so it
         can be rebuilt via projection replay."""
+        self._assert_writable()
         with self.conn:
             node_ids = _graph_node_ids(self.conn, graph_id)
             if node_ids:

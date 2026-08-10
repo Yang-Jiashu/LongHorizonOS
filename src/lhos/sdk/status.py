@@ -49,7 +49,7 @@ class StatusSnapshot:
             f"GOAL {self.goal_id}  (v{self.version})  {'CLOSED' if self.goal_closed else 'OPEN'}"
         ]
         for tid in self.tasks:
-            mark = {"verified": chr(0x2713), "stale": "x", "unverified": "?", "invalid": "!"}.get(
+            mark = {"verified": "v", "stale": "x", "unverified": "?", "invalid": "!"}.get(
                 self.tasks[tid], "?"
             )
             own = self.owner_by_task.get(tid) or "-"

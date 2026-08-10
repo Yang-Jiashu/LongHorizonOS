@@ -37,7 +37,7 @@
         "type": "composite_and",
         "children": [
           {"type": "file_contains", "path": "parser.py", "substring": "def parse"},
-          {"type": "command", "command": "python3 -m py_compile parser.py"}
+          {"type": "command", "command": "python -m py_compile parser.py"}
         ]
       },
       "metadata": {
@@ -65,7 +65,7 @@
       "progress_weight": 1.0,
       "verification_spec": {
         "type": "command",
-        "command": "python3 -c \"from parser import parse; assert parse('a=1') == {'a': '1'}\""
+        "command": "python -c \"from parser import parse; assert parse('a=1') == {'a': '1'}\""
       },
       "metadata": {
         "script": {

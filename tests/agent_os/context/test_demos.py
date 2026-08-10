@@ -16,14 +16,16 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
+from pathlib import Path
 
-_ROOT = "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos"
+_ROOT = str(Path(__file__).resolve().parents[3])
 
 
 def _run(script: str) -> dict:
     """Run a demo script and return its parsed JSON stdout."""
     r = subprocess.run(
-        [f"{_ROOT}/.venv/bin/python", f"examples/agent_os/{script}"],
+        [sys.executable, f"examples/agent_os/{script}"],
         cwd=_ROOT,
         capture_output=True,
         text=True,

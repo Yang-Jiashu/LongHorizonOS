@@ -18,8 +18,8 @@ from lhos.demo.recovery_repair import (
 
 def _run_demo(argv: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "lhos.cli.core", *argv],
-        capture_output=True, text=True, timeout=180)
+        [sys.executable, "-m", "lhos.cli.core", *argv], capture_output=True, text=True, timeout=180
+    )
 
 
 # ── one-command smoke + human story ────────────────────────────────────────
@@ -52,7 +52,11 @@ def test_no_color_ascii_fallback():
     env = {**os.environ, "NO_COLOR": "1"}
     r = subprocess.run(
         [sys.executable, "-m", "lhos.cli.core", "demo", "recovery-repair"],
-        capture_output=True, text=True, timeout=180, env=env)
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=env,
+    )
     assert r.returncode == 0
     # no ANSI escape sequences
     assert "\x1b[" not in r.stdout
@@ -61,6 +65,7 @@ def test_no_color_ascii_fallback():
 def test_demo_is_fail_closed_on_assertion():
     """A semantic assertion failure must surface (exit != 0)."""
     from lhos.demo.recovery_repair import _fail
+
     with pytest.raises(DemoAssertionError):
         _fail("control")
 
@@ -70,23 +75,34 @@ def test_demo_repeatability_20_runs():
     sigs = []
     for _ in range(5):  # 20 would be slow in CI; 5 representative normalized
         os_, ws, sem = run_recovery_repair()
-        sigs.append((tuple(sorted(sem.affected_tasks)),
-                     tuple(sorted(sem.preserved_tasks)),
-                     tuple(sorted(sem.repair_frontier)),
-                     sem.initial_closed, sem.final_closed, sem.full_restart_avoided))
+        sigs.append(
+            (
+                tuple(sorted(sem.affected_tasks)),
+                tuple(sorted(sem.preserved_tasks)),
+                tuple(sorted(sem.repair_frontier)),
+                sem.initial_closed,
+                sem.final_closed,
+                sem.full_restart_avoided,
+            )
+        )
     assert len(set(sigs)) == 1, "demo semantics not deterministic across runs"
 
 
 # ── real crash path ────────────────────────────────────────────────────────
 def test_real_sigkill_used():
-    """The crash uses a real subprocess SIGKILL (POSIX)."""
+    """The crash uses a real, uncatchable process kill on whatever platform we run."""
     import signal
-    assert hasattr(signal, "SIGKILL")
+
+    from lhos.demo.recovery_repair import HARD_KILL_MODE, HARD_KILL_SIGNAL
+
+    assert getattr(signal, "SIGKILL", signal.SIGTERM) == HARD_KILL_SIGNAL
+    assert HARD_KILL_MODE.startswith("real ")
 
 
 # ── adversarial E4-A01..A10 ───────────────────────────────────────────────
 def _mk_sem():
     from lhos.demo.recovery_repair import DemoSemantics
+
     return DemoSemantics()
 
 
@@ -124,14 +140,17 @@ def test_demo_does_not_mutate_core_algorithms():
     # importing demo must not change Core module semantics (module import only)
     import lhos.demo.recovery_repair  # noqa: F401
 
+
 def test_demo_support_has_no_tests_import():
     import pathlib
-    src = pathlib.Path("src/lhos/demo/recovery_repair.py").read_text()
+
+    src = pathlib.Path("src/lhos/demo/recovery_repair.py").read_text(encoding="utf-8")
     assert "tests." not in src and "from tests" not in src
 
 
 def test_deleting_demo_leaves_core_intact():
     # Asserting demo is a thin overlay: it imports E1 SDK/E2/E3, never Core internals.
     import pathlib
-    src = pathlib.Path("src/lhos/demo/recovery_repair.py").read_text()
+
+    src = pathlib.Path("src/lhos/demo/recovery_repair.py").read_text(encoding="utf-8")
     assert "invalidation" not in src and "graph_store" not in src

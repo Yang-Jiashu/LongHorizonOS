@@ -102,10 +102,23 @@ class VerifiedProgressRuntime:
     ) -> None:
         if isinstance(store, GraphStore):
             self.store = store
+            self._owns_store = False
         else:
             self.store = GraphStore(store)
+            self._owns_store = True
         self.facts_artifact = facts_artifact
         self.facts_kernel = facts_kernel
+
+    def close(self) -> None:
+        """Release the underlying store — only if this runtime created it."""
+        if self._owns_store:
+            self.store.close()
+
+    def __enter__(self) -> VerifiedProgressRuntime:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     # ── graph lifecycle ───────────────────────────────────────────────────
     def create_graph(
@@ -145,7 +158,13 @@ class VerifiedProgressRuntime:
         return nodes, edges
 
     # ── patch commit ──────────────────────────────────────────────────────
-    def submit_patch(self, patch: GraphPatchProposal) -> PatchCommitResult:
+    def submit_patch(
+        self,
+        patch: GraphPatchProposal,
+        *,
+        _allow_empty_operations: bool = False,
+        _allow_repair_frontier: bool = False,
+    ) -> PatchCommitResult:
         """Commit a patch atomically with full D1 protocol.
 
         Steps:
@@ -203,6 +222,7 @@ class VerifiedProgressRuntime:
         req.current_edges = current_edges
         req.facts_artifact = self.facts_artifact
         req.facts_kernel = self.facts_kernel
+        req.allow_empty_operations = _allow_empty_operations
         result = validate_patch(req)
 
         new_version = rec.current_version + 1
@@ -218,6 +238,7 @@ class VerifiedProgressRuntime:
             patch.patch_id,
             result.candidate_nodes,
             result.candidate_edges,
+            allow_repair_frontier=_allow_repair_frontier,
         )
         all_events = list(result.events) + derived_events
 
@@ -246,6 +267,35 @@ class VerifiedProgressRuntime:
             idempotent_replay=False,
         )
 
+    def refresh_derived_state(
+        self,
+        graph_id: str,
+        *,
+        author_pid: str,
+        reason: str = "system derived-state refresh",
+        idempotency_key: str | None = None,
+    ) -> PatchCommitResult:
+        """Re-evaluate external facts through an atomic system Graph commit.
+
+        External artifact and Kernel facts can change without a user Graph
+        patch.  This controlled empty patch advances the GraphVersion and
+        executes the exact same derived-state transaction as normal patches.
+        Callers cannot directly write semantic validity or lifecycle fields.
+        """
+        current = self.get_graph(graph_id).current_version
+        return self.submit_patch(
+            GraphPatchProposal(
+                graph_id=graph_id,
+                expected_graph_version=current,
+                author_pid=author_pid,
+                operations=(),
+                reason=reason,
+                idempotency_key=idempotency_key or f"refresh-{_uuid()}",
+            ),
+            _allow_empty_operations=True,
+            _allow_repair_frontier=True,
+        )
+
     def _apply_derived_after_patch(
         self,
         graph_id: str,
@@ -253,6 +303,8 @@ class VerifiedProgressRuntime:
         patch_id: str,
         candidate_nodes: dict[str, AnyNode],
         candidate_edges: list[VPGEdge],
+        *,
+        allow_repair_frontier: bool = False,
     ) -> list[GraphEvent]:
         """Recompute derived state (VERIFIED/STALE/READY/CLOSED) and emit events."""
         return _recompute_derived_state(
@@ -263,6 +315,7 @@ class VerifiedProgressRuntime:
             candidate_edges,
             self.facts_artifact,
             self.facts_kernel,
+            allow_repair_frontier=allow_repair_frontier,
         )
 
     # ── readiness ─────────────────────────────────────────────────────────
@@ -377,6 +430,8 @@ def _recompute_derived_state(
     edges: list[VPGEdge],
     facts_artifact: ArtifactFactProvider | None,
     facts_kernel: KernelEventProvider | None,
+    *,
+    allow_repair_frontier: bool = False,
 ) -> list[GraphEvent]:
     """Full pass: task-local invalidation -> derive VERIFIED/STALE/CLOSED -> goal closure -> ready frontier."""
     out: list[GraphEvent] = []
@@ -389,31 +444,41 @@ def _recompute_derived_state(
             continue
         pinned_now = _pinned_versions(n.node_id, nodes, edges)
         verified_at = _verified_versions(n)
-        if verified_at and pinned_now != verified_at:
-            n.validity = NodeValidity.STALE
-            n.updated_in_version = graph_version
-            out.append(
-                GraphEvent(
-                    graph_id=graph_id,
-                    event_type=GraphEventType.TASK_STALE_DERIVED,
-                    causation_patch_id=causation_patch,
-                    node_id=n.node_id,
-                    graph_version=graph_version,
-                )
+        if (
+            (verified_at and pinned_now != verified_at)
+            or _has_superseded_artifact(pinned_now, facts_artifact)
+            or _has_unverified_dependency(n.node_id, nodes, edges)
+        ):
+            _mark_task_stale(
+                n,
+                graph_id=graph_id,
+                graph_version=graph_version,
+                causation_patch=causation_patch,
+                events=out,
+                repair_frontier=allow_repair_frontier,
+                requires_fresh_evidence=True,
             )
-            n.metadata = dict(n.metadata)
-            n.metadata.pop("__verified_artifact_versions", None)
-            if n.lifecycle == NodeLifecycle.CLOSED:
-                n.lifecycle = NodeLifecycle.ACTIVE
-                out.append(
-                    GraphEvent(
-                        graph_id=graph_id,
-                        event_type=GraphEventType.TASK_REOPENED_DERIVED,
-                        causation_patch_id=causation_patch,
-                        node_id=n.node_id,
-                        graph_version=graph_version,
-                    )
-                )
+
+    # A dependency loss is transitive.  Iterate to a fixed point so the result
+    # is independent of node insertion or database row order.
+    changed = True
+    while changed:
+        changed = False
+        for n in list(nodes.values()):
+            if not isinstance(n, TaskNode) or n.validity != NodeValidity.VERIFIED:
+                continue
+            if not _has_unverified_dependency(n.node_id, nodes, edges):
+                continue
+            _mark_task_stale(
+                n,
+                graph_id=graph_id,
+                graph_version=graph_version,
+                causation_patch=causation_patch,
+                events=out,
+                repair_frontier=allow_repair_frontier,
+                requires_fresh_evidence=True,
+            )
+            changed = True
 
     # 2. VERIFIED/STALE for all tasks
     for n in list(nodes.values()):
@@ -430,6 +495,13 @@ def _recompute_derived_state(
         if n.validity == NodeValidity.STALE:
             # Stale tasks CAN re-verify when new evidence matches repinned
             # artifacts.  Try the VERIFIED predicate; if it passes, upgrade.
+            if _has_superseded_artifact(
+                _pinned_versions(n.node_id, nodes, edges),
+                facts_artifact,
+            ):
+                continue
+            if not _has_fresh_evidence_since_stale(n, nodes, edges):
+                continue
             if task_is_verified(
                 n,
                 nodes=nodes,
@@ -441,6 +513,9 @@ def _recompute_derived_state(
                 n.updated_in_version = graph_version
                 n.lifecycle = NodeLifecycle.ADMITTED
                 n.metadata = dict(n.metadata)
+                n.metadata.pop("__stale_at_version", None)
+                n.metadata.pop("__repair_ready", None)
+                n.metadata.pop("__stale_requires_fresh_evidence", None)
                 n.metadata["__verified_artifact_versions"] = [
                     {"canonical_uri": u, "version": v}
                     for u, v in _pinned_versions(n.node_id, nodes, edges)
@@ -583,6 +658,104 @@ def _verified_versions(task: TaskNode) -> set | None:
     if not raw:
         return None
     return {(b["canonical_uri"], b["version"]) for b in raw}
+
+
+def _has_superseded_artifact(
+    pinned_versions: set[tuple[str, int]],
+    facts_artifact: ArtifactFactProvider | None,
+) -> bool:
+    if facts_artifact is None:
+        return False
+    latest = getattr(facts_artifact, "latest", None)
+    if not callable(latest):
+        return False
+    for canonical_uri, version in pinned_versions:
+        artifact_id = canonical_uri.removeprefix("vpg://")
+        try:
+            current = latest(artifact_id)
+        except Exception:
+            continue
+        if current is not None and current > version:
+            return True
+    return False
+
+
+def _has_unverified_dependency(
+    task_id: str,
+    nodes: dict[str, AnyNode],
+    edges: list[VPGEdge],
+) -> bool:
+    for edge in edges:
+        if edge.edge_type != EdgeType.DEPENDS_ON or edge.source_node_id != task_id:
+            continue
+        dep = nodes.get(edge.target_node_id)
+        if isinstance(dep, TaskNode) and dep.validity != NodeValidity.VERIFIED:
+            return True
+    return False
+
+
+def _has_fresh_evidence_since_stale(
+    task: TaskNode,
+    nodes: dict[str, AnyNode],
+    edges: list[VPGEdge],
+) -> bool:
+    if not isinstance(task.metadata, dict):
+        return True
+    if not task.metadata.get("__stale_requires_fresh_evidence", False):
+        return True
+    stale_at = task.metadata.get("__stale_at_version")
+    if not isinstance(stale_at, int):
+        return True
+    verification_ids = {
+        edge.source_node_id
+        for edge in edges
+        if edge.edge_type == EdgeType.VERIFIES and edge.target_node_id == task.node_id
+    }
+    return any(
+        edge.edge_type == EdgeType.PRODUCES
+        and edge.source_node_id in verification_ids
+        and edge.created_in_version >= stale_at
+        for edge in edges
+    )
+
+
+def _mark_task_stale(
+    task: TaskNode,
+    *,
+    graph_id: str,
+    graph_version: int,
+    causation_patch: str,
+    events: list[GraphEvent],
+    repair_frontier: bool,
+    requires_fresh_evidence: bool,
+) -> None:
+    task.validity = NodeValidity.STALE
+    task.updated_in_version = graph_version
+    task.metadata = dict(task.metadata)
+    task.metadata.pop("__verified_artifact_versions", None)
+    task.metadata["__stale_at_version"] = graph_version
+    task.metadata["__repair_ready"] = repair_frontier
+    task.metadata["__stale_requires_fresh_evidence"] = requires_fresh_evidence
+    events.append(
+        GraphEvent(
+            graph_id=graph_id,
+            event_type=GraphEventType.TASK_STALE_DERIVED,
+            causation_patch_id=causation_patch,
+            node_id=task.node_id,
+            graph_version=graph_version,
+        )
+    )
+    if task.lifecycle == NodeLifecycle.CLOSED:
+        task.lifecycle = NodeLifecycle.ADMITTED
+        events.append(
+            GraphEvent(
+                graph_id=graph_id,
+                event_type=GraphEventType.TASK_REOPENED_DERIVED,
+                causation_patch_id=causation_patch,
+                node_id=task.node_id,
+                graph_version=graph_version,
+            )
+        )
 
 
 def _dt_iso_safe(d: datetime) -> str:

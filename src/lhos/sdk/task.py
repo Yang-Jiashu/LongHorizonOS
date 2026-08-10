@@ -23,6 +23,7 @@ class Task:
         task_kind: str = "task",
         required_specializations: tuple[str, ...] | None = None,
         required_tools: tuple[str, ...] = (),
+        max_attempts: int | None = 3,
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.task_id = task_id
@@ -32,6 +33,7 @@ class Task:
         self.task_kind = task_kind
         self.required_specializations = required_specializations or ("python",)
         self.required_tools = tuple(required_tools)
+        self.max_attempts = max_attempts
         self.metadata = dict(metadata or {})
 
     @property

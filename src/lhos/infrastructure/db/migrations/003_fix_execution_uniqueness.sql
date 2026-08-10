@@ -49,9 +49,43 @@ SELECT
     checkpoint_before, checkpoint_after
 FROM executions;
 
--- Step 3: Drop the old table and rename.
+-- Step 3: Drop the old table and create the final table explicitly.
+-- Avoid ALTER TABLE ... RENAME here because SQLite serializes that operation
+-- with quoted table text, making a migrated schema differ from a fresh schema.
 DROP TABLE executions;
-ALTER TABLE executions_new RENAME TO executions;
+CREATE TABLE executions(
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    attempt_number INTEGER NOT NULL,
+    context_hash TEXT NOT NULL,
+    model_name TEXT,
+    status TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    tool_calls INTEGER NOT NULL,
+    cost_usd REAL NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    result_json TEXT,
+    error_json TEXT,
+    checkpoint_before TEXT,
+    checkpoint_after TEXT,
+    UNIQUE(run_id, node_id, attempt_number)
+);
+INSERT INTO executions(
+    id, run_id, node_id, attempt_number, context_hash, model_name,
+    status, input_tokens, output_tokens, tool_calls, cost_usd,
+    started_at, finished_at, result_json, error_json,
+    checkpoint_before, checkpoint_after
+)
+SELECT
+    id, run_id, node_id, attempt_number, context_hash, model_name,
+    status, input_tokens, output_tokens, tool_calls, cost_usd,
+    started_at, finished_at, result_json, error_json,
+    checkpoint_before, checkpoint_after
+FROM executions_new;
+DROP TABLE executions_new;
 
 -- Step 4: Recreate indexes with the corrected column set.
 CREATE INDEX IF NOT EXISTS idx_executions_run_node ON executions(run_id, node_id, attempt_number);

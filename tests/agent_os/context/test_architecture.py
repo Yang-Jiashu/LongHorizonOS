@@ -31,7 +31,7 @@ INIT = _SRC / "__init__.py"  # type: ignore[assignment]
 
 
 def _ast_parse(path: Path) -> ast.Module:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return ast.parse(f.read(), filename=str(path))
 
 
@@ -211,7 +211,7 @@ class TestContextVMProcessIsolation:
     def test_module_or_service_docstring_mentions_process_isolated(
         self,
     ) -> None:
-        init_text = INIT.read_text()
+        init_text = INIT.read_text(encoding="utf-8")
         # Read the service module docstring in a subprocess to avoid
         # exercising it once (docstring is static content, safe to read
         # from the live import too, but we just reuse the source file).
