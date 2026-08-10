@@ -8,7 +8,10 @@ version = "0.1.0"
 description = "LongHorizonOS: a Verified Progress Graph runtime for long-horizon agents"
 readme = "README.md"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+    { name = "LongHorizonOS Contributors" },
+]
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -26,7 +29,7 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
-    "ruff>=0.6",
+    "ruff==0.16.2",
     "mypy>=1.10",
     "types-PyYAML>=6.0",
     "types-networkx>=3.0",
@@ -37,13 +40,15 @@ dev = [
 # the legacy spec-20 CLI.
 lhos = "lhos.cli.core:main"
 
-[[tool.uv.index]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
-default = true
-
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff==0.16.2",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+    "types-networkx>=3.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -59,6 +64,9 @@ where = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "slow: long-running scale and stress audits excluded from the regular CI gate",
+]
 
 [tool.ruff]
 line-length = 100
@@ -84,6 +92,20 @@ ignore = ["E501"]
 "scripts/*" = ["B023", "E402"]
 "examples/*" = ["RUF059", "F841", "E731", "E741"]
 "src/lhos/benchmarks/transcript.py" = ["B023"]
+
+[tool.ruff.format]
+# These historical audit files contain mixed line endings in the source archive.
+# Keep them linted; exclude only formatter enforcement until Git renormalizes them.
+exclude = [
+  "tests/agent_os/artifacts/test_audit_26_gates.py",
+  "tests/agent_os/artifacts/test_audit_benchmark.py",
+  "tests/agent_os/artifacts/test_audit_demo_independence.py",
+  "tests/agent_os/artifacts/test_audit_mutation.py",
+  "tests/agent_os/artifacts/test_audit_public_claims.py",
+  "tests/agent_os/test_audit_sigkill.py",
+  "tests/demo/test_demo.py",
+  "tests/unit/test_capability_manifest.py",
+]
 
 [tool.mypy]
 python_version = "3.11"

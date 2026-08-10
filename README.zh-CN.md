@@ -2,10 +2,10 @@
 
 # LongHorizonOS
 
-### 面向长时程 Agent 的状态中心操作运行时
+### 面向长时程 Agent 的证据驱动操作运行时
 
-**Graph 决定什么是真的、什么可以被调度。  
-Kernel 决定谁拥有执行权。Agent 负责执行，并提交 Evidence。**
+**Graph 决定什么仍然为真、什么可以执行。  
+Scheduler 选择策略，Kernel 授予所有权，Agent 负责执行。**
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-D22128)](LICENSE)
@@ -14,114 +14,94 @@ Kernel 决定谁拥有执行权。Agent 负责执行，并提交 Evidence。**
 
 [English](README.md) | 简体中文
 
-[快速开始](#快速开始) · [架构](#架构) ·
-[闭环演示](#运行闭环演示) · [文档](#文档)
+[为什么](#为什么需要-longhorizonos) · [架构](#架构) ·
+[实测结果](#实测结果) · [快速开始](#快速开始) · [文档](#文档)
 
 </div>
 
 ---
 
-## LongHorizonOS 是什么？
+## 为什么需要 LongHorizonOS？
 
-多数 Agent 框架组织的是调用、消息或工作流。LongHorizonOS 组织的是
-**可持久化、可验证、可修复的语义进度**。
+多数 Agent 框架回答的是：**下一步运行什么**。LongHorizonOS 还要回答：
+**世界变化之后，哪些进度仍然有效**。
 
-它将微内核式执行平面与基于证据的 **Verified Progress Graph（VPG）**
-结合起来。VPG 不是运行结束后生成的流程图，而是实时语义控制平面，也是
-宏观调度前沿的唯一来源。
+Verified Progress Graph（VPG）不是任务结束后生成的流程图，而是实时语义
+控制平面：Evidence 负责闭合工作，Artifact 版本决定证据是否仍然适用，
+Graph 状态直接推导调度前沿和修复前沿。
 
-当 Artifact 或外部事实发生变化时，LongHorizonOS 会保留仍然有效的已验证
-工作，只失效受影响的因果锥，重新打开 Goal，并推导恢复语义闭包所需的最小
-Repair Frontier。
+当输入发生变化时，LongHorizonOS 会：
 
-> [!IMPORTANT]
-> Scheduler 只负责策略选择，不创造语义真相。只有 Kernel 成功授予独占
-> Lease，任务所有权才成立。Agent 不能直接把 Task 标记为 `VERIFIED`，
-> 也不能直接关闭 Goal。
-
-## 为什么需要新的 Agent 运行时？
-
-长时程 Agent 需要回答队列本身无法回答的问题：
-
-- 世界变化后，哪些结果仍然有效？
-- 任务为什么算完成，依赖哪些精确版本的证据？
-- Worker 崩溃后，任务所有权如何恢复？
-- 哪些工作必须重做，哪些工作必须保留？
-- 能否从持久化状态恢复，而不是重跑整个计划？
-
-LongHorizonOS 将这些问题建模为明确的系统不变量。
+1. 重新打开受影响的 Goal；
+2. 只将因果锥标记为 `STALE`；
+3. 保留不受影响的 `VERIFIED` 工作；
+4. 重新执行 Graph 推导出的 Repair Frontier；
+5. 仅在产生新 Evidence 后再次关闭 Goal。
 
 ## 架构
 
 ```mermaid
-flowchart TB
-    G["Verified Progress Graph<br/>语义真相 · READY/VERIFIED/STALE<br/>Goal 闭包 · Repair Frontier"]
-    S["Graph-derived Scheduler<br/>资格 · 匹配 · 重试 · 容量"]
-    K["Microkernel<br/>Process · Action · Capability · Lease · Signal · Journal"]
-    A["Agents / Tools<br/>执行 Attempt · 产出 Artifact + Evidence"]
-    R["Causal Invalidation<br/>适用性失效 · 局部修复"]
+flowchart LR
+    V["VPG<br/>真相 · 就绪性 · 闭包"]
+    S["Scheduler<br/>匹配 · 容量 · 重试"]
+    K["Kernel<br/>能力 · 租约 · 日志"]
+    A["Agent / Tool<br/>执行 · 产物 · 证据"]
 
-    G -->|"ready frontier"| S
-    S -->|"claim request"| K
-    K -->|"exclusive ownership"| A
-    A -->|"facts and Evidence"| G
-    G -->|"world change"| R
-    R -->|"STALE + repair frontier"| G
+    V -->|"READY 前沿"| S
+    S -->|"Claim 请求"| K
+    K -->|"独占 Lease"| A
+    A -->|"Artifact + Evidence"| V
+    V -->|"变化 → STALE → 修复"| V
 ```
 
-| 层 | 权威边界 |
+| 层级 | 唯一权威 |
 |---|---|
-| **Graph / VPG** | 依赖、语义状态、就绪性、Goal 生命周期 |
-| **Scheduler** | Agent 匹配、容量、重试与派发策略 |
-| **Kernel** | Process、Capability、独占所有权与恢复 |
-| **Agent** | 一次执行尝试及其产出的事实 |
+| **VPG** | 依赖、语义有效性、就绪性与 Goal 闭包 |
+| **Scheduler** | 匹配、容量、重试和派发策略 |
+| **Kernel Lease** | 独占执行所有权与故障恢复 |
+| **Agent** | 一次执行尝试及其 Artifact/Evidence 输出 |
 
-项目不会把所有 OS 类比生硬照搬，而是直接采用能提供严谨不变量的机制：
-显式状态、权威边界、持久化 Journal、资源所有权和崩溃恢复。
+这不是给 Agent 套一层“操作系统”术语，而是直接采用能建立严格不变量的
+机制：显式状态、权威边界、Lease、Journal、版本化资源和崩溃恢复。
 
-## 核心能力
+## 实测结果
 
-- **可验证进度**：Evidence 不可变，并绑定精确 ArtifactVersion。
-- **因果修复**：确定性失效传播，同时保留不受影响的已验证工作。
-- **资源安全执行**：Kernel Lease 是任务所有权的线性化点。
-- **崩溃一致状态**：Claim、Attempt、Journal 和 Projection 均可持久化。
-- **只读可观测性**：查看已保存运行时不会重新编译或修改 Graph。
-- **离线证明路径**：旗舰 Demo 不需要模型密钥或网络。
+可复现的 quick benchmark 包含 24 个确定性“变更—失效—修复”试验，
+并额外运行一个真实工作区场景。
 
-已实现子系统：
+| 指标 | LongHorizonOS |
+|---|---:|
+| 有效确定性试验 | **24 / 24** |
+| 相比全量重跑节省的加权工作量 | **48.64%** |
+| 漏失效 / 过度失效 | **0 / 0** |
+| 失效后错误保留 `VERIFIED` | **0** |
+| 重叠所有权冲突 | **0** |
+| 仅恢复状态导致的错误闭包 | **24 / 24** |
+| 真实工作区修复 | **影响 3 个、保留 1 个、Goal 重新闭合** |
 
-- Process / Action / Journal
-- Capability / Lease / Signal
-- Crash recovery
-- Versioned Artifact FS
-- Namespace isolation
-- Optimistic concurrency
-- Canonical URI security
-- Context VM、Verified Progress Graph、Graph-derived Scheduler
+可选的 StepCode 在线测评使用 `gpt-5.6-sol`：LongHorizonOS 实际调用
+**3 次模型**，全量重跑调用 **4 次**，节省 **25%**；最终 Goal 重新闭合，
+且没有错误的 `VERIFIED` 状态。
 
-## 运行闭环演示
+> [!NOTE]
+> 在当前任务级依赖 workload 上，LongHorizonOS 与“知道正确答案”的
+> task-DAG checkpoint 持平：在线 3 次对 3 次，离线额外节省为 0%。
+> 当前已经证明的优势是语义安全、可解释性和自动推导修复，而不是虚构一个
+> 对 oracle 的性能胜利。下一步需要 Artifact/Evidence 级 workload。
+
+完整口径见[测评协议与局限](docs/benchmarks/SEMANTIC-REPAIR.md)。
+
+## 快速开始
 
 ```bash
 python -m pip install .
+
+# 完整闭环：故障 → 恢复 → 变更 → 修复 → 重新闭合
 lhos demo recovery-repair
+
+# 离线、确定性、不需要 API Key
+lhos benchmark semantic-repair --quick
 ```
-
-该 Demo 使用真实的 Kernel、VPG、Scheduler、Artifact bridge 和
-invalidation runtime：
-
-```text
-Goal 已验证
-  -> Worker 故障与 Lease 恢复
-  -> ArtifactVersion 变化
-  -> 因果 STALE 传播
-  -> 推导最小 Repair Frontier
-  -> 生成新 Evidence
-  -> Goal 再次闭合
-```
-
-机器可读输出：`lhos demo recovery-repair --json`。
-
-## 快速开始
 
 ```python
 from lhos.sdk import Agent, AgentOS, Goal, scripted_executor
@@ -140,49 +120,53 @@ result = runtime.run(goal, max_dispatches=4)
 print(result.goal_state)  # closed
 ```
 
-执行成功但没有有效 Evidence 的任务仍然保持未验证，这是有意的 fail-closed
-设计。多 Agent 和局部修复示例见[快速开始文档](docs/QUICKSTART.md)。
+执行成功但没有适用 Evidence 的任务，仍然保持未验证状态。
+
+## 已实现能力
+
+- Verified Progress Graph 与 Graph 派生的多 Agent 调度
+- 因果失效、最小 Repair Frontier 与 Goal 重新闭合
+- Process / Action / Journal
+- Capability / Lease / Signal
+- 崩溃恢复与版本化 Artifact FS
+- 命名空间隔离与带版本检查的提交
+- Canonical URI 安全
+- 只读可观测 CLI、确定性 Demo 与 Benchmark
 
 ## 项目状态
 
-**Core Architecture V1 已冻结。** 语义权威和资源权威边界已经稳定；公开
-SDK、CLI 与集成仍处于 Release Candidate 阶段。
+**Core Architecture V1 已冻结。** Kernel、VPG、调度和局部修复已经实现；
+公开 SDK 与 CLI 仍处于 Release Candidate 阶段。
 
-| 模块 | 状态 |
-|---|---|
-| Kernel、Artifact FS、Context VM | 已实现 |
-| VPG、调度、失效传播、局部修复 | 已实现 |
-| Python SDK 与只读 CLI | 实验性 |
-| 确定性 Adapter 与 Demo | 可用 |
-| 生产级沙箱和安全加固 | 进行中 |
+仍在推进：生产级沙箱、分布式执行、Context VM 接入主 `AgentOS`，以及
+Artifact/Evidence 级对比 workload。LongHorizonOS 目前不是通用自主规划器。
 
 尚未实现：
 
 - 分布式多 Agent 集群
 - 通用信念修正
 - 分布式修复集群
-- 通用 LLM Planner 与自主自愈
 
 ## 文档
 
-- [Core Architecture V1](docs/architecture/LONGHORIZONOS-CORE-V1.md)
-- [概念与权威模型](docs/CONCEPTS.md)
 - [快速开始](docs/QUICKSTART.md)
+- [概念与权威模型](docs/CONCEPTS.md)
+- [Core Architecture V1](docs/architecture/LONGHORIZONOS-CORE-V1.md)
 - [公开 Python API](docs/sdk/PUBLIC-API.md)
 - [恢复与修复 Demo](docs/demos/RECOVERY-REPAIR.md)
 - [语义修复 Benchmark](docs/benchmarks/SEMANTIC-REPAIR.md)
-- [安全策略](SECURITY.md)
 
 ## 开发
 
 ```bash
 python -m pip install -e ".[dev]"
-python -m pytest -q
+python -m pytest -q -m "not slow"
+python -m ruff check .
+python -m mypy src/lhos
 ```
 
-欢迎贡献，请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。任何将语义权威移出
-Graph，或将任务所有权移出 Kernel Lease 的改动，都需要架构提案，而不是
-普通补丁。
+欢迎贡献。任何将语义权威移出 VPG，或将执行所有权移出 Kernel Lease 的
+改动，都需要架构提案。
 
 ---
 

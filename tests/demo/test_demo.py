@@ -1,4 +1,4 @@
-"""LongHorizonOS E4 — demo tests (semantic story, json, repeatability, crashes,
+"""LongHorizonOS E4 — demo tests (semantic flow, json, repeatability, crashes,
 adversarial E4-A01..A10, semantic mutations, VPG Guardian)."""
 
 from __future__ import annotations

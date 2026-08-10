@@ -37,11 +37,18 @@ class VerificationGate:
         event_store,
         registry,
         workspace_dir: str,
+        *,
+        command_trusted: bool = False,
+        command_allow_shell: bool = False,
+        command_allow_network: bool = False,
     ):
         self._store = graph_store
         self._events = event_store
         self._registry = registry
         self._workspace_dir = workspace_dir
+        self._command_trusted = command_trusted
+        self._command_allow_shell = command_allow_shell
+        self._command_allow_network = command_allow_network
 
     # ----------------------------------------------------------- pre-execute
     def spec_for(self, node: GraphNode, worker_request: dict | None) -> VerificationSpec | None:
@@ -110,6 +117,9 @@ class VerificationGate:
                 workspace_dir=self._workspace_dir,
                 worker_result=worker_result.model_dump(),
                 baseline_hashes=baselines or {},
+                command_trusted=self._command_trusted,
+                command_allow_shell=self._command_allow_shell,
+                command_allow_network=self._command_allow_network,
             )
             verifier = self._registry.get(spec.verifier_type)
             result = verifier.verify(node, spec, context)

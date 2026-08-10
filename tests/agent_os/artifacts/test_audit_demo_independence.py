@@ -11,7 +11,7 @@ depending on hidden state, and should always succeed.
 4. demo_watches — artifact watches/signals
 5. demo_quotas — quota enforcement
 
-Each run uses fresh temp directories to verify independence.
+Every run uses fresh temp directories to verify independence.
 """
 
 from __future__ import annotations

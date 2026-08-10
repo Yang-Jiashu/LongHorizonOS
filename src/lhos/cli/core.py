@@ -19,8 +19,17 @@ NL = chr(10)
 
 
 def _redact(s: str) -> str:
-    for key in ("API_KEY", "SECRET", "TOKEN", "PASSWORD", "AUTH"):
-        s = re.sub(rf"(?i)({key}=)[^\s;,&]+", r"\1***", s)
+    s = re.sub(
+        r"(?i)\b(authorization\s*:\s*(?:bearer|basic)\s+)[^\s,;]+",
+        r"\1***",
+        s,
+    )
+    s = re.sub(
+        r"(?i)\b((?:api[_-]?key|secret|token|password|auth(?!orization))\s*[:=]\s*)"
+        r"[^\s;,&]+",
+        r"\1***",
+        s,
+    )
     return s
 
 
@@ -196,16 +205,37 @@ def _demo_recovery_repair(as_json: bool, paced: bool) -> int:
     return 0
 
 
-def _benchmark(quick: bool, full: bool) -> int:
-    """Run the semantic-repair comparative benchmark (deterministic, offline)."""
+def _benchmark(
+    quick: bool,
+    as_json: bool,
+    *,
+    live_model: bool = False,
+    model: str = "gpt-5.6-sol",
+    live_timeout_seconds: float = 60.0,
+) -> int:
+    """Run the deterministic benchmark and an optional live-model probe."""
     from lhos.benchmarks.semantic_repair.run import run_benchmark
 
-    quick = not full  # default quick unless --full
     try:
-        summary = run_benchmark(quick=quick)
+        if live_model:
+            summary = run_benchmark(
+                quick=quick,
+                live_model=True,
+                model=model,
+                live_timeout_seconds=live_timeout_seconds,
+            )
+        else:
+            summary = run_benchmark(quick=quick)
     except Exception as e:
         print(f"benchmark error: {e}", file=sys.stderr)
         return 2
+    passed = summary["valid_trials"] == summary["total_trials"]
+    if as_json:
+        output = dict(summary)
+        output["correctness_passed"] = passed
+        print(json.dumps(output, indent=2, sort_keys=True))
+        return 0 if passed else 1
+
     agg = summary["aggregate"].get("overall", {})
     print("LONGHORIZONOS SEMANTIC-REPAIR BENCHMARK")
     print(f"  mode: {'quick' if quick else 'full'}")
@@ -221,9 +251,27 @@ def _benchmark(quick: bool, full: bool) -> int:
         f"  ownership conflicts: {agg.get('ownership_conflicts_total')}"
         f"  false verified: {agg.get('false_verified_total')}"
     )
-    print("  correctness: PASS (all valid trials)")
+    if summary.get("live_model"):
+        live = summary["live_model"]
+        live_full = live["strategies"]["full_restart"]
+        live_checkpoint = live["strategies"]["task_dag_checkpoint"]
+        live_lhos = live["strategies"]["longhorizonos"]
+        print(
+            f"  live model: {live['model']}  calls (full/checkpoint/lhos): "
+            f"{live_full.get('model_calls')}/{live_checkpoint.get('model_calls')}/"
+            f"{live_lhos.get('model_calls')}"
+        )
+        print(
+            f"  live LongHorizonOS: p50 {live_lhos.get('latency_p50_ms')} ms  "
+            f"usage reported {live_lhos.get('usage_reported_calls')}/"
+            f"{live_lhos.get('model_calls')}"
+        )
+    print(
+        "  correctness: "
+        + ("PASS (all trials valid)" if passed else "FAIL (invalid or incorrect trials present)")
+    )
     print("  raw results: " + str(summary.get("raw_sha256", "")[:12]))
-    return 0 if summary["valid_trials"] == summary["total_trials"] else 1
+    return 0 if passed else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -254,10 +302,36 @@ def build_parser() -> argparse.ArgumentParser:
     p_demo.add_argument("--paced", action="store_true", help="add presentation delay (GIF/CI off)")
     p_bench = sub.add_parser("benchmark", parents=[parent], help="run a comparative benchmark")
     p_bench.add_argument("which", choices=["semantic-repair"], nargs="?", default="semantic-repair")
-    p_bench.add_argument(
-        "--quick", action="store_true", help="quick offline deterministic run (default)"
+    benchmark_mode = p_bench.add_mutually_exclusive_group()
+    benchmark_mode.add_argument(
+        "--quick",
+        dest="quick",
+        action="store_true",
+        default=True,
+        help="quick offline deterministic run (default)",
     )
-    p_bench.add_argument("--full", action="store_true", help="full size/fraction sweep")
+    benchmark_mode.add_argument(
+        "--full",
+        dest="quick",
+        action="store_false",
+        help="full size/fraction sweep",
+    )
+    p_bench.add_argument(
+        "--live-model",
+        action="store_true",
+        help="run the opt-in StepCode live-model probe using STEPCODE_API_KEY or STEPCODE_API_KEYS",
+    )
+    p_bench.add_argument(
+        "--model",
+        default=os.environ.get("STEPCODE_MODEL", "gpt-5.6-sol"),
+        help="StepCode OpenAI-compatible model for --live-model",
+    )
+    p_bench.add_argument(
+        "--live-timeout",
+        type=float,
+        default=60.0,
+        help="per-request timeout in seconds for --live-model",
+    )
 
     sub.add_parser("legacy", help="LEGACY spec-20 CLI (out of Core V1 scope)")
     return parser
@@ -269,18 +343,25 @@ def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
-    parser = build_parser()
-    args = parser.parse_args(argv)
-    if args.command == "legacy":
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv and raw_argv[0] == "legacy":
         from lhos.cli.main import main as legacy_main
 
-        return legacy_main(argv)
+        return legacy_main(raw_argv[1:] or ["--help"])
 
+    parser = build_parser()
+    args = parser.parse_args(raw_argv)
     if args.command == "demo":
         return _demo_recovery_repair(args.json, args.paced)
 
     if args.command == "benchmark":
-        return _benchmark(args.quick, args.full)
+        return _benchmark(
+            args.quick,
+            args.json,
+            live_model=args.live_model,
+            model=args.model,
+            live_timeout_seconds=args.live_timeout,
+        )
 
     if not hasattr(args, "state"):
         parser.error("--state is required")

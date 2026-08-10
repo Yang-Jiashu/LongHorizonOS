@@ -2,10 +2,10 @@
 
 # LongHorizonOS
 
-### A state-centric operating runtime for long-horizon agents
+### An evidence-backed operating runtime for long-horizon agents
 
-**The Graph decides what is true and what is ready.  
-The Kernel decides who owns execution. Agents do the work and submit Evidence.**
+**The Graph decides what remains true and what becomes ready.  
+The Scheduler chooses policy. The Kernel grants ownership. Agents execute.**
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-D22128)](LICENSE)
@@ -14,116 +14,96 @@ The Kernel decides who owns execution. Agents do the work and submit Evidence.**
 
 English | [简体中文](README.zh-CN.md)
 
-[Quick Start](#quick-start) · [Architecture](#architecture) ·
-[Demo](#run-the-closed-loop-demo) · [Documentation](#documentation)
+[Why](#why-longhorizonos) · [Architecture](#architecture) ·
+[Results](#measured-results) · [Quick Start](#quick-start) · [Docs](#documentation)
 
 </div>
 
 ---
 
-## What is LongHorizonOS?
+## Why LongHorizonOS?
 
-Most agent frameworks organize calls, messages, or workflows. LongHorizonOS
-organizes **durable semantic progress**.
+Most agent frameworks answer **what should run next**. LongHorizonOS also
+answers **what remains valid after the world changes**.
 
-It combines a microkernel-style execution plane with an evidence-backed
-**Verified Progress Graph (VPG)**. The VPG is not a visualization generated
-after a run: it is the live semantic control plane and the source of the
-scheduling frontier.
+Its Verified Progress Graph (VPG) is not a post-run visualization. It is the
+live semantic control plane: Evidence closes work, Artifact versions determine
+applicability, and graph state derives the scheduling and repair frontier.
 
-When an artifact or external fact changes, LongHorizonOS preserves unaffected
-verified work, invalidates only the causal cone, reopens the Goal, and derives
-the minimum Repair Frontier required to close it again.
+When an input changes, LongHorizonOS:
 
-> [!IMPORTANT]
-> The Scheduler selects policy; it does not invent truth. Task ownership starts
-> only after the Kernel grants an exclusive Lease. Agents cannot directly mark
-> a Task `VERIFIED` or close a Goal.
-
-## Why another agent runtime?
-
-Long-running agents need answers that a queue alone cannot provide:
-
-- What remains valid after the world changes?
-- Why is a task complete, and which artifact versions support that claim?
-- Who owns a task after a worker crashes?
-- Which work must be repaired, and which work must be preserved?
-- Can the runtime recover from durable state without replaying the whole plan?
-
-LongHorizonOS makes these questions explicit system invariants.
+1. reopens the affected Goal;
+2. marks only the causal cone `STALE`;
+3. preserves unaffected `VERIFIED` work;
+4. re-executes the graph-derived Repair Frontier;
+5. closes the Goal only after fresh Evidence exists.
 
 ## Architecture
 
 ```mermaid
-flowchart TB
-    G["Verified Progress Graph<br/>semantic truth · READY/VERIFIED/STALE<br/>Goal closure · Repair Frontier"]
-    S["Graph-derived Scheduler<br/>eligibility · matching · retries · capacity"]
-    K["Microkernel<br/>Process · Action · Capability · Lease · Signal · Journal"]
-    A["Agents / Tools<br/>execute attempts · produce Artifacts + Evidence"]
-    R["Causal Invalidation<br/>applicability loss · local repair"]
+flowchart LR
+    V["VPG<br/>truth · readiness · closure"]
+    S["Scheduler<br/>matching · capacity · retries"]
+    K["Kernel<br/>capability · lease · journal"]
+    A["Agent / Tool<br/>attempt · artifact · evidence"]
 
-    G -->|"ready frontier"| S
+    V -->|"READY frontier"| S
     S -->|"claim request"| K
-    K -->|"exclusive ownership"| A
-    A -->|"facts and Evidence"| G
-    G -->|"world change"| R
-    R -->|"STALE + repair frontier"| G
+    K -->|"exclusive Lease"| A
+    A -->|"Artifact + Evidence"| V
+    V -->|"change → STALE → repair"| V
 ```
 
-| Layer | Authority |
+| Layer | Sole authority |
 |---|---|
-| **Graph / VPG** | Dependencies, semantic state, readiness, Goal lifecycle |
-| **Scheduler** | Agent matching, capacity, retry and dispatch policy |
-| **Kernel** | Processes, capabilities, exclusive ownership and recovery |
-| **Agent** | One execution attempt and its produced facts |
+| **VPG** | Dependencies, semantic validity, readiness and Goal closure |
+| **Scheduler** | Matching, capacity, retry and dispatch policy |
+| **Kernel Lease** | Exclusive execution ownership and recovery |
+| **Agent** | One attempt and its Artifact/Evidence output |
 
-This does not attempt to treat every OS analogy literally. It directly adopts
-the mechanisms that provide useful invariants: explicit state, authority
-boundaries, durable journals, resource ownership and crash recovery.
+This is an OS-inspired runtime, not an OS-themed metaphor. It directly adopts
+the mechanisms that create useful invariants: explicit state, authority
+boundaries, leases, journals, versioned resources and crash recovery.
 
-## Key features
+## Measured results
 
-- **Verified progress** — immutable Evidence bound to exact ArtifactVersions.
-- **Causal repair** — deterministic invalidation with preserved verified work.
-- **Resource-safe execution** — Kernel Lease is the ownership linearization point.
-- **Crash-consistent state** — durable claims, attempts, journals and projections.
-- **Read-only observability** — inspect saved runs without mutating the Graph.
-- **Offline proof path** — the flagship demo requires no model key or network.
+The reproducible quick benchmark runs 24 deterministic mutation-and-repair
+trials plus a real-workspace scenario.
 
-Implemented subsystems:
+| Result | LongHorizonOS |
+|---|---:|
+| Valid deterministic trials | **24 / 24** |
+| Weighted work saved vs full restart | **48.64%** |
+| Under / over invalidation | **0 / 0** |
+| False `VERIFIED` after invalidation | **0** |
+| Overlapping ownership conflicts | **0** |
+| State-only resume false closures | **24 / 24** |
+| Real-workspace repair | **3 affected, 1 preserved, Goal reclosed** |
 
-- Process / Action / Journal
-- Capability / Lease / Signal
-- Crash recovery
-- Versioned Artifact FS
-- Namespace isolation
-- Optimistic concurrency
-- Canonical URI security
-- Context VM, Verified Progress Graph and graph-derived multi-agent scheduling
+An opt-in live StepCode probe with `gpt-5.6-sol` observed **3 model calls**
+for LongHorizonOS versus **4** for full restart: **25% fewer calls**, with the
+Goal closed again and no false `VERIFIED` state.
 
-## Run the closed-loop demo
+> [!NOTE]
+> On the current task-level workloads, LongHorizonOS matches an
+> oracle-informed task-DAG checkpoint: 3 calls versus 3 live, and 0% additional
+> weighted saving offline. The present advantage is semantic safety,
+> explainability and automatic repair derivation—not a fabricated win over an
+> oracle. Artifact/Evidence-level workloads are the next benchmark frontier.
+
+See the [benchmark protocol and limitations](docs/benchmarks/SEMANTIC-REPAIR.md).
+
+## Quick Start
 
 ```bash
 python -m pip install .
+
+# Closed loop: failure → recovery → mutation → repair → reclosure
 lhos demo recovery-repair
+
+# Offline, deterministic, no API key
+lhos benchmark semantic-repair --quick
 ```
-
-The demo exercises the real Kernel, VPG, Scheduler, Artifact bridge and
-invalidation runtime:
-
-```text
-verified Goal
-  -> worker failure and Lease recovery
-  -> ArtifactVersion changes
-  -> causal STALE propagation
-  -> minimum Repair Frontier
-  -> fresh Evidence
-  -> Goal closes again
-```
-
-Use `lhos demo recovery-repair --json` for machine-readable output.
-
-## Quick Start
 
 ```python
 from lhos.sdk import Agent, AgentOS, Goal, scripted_executor
@@ -142,51 +122,54 @@ result = runtime.run(goal, max_dispatches=4)
 print(result.goal_state)  # closed
 ```
 
-A successful execution without valid Evidence remains unverified by design.
-See the [Quick Start guide](docs/QUICKSTART.md) for multi-agent execution and
-local repair.
+Execution without applicable Evidence remains unverified by design.
+
+## What is included?
+
+- Verified Progress Graph and graph-derived multi-agent scheduling
+- Causal invalidation, minimum Repair Frontier and Goal reclosure
+- Process / Action / Journal
+- Capability / Lease / Signal
+- Crash recovery and Versioned Artifact FS
+- Namespace isolation and Version-checked commits
+- Canonical URI security
+- Read-only observability CLI, deterministic demos and benchmarks
 
 ## Project status
 
-**Core Architecture V1 is frozen.** The semantic and resource authority
-boundaries are stable. The public SDK, CLI and integrations remain release
-candidate surfaces.
+**Core Architecture V1 is frozen.** Kernel, VPG, scheduling and local repair
+are implemented. The public SDK and CLI remain release-candidate surfaces.
 
-| Area | Status |
-|---|---|
-| Kernel, Artifact FS, Context VM | Implemented |
-| VPG, scheduling, invalidation, local repair | Implemented |
-| Python SDK and read-only CLI | Experimental |
-| Deterministic adapters and demos | Available |
-| Production sandboxing and hardening | In progress |
+Still in progress: production sandboxing, distributed execution, primary
+`AgentOS` integration for Context VM, and Artifact/Evidence-level comparative
+workloads. LongHorizonOS is not yet a general-purpose autonomous planner.
 
 Not yet implemented:
 
 - Distributed multi-agent cluster
 - General belief revision
 - distributed repair cluster
-- General-purpose LLM planner and autonomous self-healing
 
 ## Documentation
 
-- [Core Architecture V1](docs/architecture/LONGHORIZONOS-CORE-V1.md)
-- [Concepts and authority model](docs/CONCEPTS.md)
 - [Quick Start](docs/QUICKSTART.md)
+- [Concepts and authority model](docs/CONCEPTS.md)
+- [Core Architecture V1](docs/architecture/LONGHORIZONOS-CORE-V1.md)
 - [Public Python API](docs/sdk/PUBLIC-API.md)
 - [Recovery and repair demo](docs/demos/RECOVERY-REPAIR.md)
 - [Semantic-repair benchmark](docs/benchmarks/SEMANTIC-REPAIR.md)
-- [Security policy](SECURITY.md)
 
 ## Development
 
 ```bash
 python -m pip install -e ".[dev]"
-python -m pytest -q
+python -m pytest -q -m "not slow"
+python -m ruff check .
+python -m mypy src/lhos
 ```
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md).
-Changes that move semantic authority out of the Graph or ownership away from
-Kernel Leases require an architecture proposal, not an ordinary patch.
+Contributions are welcome. Changes that move semantic authority out of the VPG
+or ownership away from Kernel Leases require an architecture proposal.
 
 ---
 

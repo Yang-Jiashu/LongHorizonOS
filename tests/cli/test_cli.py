@@ -6,6 +6,9 @@ import json
 import subprocess
 import sys
 
+import pytest
+
+from lhos.cli import core
 from lhos.sdk import Agent, AgentOS, scripted_executor
 
 
@@ -107,7 +110,69 @@ def test_cli_legacy_route(tmp_path, monkeypatch):
         timeout=30,
     )
     # legacy --help should show the legacy subcommands
-    assert ("init" in r.stdout) or ("usage" in r.stdout)
+    assert r.returncode == 0, r.stderr
+    assert "init" in r.stdout
+
+
+def test_cli_legacy_init_routes_without_reparsing_prefix(tmp_path):
+    db = tmp_path / "legacy.sqlite"
+    r = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "lhos.cli.core",
+            "legacy",
+            "init",
+            "--db",
+            str(db),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert r.returncode == 0, r.stderr
+    assert db.exists()
+
+
+def test_benchmark_invalid_trial_reports_failure(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "lhos.benchmarks.semantic_repair.run.run_benchmark",
+        lambda quick: {
+            "benchmark": "semantic-repair",
+            "quick": quick,
+            "total_trials": 2,
+            "valid_trials": 1,
+            "invalid_trials": 1,
+            "aggregate": {"overall": {}},
+            "raw_sha256": "abc",
+        },
+    )
+    assert core._benchmark(quick=True, as_json=False) == 1
+    assert "correctness: FAIL" in capsys.readouterr().out
+
+
+def test_benchmark_json_is_machine_readable(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "lhos.benchmarks.semantic_repair.run.run_benchmark",
+        lambda quick: {
+            "benchmark": "semantic-repair",
+            "quick": quick,
+            "total_trials": 1,
+            "valid_trials": 1,
+            "invalid_trials": 0,
+            "aggregate": {"overall": {}},
+            "raw_sha256": "abc",
+        },
+    )
+    assert core._benchmark(quick=False, as_json=True) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["quick"] is False
+    assert data["correctness_passed"] is True
+
+
+def test_benchmark_modes_are_mutually_exclusive():
+    with pytest.raises(SystemExit):
+        core.build_parser().parse_args(["benchmark", "--quick", "--full"])
 
 
 def test_cli_state_not_found(tmp_path):
@@ -132,3 +197,18 @@ def test_secret_not_leaked_in_json(tmp_path):
     m = _make_run(tmp_path, mutation=False)
     r = _cli(["status", "--goal", "G", "--json"], m)
     assert "API_KEY=" not in r.stdout
+
+
+@pytest.mark.parametrize(
+    ("raw", "secret"),
+    [
+        ("API_KEY=sk-secret", "sk-secret"),
+        ("TOKEN: token-secret", "token-secret"),
+        ("Authorization: Bearer bearer-secret", "bearer-secret"),
+        ("Authorization: Basic basic-secret", "basic-secret"),
+    ],
+)
+def test_redact_common_secret_forms(raw, secret):
+    redacted = core._redact(raw)
+    assert secret not in redacted
+    assert "***" in redacted

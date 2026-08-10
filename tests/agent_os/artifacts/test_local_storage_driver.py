@@ -198,6 +198,7 @@ class TestRecovery:
         storage2 = LocalArtifactStorageDriver(root)
         orphans = storage2.list_orphaned_staging()
         assert "txn-1" in orphans
+        assert "txn-1" in storage2._active_txns
 
 
 class TestStats:

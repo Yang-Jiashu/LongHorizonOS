@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from .errors import (
     KernelLeaseRequired,
+    LeaseReleaseFailed,
 )
 from .lease_adapter import LeaseAdapter
 from .models import ClaimState, TaskClaim
@@ -119,6 +120,8 @@ class ClaimManager:
 
     def release(self, claim: TaskClaim, reason: str = "released") -> None:
         """Voluntarily release a non-terminal claim."""
+        if claim.state == ClaimState.RELEASED:
+            return
         self._safe_release(claim)
         claim.state = ClaimState.RELEASED
         claim.released_at = _now()
@@ -133,9 +136,15 @@ class ClaimManager:
     def _safe_release(self, claim: TaskClaim) -> None:
         if claim.lease_id is not None:
             try:
-                self._adapter.release(claim.lease_id)
-            except Exception:
-                claim.lease_id = None
+                released = self._adapter.release(claim.lease_id)
+            except Exception as exc:
+                raise LeaseReleaseFailed(claim.claim_id, claim.lease_id, str(exc)) from exc
+            if not released:
+                raise LeaseReleaseFailed(
+                    claim.claim_id,
+                    claim.lease_id,
+                    "lease provider did not confirm release",
+                )
 
     # ── invariant checks ───────────────────────────────────────────────────
     def assert_active_has_live_lease(self, claim: TaskClaim) -> None:

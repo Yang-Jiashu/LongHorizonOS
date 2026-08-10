@@ -194,9 +194,14 @@ def run_recovery_repair(
             t.verify = CommandVerifier(
                 "true", artifact_id="review.md", version=2, shell=sh, cwd=str(ws_dir), workspace=ws
             )
+    attempts_before_repair = len(os_.scheduler.attempts)
     r1 = os_.run(goal, max_dispatches=12)
-    sem.repair_attempts = 2
-    sem.new_evidence_count = 2
+    repair_attempts = os_.scheduler.attempts[attempts_before_repair:]
+    sem.repair_attempts = len(repair_attempts)
+    sem.new_evidence_count = sum(
+        getattr(attempt.state, "value", attempt.state) == "verified_semantically"
+        for attempt in repair_attempts
+    )
     sem.final_verified = list(r1.verified)
     # After reclosure via new Evidence, clear the D3 repair overlay so the
     # observability reflects the re-verified state (VPG = verified).

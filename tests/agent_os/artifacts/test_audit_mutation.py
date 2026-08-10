@@ -3,7 +3,7 @@
 Verifies that the test suite catches deliberate bugs (mutations) in
 the source code. For each mutation:
 1. Apply a small change to source via string replacement
-2. Run relevant tests with the active Python interpreter
+2. Run the relevant tests with the active Python interpreter
 3. Verify tests FAIL (mutation killed)
 4. Revert change
 5. Verify tests pass again

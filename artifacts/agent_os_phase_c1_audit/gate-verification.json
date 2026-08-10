@@ -20,7 +20,7 @@
     "7": "Read handle pins version",
     "8": "Reader never sees staged content",
     "9": "Versions immutable + monotonic",
-    "10": "Optimistic concurrency (lost-update prevention)",
+    "10": "Version-checked commits (lost-update prevention)",
     "11": "Single active writer (exclusion)",
     "12": "Atomic commit",
     "13": "Idempotent writes",

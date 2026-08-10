@@ -1,6 +1,6 @@
 """Benchmark correctness audit (Section 20).
 
-Verify that microbenchmark results are correct and that the benchmark
+Verify that microbenchmark results are correct and the benchmark
 infrastructure itself is sound. Benchmarks must:
 1. Run successfully (no crashes or errors)
 2. Meet minimum performance thresholds (correctness of measurement)

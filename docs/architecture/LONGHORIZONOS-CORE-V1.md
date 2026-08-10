@@ -20,13 +20,14 @@ repair frontier.
 ## 3. Two-Plane Architecture
 Trusted Execution Plane (operational truth) + Semantic Control Plane (derived
 semantic truth & progress), connected only by public Protocols/Adapters/SDK
-(provider injection).  See `two-plane-architecture.md`.
+(provider injection). See `docs/CONCEPTS.md` for the operational-vs-semantic
+authority model.
 
 ## 4. Layer Model
 Microkernel (L2) → System Services (L3: Artifact FS+Namespace, Context VM,
 storage/drivers) → Semantic Runtimes (L4: VPG, Scheduler, Invalidation) →
 Harness/Integration (L5, minimal) → Applications/Product (L6, future).  Downward
-DAG; L6 absent at freeze.  See `core-v1-layer-model.md`.
+DAG; L6 absent at freeze.
 
 ## 5. Execution Plane
 `agent_os/*`: Process (PCB/ProcessState), Action (ACB/ActionState), Journal
@@ -41,7 +42,8 @@ is content/version authority; art history immutable.
 ## 7. Context VM
 Version-bound content materialization (ContentRef/Manifest/Page/WorkingSet/
 LoadedContext/Snapshot).  Graph-neutral and task-neutral (decides HOW to fit, not
-WHAT).  See `context-vm-contract.md`.
+WHAT). The subsystem is implemented independently but is not yet wired into the
+primary `AgentOS` composition root.
 
 ## 8. Verified Progress Graph
 `runtimes/verified_progress`: nodes (Goal/Task/ArtifactRef/Verification/Evidence)
@@ -74,7 +76,7 @@ D3 never claims/dispatches, never marks VERIFIED, never mutates Artifact/Evidenc
 One authority per fact: Process/Action Leases/Artifacts/Namespace → execution
 plane; GraphVersion/validity/READY/VERIFIED/Goal → VPG; eligibility/matching →
 D2; cone/Frontier/applicability → D3 (derived); claim row/verified_artifact_versions/
-projections → derived/index.  See `core-v1-authority-constitution.md`.
+projections → derived/index.
 
 ## 14. Runtime Modes
 NoGraph; Single-Agent Verified Graph; Multi-Agent Verified Graph (+ optional D3).
@@ -87,20 +89,19 @@ persists; worker is replaceable.
 
 ## 16. Core Invariants
 35 invariants across Execution/Authority/Persistence/Artifact/Context/Semantic/
-Scheduling/Invalidation-Layering — all PASS in the audited plane.  See
-`core-v1-invariants.md`.
+Scheduling/Invalidation-Layering — all PASS in the recorded Core V1 audit.
 
 ## 17. Dependency Rules
 Lower must not import higher; Kernel must not know Task/Goal/VPG; Context VM
 graph-neutral; VPG not require D2; D2 not require D3 internals; D3 not own
 Scheduler/Kernel resources; harness depends downward via SDK/Protocol/Adapter.
-Cross-plane edges provider-injected.  See `dependency-rules.md`.
+Cross-plane edges are provider-injected.
 
 ## 18. Compatibility Rules
 Core-breaking changes (authority moves, VERIFIED/READY derivation changes,
 ownership away from Kernel Lease, VPG↔D2 coupling, D3 claim/dispatch, Context VM
 semantic, NoGraph loss, worker non-replaceable, RepairFrontier→arbitrary planner)
-require a Core v2 proposal + independent audit.  See `core-v1-compatibility-policy.md`.
+require a Core v2 proposal + independent audit.
 
 ## 19. Legacy Boundary
 The legacy plane (`graph`,`runtime`,`agents`,`domain`,`ports`,`infrastructure`,

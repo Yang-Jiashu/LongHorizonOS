@@ -6,9 +6,9 @@ runtime:
   deterministic_reconciliation_first: true
 
 model:
-  planner_model: "MODEL_NAME"
-  worker_model: "MODEL_NAME"
-  reconciler_model: "MODEL_NAME"
+  planner_model: "mock-planner"
+  worker_model: "mock-worker"
+  reconciler_model: "mock-reconciler"
   temperature: 0.0
 
 context:
@@ -43,6 +43,9 @@ budget:
 
 verification:
   allow_llm_judge: false
+  command_trusted: false
+  command_allow_shell: false
+  command_allow_network: false
 
 telemetry:
   jsonl_trace: true

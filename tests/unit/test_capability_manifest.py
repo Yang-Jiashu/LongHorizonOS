@@ -95,14 +95,14 @@ def test_transcript_mode_has_no_graph_engine():
     assert not m.can_crash_recover
 
 
-def test_transcript_does_not_access_oracle_priorities():
+def test_transcript_does_not_access_oracle_priorities(tmp_path):
     """The transcript runner must not read task.oracle.priorities."""
     task = generate("serial_chain", size="small", seed=7)
     # Replace oracle priorities with sentinel values to detect access
     original_priorities = dict(task.oracle.priorities)
     task.oracle.priorities = {k: 999.99 for k in original_priorities}
 
-    result = run_transcript(task, workspace_dir="/tmp/lhos-test-transcript")
+    result = run_transcript(task, workspace_dir=str(tmp_path / "transcript"))
     # The transcript should still produce the same result regardless of
     # oracle priorities — if it read them, the result would change.
     assert result is not None
@@ -110,7 +110,7 @@ def test_transcript_does_not_access_oracle_priorities():
     task.oracle.priorities = original_priorities
 
 
-def test_transcript_does_not_access_oracle_critical_path():
+def test_transcript_does_not_access_oracle_critical_path(tmp_path):
     """The transcript runner must not read task.oracle.critical_path."""
     task = generate("serial_chain", size="small", seed=7)
     # Replace critical path with sentinel
@@ -118,7 +118,7 @@ def test_transcript_does_not_access_oracle_critical_path():
     task.oracle.critical_path = ["FAKE", "SENTINEL"]
     task.oracle.critical_path_seconds = 99999.0
 
-    result = run_transcript(task, workspace_dir="/tmp/lhos-test-transcript-cp")
+    result = run_transcript(task, workspace_dir=str(tmp_path / "transcript-cp"))
     assert result is not None
 
     task.oracle.critical_path = original_cp

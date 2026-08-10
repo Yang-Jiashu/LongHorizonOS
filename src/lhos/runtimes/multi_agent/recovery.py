@@ -12,6 +12,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from .errors import LeaseReleaseFailed
 from .models import ClaimState
 from .projections import SchedulerProjection
 
@@ -89,10 +90,11 @@ def finalize_after_restart(
             continue
         if c.lease_id and not lease_is_live(c.lease_id):
             try:
-                release_lease(c.lease_id)
+                released = release_lease(c.lease_id)
+            except Exception as exc:
+                raise LeaseReleaseFailed(c.claim_id, c.lease_id, str(exc)) from exc
+            if released:
                 tally["orphan_leases_released"] += 1
-            except Exception:
-                pass
             c.state = ClaimState.LOST
             c.released_at = _now()
             c.reason = "restart_no_live_lease"
@@ -101,10 +103,11 @@ def finalize_after_restart(
         if not process_is_alive(c.process_id):
             if c.lease_id:
                 try:
-                    release_lease(c.lease_id)
+                    released = release_lease(c.lease_id)
+                except Exception as exc:
+                    raise LeaseReleaseFailed(c.claim_id, c.lease_id, str(exc)) from exc
+                if released:
                     tally["orphan_leases_released"] += 1
-                except Exception:
-                    pass
             c.state = ClaimState.LOST
             c.released_at = _now()
             c.reason = "restart_process_dead"

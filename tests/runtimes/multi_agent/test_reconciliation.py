@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC
 
+import pytest
+
+from lhos.runtimes.multi_agent.errors import LeaseReleaseFailed
 from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
 from lhos.runtimes.multi_agent.reconciliation import (
     detect_invariants_violations,
@@ -138,6 +141,27 @@ def test_reconcile_task_verified_completes_claim():
     )
     assert res.claims_completed == 1
     assert claims[0].state == ClaimState.COMPLETED
+
+
+def test_reconcile_release_exception_preserves_active_claim():
+    claims = [_claim(lease_id="lease-1")]
+
+    def bad_release(lease_id):
+        raise RuntimeError("lease service unavailable")
+
+    with pytest.raises(LeaseReleaseFailed):
+        reconcile(
+            claims,
+            [],
+            lease_is_live=lambda lease: True,
+            process_is_alive=lambda pid: True,
+            vpg_task_verified=lambda graph_id, task_id: True,
+            vpg_task_stale=lambda graph_id, task_id: False,
+            lease_lookup=lambda claim: _lease("lease-1"),
+            release_lease=bad_release,
+            clock_now=_now,
+        )
+    assert claims[0].state == ClaimState.ACTIVE
 
 
 def test_reconcile_orphan_proposed_claim_no_kernel_lease():

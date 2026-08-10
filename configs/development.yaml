@@ -11,6 +11,9 @@ checkpoint:
 
 verification:
   allow_llm_judge: false
+  command_trusted: false
+  command_allow_shell: false
+  command_allow_network: false
 
 telemetry:
   jsonl_trace: true

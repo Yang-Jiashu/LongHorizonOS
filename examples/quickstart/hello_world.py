@@ -19,7 +19,4 @@ goal.task(
 
 result = os_.run(goal, max_dispatches=4)  # drive to fixpoint
 
-print("Goal:", goal.goal_id)
-print("Task states:", result.task_states)
-print("VERIFIED:", result.verified)
-print("Ownership:", result.owner_by_task)
+print(result.task_states, result.verified)

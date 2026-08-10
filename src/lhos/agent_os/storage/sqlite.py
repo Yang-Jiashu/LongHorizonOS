@@ -33,7 +33,7 @@ class SQLiteStorage:
         # a time even with check_same_thread=False. Serialize every explicit
         # BEGIN/COMMIT pair so an IMMEDIATE acquisition cannot overlap a deferred
         # waiter/journal transaction on the same connection.
-        self._write_lock = threading.Lock()
+        self._write_lock = threading.RLock()
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
@@ -61,18 +61,22 @@ class SQLiteStorage:
         return _Tx(self.conn, immediate=immediate, write_lock=self._write_lock)
 
     def execute(self, sql: str, params: tuple[Any, ...] | list[Any] = ()) -> sqlite3.Cursor:
-        return self.conn.execute(sql, params)
+        with self._write_lock:
+            return self.conn.execute(sql, params)
 
     def query_one(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
-        row = self.conn.execute(sql, params).fetchone()
-        return dict(row) if row else None
+        with self._write_lock:
+            row = self.conn.execute(sql, params).fetchone()
+            return dict(row) if row else None
 
     def query_all(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
-        rows = self.conn.execute(sql, params).fetchall()
-        return [dict(r) for r in rows]
+        with self._write_lock:
+            rows = self.conn.execute(sql, params).fetchall()
+            return [dict(r) for r in rows]
 
     def close(self) -> None:
-        self.conn.close()
+        with self._write_lock:
+            self.conn.close()
 
     # ── JSON helpers ──────────────────────────────────────────────────────
 
@@ -94,7 +98,7 @@ class _Tx:
         self,
         conn: sqlite3.Connection,
         immediate: bool = False,
-        write_lock: threading.Lock | None = None,
+        write_lock: Any | None = None,
     ):
         self.conn = conn
         self.immediate = immediate

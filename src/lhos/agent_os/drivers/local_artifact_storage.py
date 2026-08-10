@@ -3,20 +3,22 @@
 Content-addressable storage (CAS) on local filesystem.
 - Content is stored by hash: `<root>/cas/<hash[:2]>/<hash>`
 - Staged content goes to `<root>/staging/<transaction_id>` then is linked into CAS on commit
-- Crash recovery: orphaned staging files are cleaned up on init
+- Crash recovery: staged transactions are discovered on init and reconciled explicitly
 
 Design constraints:
 - No symlinks (TOCTOU safety)
-- No `os.rename` across devices (use shutil.move fallback)
+- Cross-device commits copy into a target-directory temp file before atomic replace
 - Atomic commit: write-to-temp + fsync + atomic rename
 - Content deduplication by SHA-256 hash
 """
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -59,8 +61,8 @@ class LocalArtifactStorageDriver:
         # Track active transactions (for crash recovery inspection)
         self._active_txns: set[str] = set()
 
-        # Clean up orphaned staging files from previous crash
-        self._cleanup_orphans()
+        # Preserve crash state until the transaction authority classifies it.
+        self._discover_staging_transactions()
 
     # ── Stage ─────────────────────────────────────────────────────────────
 
@@ -112,6 +114,8 @@ class LocalArtifactStorageDriver:
 
         # Copy file to staging
         shutil.copy2(source, staging_path)
+        self._fsync_file(staging_path)
+        self._fsync_directory(self._staging_dir)
 
         # Compute hash
         content_hash = self._hash_file(staging_path)
@@ -151,16 +155,22 @@ class LocalArtifactStorageDriver:
         if cas_path.exists():
             # Content already in CAS — just remove staging
             staging_path.unlink()
+            self._fsync_directory(self._staging_dir)
         else:
             # Move to CAS atomically
             cas_path.parent.mkdir(parents=True, exist_ok=True)
             # Use os.rename (atomic on same filesystem)
             try:
-                os.rename(staging_path, cas_path)
-            except OSError:
+                os.replace(staging_path, cas_path)
+            except OSError as exc:
+                if exc.errno != errno.EXDEV:
+                    raise
                 # Cross-device fallback: copy + delete
-                shutil.copy2(staging_path, cas_path)
+                self._copy_across_devices(staging_path, cas_path)
                 staging_path.unlink()
+            self._fsync_file(cas_path)
+            self._fsync_directory(cas_path.parent)
+            self._fsync_directory(self._staging_dir)
 
         self._active_txns.discard(transaction_id)
 
@@ -177,6 +187,7 @@ class LocalArtifactStorageDriver:
         staging_path = self._staging_dir / transaction_id
         if staging_path.exists():
             staging_path.unlink()
+            self._fsync_directory(self._staging_dir)
             self._active_txns.discard(transaction_id)
             return True
         return False
@@ -285,6 +296,8 @@ class LocalArtifactStorageDriver:
                 else:
                     # Orphaned — clean up
                     f.unlink()
+                    self._active_txns.discard(txn_id)
+        self._fsync_directory(self._staging_dir)
         return results
 
     def list_orphaned_staging(self) -> list[str]:
@@ -310,14 +323,46 @@ class LocalArtifactStorageDriver:
                 h.update(chunk)
         return h.hexdigest()
 
-    def _cleanup_orphans(self) -> None:
-        """Remove orphaned staging files on init.
+    @staticmethod
+    def _fsync_file(path: Path) -> None:
+        fd = os.open(path, os.O_RDWR)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
 
-        On first init, we don't know which transactions are valid,
-        so we leave staging files in place. They will be cleaned up
-        by explicit recover() calls.
-        """
-        pass  # Intentionally no-op — recovery is explicit
+    @staticmethod
+    def _fsync_directory(path: Path) -> None:
+        if os.name == "nt":
+            return
+        fd = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    def _copy_across_devices(self, source: Path, destination: Path) -> None:
+        temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=destination.parent,
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                with open(source, "rb") as source_file:
+                    shutil.copyfileobj(source_file, temp_file, length=_CHUNK_SIZE)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            os.replace(temp_path, destination)
+        finally:
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
+
+    def _discover_staging_transactions(self) -> None:
+        """Load crash-surviving staging files for explicit recovery."""
+        self._active_txns.update(f.name for f in self._staging_dir.iterdir() if f.is_file())
 
     # ── Driver Protocol ───────────────────────────────────────────────────
 

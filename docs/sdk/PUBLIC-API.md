@@ -9,7 +9,8 @@ not replace or redefine Core.
 - **EXPERIMENTAL** — surface that may change in E2/E3.
 - **INHERITED (Core)** — `lhos.agent_os`, `lhos.runtimes.verified_progress`,
   `lhos.runtimes.multi_agent`, `lhos.runtimes.invalidation` remain as their Core
-  classification (see `artifacts/core_v1_freeze/public-api-classification.md`).
+  classification documented in
+  [Core V1 Freeze](../architecture/CORE-V1-FREEZE.md).
 
 ## PUBLIC objects (E1)
 | Symbol | Purpose | Stability |

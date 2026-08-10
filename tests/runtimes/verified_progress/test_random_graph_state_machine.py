@@ -350,8 +350,9 @@ def _run_one_graph(seed: int) -> dict:
             elif r < 0.70:
                 # AddEdgeOp (depends_on / verifies / produces)
                 if used_node_ids:
-                    src = rng.choice(list(used_node_ids))
-                    dst = rng.choice(list(used_node_ids))
+                    stable_node_ids = sorted(used_node_ids)
+                    src = rng.choice(stable_node_ids)
+                    dst = rng.choice(stable_node_ids)
                 else:
                     src, dst = "x", "y"
                     ops = (AddNodeOp(node_id="x", graph_id=gid, node_type="task",
@@ -362,7 +363,7 @@ def _run_one_graph(seed: int) -> dict:
                     used_node_ids.update(["x", "y"])
                     task_ids.extend(["x", "y"])
                     src, dst = "x", "y"
-                etype = random.choice(["depends_on", "verifies", "produces"])
+                etype = rng.choice(["depends_on", "verifies", "produces"])
                 ops = (AddEdgeOp(edge_id=f"edge-{seed}-{_op}",
                                  edge_type=etype,
                                  source_node_id=src, target_node_id=dst,
@@ -455,6 +456,7 @@ def _run_one_graph(seed: int) -> dict:
     }
 
 
+@pytest.mark.slow
 class TestRandomGraphStateMachine:
     def test_100_graphs_500_ops_each(self):
         graph_results: list[dict] = []

@@ -84,6 +84,7 @@ def _ready_size(rt, gid):
 # ── Scenario S31a: 1000-task DAG ─────────────────────────────────────────────
 
 
+@pytest.mark.slow
 class TestS31a_ScaleTest:
     @pytest.fixture(autouse=True)
     def _rt(self):

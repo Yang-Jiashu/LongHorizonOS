@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from .errors import LeaseReleaseFailed
 from .models import AttemptState, ClaimState, ScheduledExecutionAttempt, TaskClaim
 
 
@@ -143,23 +144,13 @@ def _reconcile_active_claim(
     live_leases = lease_lookup(claim)
     if not live_leases or not lease_is_live(live_leases.lease_id):
         # Make sure any lingering lease resource is reclaimed.
-        try:
-            if claim.lease_id:
-                release_lease(claim.lease_id)
-                res.orphan_leases_released += 1
-        except Exception:
-            pass
+        _release_claim_lease(claim, res, release_lease)
         _lose_claim(claim, res, reason="kernel_lease_vanished_claim_lost")
         return
 
     # 3. Task verified by VPG -> claim COMPLETED, lease released.
     if vpg_task_verified(claim.graph_id, claim.task_id):
-        try:
-            if claim.lease_id:
-                release_lease(claim.lease_id)
-                res.orphan_leases_released += 1
-        except Exception:
-            pass
+        _release_claim_lease(claim, res, release_lease)
         claim.state = ClaimState.COMPLETED
         claim.released_at = _now()
         claim.reason = "vpg_task_verified_claim_completed"
@@ -206,12 +197,8 @@ def _lose_claim(
     reason: str,
     release_lease: Any | None = None,
 ) -> None:
-    try:
-        if release_lease is not None and claim.lease_id:
-            release_lease(claim.lease_id)
-            res.orphan_leases_released += 1
-    except Exception:
-        pass
+    if release_lease is not None:
+        _release_claim_lease(claim, res, release_lease)
     claim.state = ClaimState.LOST
     claim.released_at = _now()
     claim.reason = reason
@@ -225,6 +212,21 @@ def _lose_claim(
             agent_id=claim.agent_id,
         )
     )
+
+
+def _release_claim_lease(
+    claim: TaskClaim,
+    res: ReconciliationResult,
+    release_lease: Any,
+) -> None:
+    if not claim.lease_id:
+        return
+    try:
+        released = release_lease(claim.lease_id)
+    except Exception as exc:
+        raise LeaseReleaseFailed(claim.claim_id, claim.lease_id, str(exc)) from exc
+    if released:
+        res.orphan_leases_released += 1
 
 
 def detect_invariants_violations(

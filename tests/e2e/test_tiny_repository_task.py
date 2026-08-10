@@ -22,7 +22,10 @@ def test_tiny_repository_task_end_to_end(tmp_path):
     stack = RuntimeStack(
         tmp_path / "lhos.db",
         tmp_path / "repo",
-        config={"runtime": {"lease_seconds": 60}},
+        config={
+            "runtime": {"lease_seconds": 60},
+            "verification": {"command_trusted": True},
+        },
     )
     try:
         run_id = "run-e2e"

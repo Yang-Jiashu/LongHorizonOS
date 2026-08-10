@@ -674,7 +674,9 @@ def _has_superseded_artifact(
         try:
             current = latest(artifact_id)
         except Exception:
-            continue
+            # VERIFIED is a proof state. If the authoritative artifact provider
+            # cannot confirm freshness, conservatively invalidate the proof.
+            return True
         if current is not None and current > version:
             return True
     return False

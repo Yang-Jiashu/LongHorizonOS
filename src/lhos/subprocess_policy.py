@@ -9,8 +9,6 @@ Interpreter-backed shell syntax is an additional explicit opt-in.
 from __future__ import annotations
 
 import os
-import re
-import shlex
 import subprocess
 import time
 from collections.abc import Mapping, Sequence
@@ -29,7 +27,6 @@ class CommandExecution:
     stderr: str = ""
 
 
-_SHELL_SYNTAX = re.compile(r"(?<!&)&(?!&)|[|;<>`\r\n]|\$\(")
 _NETWORK_PROGRAMS = {
     "curl",
     "ftp",
@@ -110,18 +107,92 @@ def run_command(
 
 def _parse_commands(command: str | Sequence[str]) -> list[list[str]]:
     if isinstance(command, str):
-        if _SHELL_SYNTAX.search(command):
-            raise CommandPolicyError(
-                "shell syntax is disabled; pass argv or explicitly enable allow_shell"
-            )
-        parts = [part.strip() for part in command.split("&&")]
-        if any(not part for part in parts):
-            raise CommandPolicyError("invalid empty command in command chain")
-        return [shlex.split(part, posix=os.name != "nt") for part in parts]
+        return _parse_command_string(command)
     argv = [str(part) for part in command]
     if not argv or any(not part for part in argv):
         raise CommandPolicyError("command argv must contain non-empty strings")
     return [argv]
+
+
+def _parse_command_string(command: str) -> list[list[str]]:
+    """Parse a shell-like command into argv without invoking a shell."""
+    commands: list[list[str]] = []
+    argv: list[str] = []
+    token: list[str] = []
+    token_started = False
+    quote: str | None = None
+    index = 0
+
+    def flush_token() -> None:
+        nonlocal token_started
+        if token_started:
+            argv.append("".join(token))
+            token.clear()
+            token_started = False
+
+    while index < len(command):
+        char = command[index]
+        if char in "\r\n":
+            raise CommandPolicyError(
+                "shell syntax is disabled; pass argv or explicitly enable allow_shell"
+            )
+
+        if quote is not None:
+            if char == quote:
+                quote = None
+            elif (
+                quote == '"'
+                and char == "\\"
+                and index + 1 < len(command)
+                and command[index + 1] in {'"', "\\"}
+            ):
+                index += 1
+                token.append(command[index])
+            else:
+                token.append(char)
+            token_started = True
+            index += 1
+            continue
+
+        if char in {"'", '"'}:
+            quote = char
+            token_started = True
+        elif char.isspace():
+            flush_token()
+        elif char == "&":
+            if index + 1 < len(command) and command[index + 1] == "&":
+                flush_token()
+                if not argv:
+                    raise CommandPolicyError("invalid empty command in command chain")
+                commands.append(argv)
+                argv = []
+                index += 1
+            else:
+                raise CommandPolicyError(
+                    "shell syntax is disabled; pass argv or explicitly enable allow_shell"
+                )
+        elif char in {"|", ";", "<", ">", "`"} or (
+            char == "$" and index + 1 < len(command) and command[index + 1] == "("
+        ):
+            raise CommandPolicyError(
+                "shell syntax is disabled; pass argv or explicitly enable allow_shell"
+            )
+        else:
+            token.append(char)
+            token_started = True
+        index += 1
+
+    if quote is not None:
+        raise CommandPolicyError("unterminated quote in command")
+    flush_token()
+    if not argv:
+        if commands:
+            raise CommandPolicyError("invalid empty command in command chain")
+        raise CommandPolicyError("command must not be empty")
+    commands.append(argv)
+    if any(not item[0] for item in commands):
+        raise CommandPolicyError("command executable must not be empty")
+    return commands
 
 
 def _run_one(

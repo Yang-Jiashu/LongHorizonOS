@@ -23,11 +23,15 @@ jobs:
       - name: Cross-platform audits
         run: >
           python -m pytest -q
+          tests/unit
+          tests/integration
           tests/e2e
           tests/agent_os/test_audit_sigkill.py
           tests/agent_os/artifacts/test_audit_benchmark.py
           tests/agent_os/artifacts/test_audit_demo_independence.py
           tests/agent_os/artifacts/test_audit_public_claims.py
+          --cov=lhos
+          --cov-report=term-missing:skip-covered
 
   quick:
     name: Fast checks
@@ -46,11 +50,11 @@ jobs:
           pip install ".[dev]"
       - name: Lint
         run: |
-          ruff check src/lhos tests/
+          python -m ruff check src/lhos tests/
       - name: Format
-        run: ruff format --check src/lhos examples/ tests/
+        run: python -m ruff format --check src/lhos examples/ tests/
       - name: Typecheck
-        run: mypy src/lhos
+        run: python -m mypy src/lhos
 
   core-correctness:
     name: Core correctness (Agent OS, D1, D2, D3, SDK)
@@ -63,15 +67,11 @@ jobs:
       - name: Install
         run: pip install ".[dev]"
       - name: Agent OS
-        run: pytest tests/agent_os -q
+        run: python -m pytest tests/agent_os -q
       - name: D1 VPG
-        run: pytest tests/runtimes/verified_progress -q
+        run: python -m pytest tests/runtimes/verified_progress -q -m "not slow"
       - name: D2
-        run: pytest tests/runtimes/multi_agent -q
-      - name: D3 invalidation + VPG guardian
-        run: |
-          pytest tests/runtimes/verified_progress/invalidation -q
-          pytest tests/sdk/observability -q
+        run: python -m pytest tests/runtimes/multi_agent -q
         # NOTE: core correctness jobs HARD-FAIL; no retries/allow-failure.
 
   product-surface:
@@ -86,10 +86,10 @@ jobs:
         run: pip install ".[dev]"
       - name: SDK / CLI / demo / bench
         run: |
-          pytest tests/sdk -q
-          pytest tests/cli -q
-          pytest tests/demo -q
-          pytest tests/benchmarks -q
+          python -m pytest tests/sdk -q
+          python -m pytest tests/cli -q
+          python -m pytest tests/demo -q
+          python -m pytest tests/benchmarks -q
 
   fresh-wheel-smoke:
     name: Fresh wheel outside repo (killer demo)
@@ -99,8 +99,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build wheel
-        run: pip install build && python -m build --wheel
+      - name: Build wheel and sdist
+        run: pip install build && python -m build
       - name: Fresh install + outside-repo smoke
         run: |
           python -m venv /tmp/smoke

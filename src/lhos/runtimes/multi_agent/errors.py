@@ -70,6 +70,19 @@ class LeaseAcquisitionFailed(D2Error):
         )
 
 
+class LeaseReleaseFailed(D2Error):
+    """Kernel lease release could not be confirmed."""
+
+    def __init__(self, claim_id: str, lease_id: str, reason: str = "") -> None:
+        self.claim_id = claim_id
+        self.lease_id = lease_id
+        self.reason = reason
+        tail = f" ({reason})" if reason else ""
+        super().__init__(
+            f"Could not confirm release of Kernel lease {lease_id!r} for claim {claim_id!r}{tail}."
+        )
+
+
 class KernelLeaseRequired(D2Error):
     """ACTIVE claim record exists without a backing live Kernel ResourceLease."""
 

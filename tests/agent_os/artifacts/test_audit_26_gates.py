@@ -526,7 +526,7 @@ class TestAll26GatesPass:
                         "Read handle pins version",
                         "Reader never sees staged content",
                         "Versions immutable + monotonic",
-                        "Optimistic concurrency (lost-update prevention)",
+                        "Version-checked commits (lost-update prevention)",
                         "Single active writer (exclusion)",
                         "Atomic commit",
                         "Idempotent writes",

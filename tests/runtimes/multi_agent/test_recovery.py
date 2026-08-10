@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+
+from lhos.runtimes.multi_agent.errors import LeaseReleaseFailed
 from lhos.runtimes.multi_agent.models import ClaimState, TaskClaim
 from lhos.runtimes.multi_agent.recovery import finalize_after_restart
 
@@ -74,18 +77,17 @@ def test_finalize_skips_already_terminal_claims():
         assert claims[0].state == s
 
 
-def test_finalize_release_exception_does_not_propagate():
+def test_finalize_release_exception_preserves_active_claim():
     claims = [_claim(claim_id="c1", lease_id="lease-1")]
 
     def bad_release(lid):
         raise RuntimeError("lease service down")
 
-    tally = finalize_after_restart(
-        claims,
-        lease_is_live=lambda lid: False,
-        process_is_alive=lambda pid: True,
-        release_lease=bad_release,
-    )
-    # Even when release throws, the claim should still be marked LOST.
-    assert tally["claims_marked_lost"] == 1
-    assert claims[0].state == ClaimState.LOST
+    with pytest.raises(LeaseReleaseFailed):
+        finalize_after_restart(
+            claims,
+            lease_is_live=lambda lid: False,
+            process_is_alive=lambda pid: True,
+            release_lease=bad_release,
+        )
+    assert claims[0].state == ClaimState.ACTIVE

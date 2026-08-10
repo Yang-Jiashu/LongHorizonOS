@@ -29,14 +29,15 @@ Save this file (it is the exact program at
 ```python
 from lhos.sdk import Agent, AgentOS, Goal, scripted_executor
 
-os_ = AgentOS(":memory:")                                   # composition root
+os_ = AgentOS(":memory:")  # composition root
 os_.add_agent(Agent("coder", specializations=("python",)))  # real Kernel process
 
 goal = Goal("Hello")
-goal.task("Write hello", agent="coder",
-          verify=scripted_executor(artifact_id="hello.txt", version=1))
+goal.task(
+    "Write hello", agent="coder", verify=scripted_executor(artifact_id="hello.txt", version=1)
+)
 
-result = os_.run(goal, max_dispatches=4)   # Scheduler claims + dispatches
+result = os_.run(goal, max_dispatches=4)  # Scheduler claims + dispatches
 print(result.task_states, result.verified)
 ```
 
@@ -83,11 +84,14 @@ os_.add_agent(Agent("checker", specializations=("python",)))
 
 goal = Goal("Pipeline")
 first = goal.task(
-    "draft", agent="writer",
+    "draft",
+    agent="writer",
     verify=scripted_executor(artifact_id="draft.txt", version=1),
 )
 goal.task(
-    "review", agent="checker", depends_on=(first,),
+    "review",
+    agent="checker",
+    depends_on=(first,),
     verify=scripted_executor(artifact_id="review.txt", version=1),
 )
 

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from lhos.runtimes.multi_agent import ClaimState
 from lhos.runtimes.multi_agent.claims import ClaimManager
+from lhos.runtimes.multi_agent.errors import LeaseReleaseFailed
 from lhos.runtimes.multi_agent.lease_adapter import claim_resource_uri
 
 
@@ -191,3 +194,28 @@ def test_release_is_idempotent_on_lease():
     mgr.release(c)
     mgr.release(c)  # second release must not double-release
     assert len(provider.released) == n0 + 1
+
+
+def test_release_failure_preserves_active_claim():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    class FailingReleaseProvider(FakeLeaseProvider):
+        def release(self, lease_id):
+            raise RuntimeError("kernel unavailable")
+
+    mgr = ClaimManager(LeaseAdapter(FailingReleaseProvider()))
+    claim = mgr.propose(
+        claim_id="c-release-failure",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(claim)
+    assert mgr.try_acquire_lease(claim)
+
+    with pytest.raises(LeaseReleaseFailed):
+        mgr.release(claim)
+    assert claim.state == ClaimState.ACTIVE

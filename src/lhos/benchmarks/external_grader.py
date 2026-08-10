@@ -22,6 +22,8 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
+from lhos.subprocess_policy import run_command
+
 
 class ExternalProgressScore(BaseModel):
     """Result of an external grading pass."""
@@ -84,7 +86,6 @@ class ArtifactRequirementGrader:
         environment_state: dict[str, Any],
     ) -> ExternalProgressScore:
         import hashlib
-        import subprocess
 
         passed = 0
         details: list[dict[str, Any]] = []
@@ -110,12 +111,13 @@ class ArtifactRequirementGrader:
             elif req_type == "command_exit_zero":
                 cmd = req.get("command", "")
                 try:
-                    result = subprocess.run(
+                    result = run_command(
                         cmd,
-                        shell=True,
                         cwd=str(workspace),
-                        capture_output=True,
                         timeout=30,
+                        trusted=True,
+                        allow_shell=False,
+                        allow_network=False,
                     )
                     ok = result.returncode == 0
                 except Exception:

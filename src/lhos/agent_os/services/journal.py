@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from lhos.agent_os.kernel.errors import KernelInvariantViolation
 from lhos.agent_os.kernel.models import KernelEvent
 from lhos.agent_os.storage.sqlite import SQLiteStorage
 
@@ -58,7 +59,8 @@ class JournalService:
 
                 # Allocate offset
                 meta = tx.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
-                assert meta is not None
+                if meta is None:
+                    raise KernelInvariantViolation("journal_meta.next_offset is missing")
                 offset = meta["value"]
 
                 # Allocate per-pid sequence
@@ -120,7 +122,8 @@ class JournalService:
                 continue
 
             meta = tx.query_one("SELECT value FROM journal_meta WHERE key = 'next_offset'")
-            assert meta is not None
+            if meta is None:
+                raise KernelInvariantViolation("journal_meta.next_offset is missing")
             offset = meta["value"]
 
             seq_row = tx.query_one(

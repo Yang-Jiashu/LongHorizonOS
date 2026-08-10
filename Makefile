@@ -1,14 +1,16 @@
-.PHONY: install test lint smoke
+.PHONY: install test test-stress lint smoke
 
 install:
 	python -m pip install -e .[dev]
 
 test:
-	python -m pytest tests/ -x -q
+	python -m pytest tests/ -x -q -m "not slow"
+
+test-stress:
+	python -m pytest tests/runtimes/verified_progress -q -m slow
 
 lint:
 	@command -v ruff >/dev/null 2>&1 && ruff check src tests || echo "ruff not installed; skipping lint"
 
 smoke:
-	lhos init --db artifacts/lhos.db
-	lhos run --db artifacts/lhos.db --graph-file tasks/example_task.json --workspace artifacts/smoke_workspace --config configs/development.yaml --scheduler fifo
+	lhos demo recovery-repair --json

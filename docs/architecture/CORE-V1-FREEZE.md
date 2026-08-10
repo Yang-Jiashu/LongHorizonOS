@@ -3,9 +3,9 @@
 ## Why freeze
 LongHorizonOS reached an architecture that is state-centric, two-plane, single
 authority per fact (authority constitution), import-clean (no cross-plane private
-imports), and parameterized by 35 consolidated invariants.  2349 tests pass and
-0 fail at this commit; ruff/format/mypy/diff are clean; NoGraph, single-agent VPG,
-Context VM neutrality, and worker replaceability are all demonstrated.
+imports), and parameterized by 35 consolidated invariants. The original freeze
+audit recorded a green test/lint/typecheck pass; current releases must satisfy
+`docs/RELEASE-CHECKLIST.md` again rather than relying on that historical result.
 
 ## Frozen version
 - Freeze commit / tagged HEAD: `680ff76` (+ this milestone's doc commit)
@@ -13,17 +13,13 @@ Context VM neutrality, and worker replaceability are all demonstrated.
   `longhorizonos-phase-d1/d2/d3-stable-v1` remain immutable at `3d56054`/`8f88797`/`680ff76`.
 
 ## What is frozen
-- Layer model (core-v1-layer-model.md): microkernel → system services → semantic
-  runtimes, downward DAG, L5/L6 minimal/future.
-- Two-plane architecture (two-plane-architecture.md): execution plane governs
-  operational truth; semantic control plane governs derived semantic truth.
-- Authority constitution (core-v1-authority-constitution.md): no fact has two
-  authorities; ownership=Kernel Lease, semantic truth=VPG, content/version=Artifact
-  FS, repair=D3; applicability=derived.
-- Contracts: evidence-and-verification, scheduler, invalidation-and-repair,
-  context-vm, runtime-modes, dependency-rules, independence-contracts,
-  worker-replaceability-contract, state-centric-thesis.
-- 35 core invariants (core-v1-invariants.md).
+- Layer and two-plane model in `LONGHORIZONOS-CORE-V1.md` Sections 3–4.
+- Authority constitution in Section 13: no fact has two authorities;
+  ownership=Kernel Lease, semantic truth=VPG, content/version=Artifact FS,
+  repair=D3, applicability=derived.
+- Evidence, scheduler, repair, Context VM, runtime-mode, dependency and recovery
+  contracts in Sections 7–17.
+- Core invariants summarized in Section 16.
 - Canonical diagram + state flow + canonical recovery/repair demo + projection
   rebuild proof.
 
@@ -34,13 +30,14 @@ Context VM neutrality, and worker replaceability are all demonstrated.
   solver, future product SDK / CLI UX.
 
 ## Authority constitution (summary)
-A single authority per fact (see core-v1-authority-constitution.md).  Key:
+A single authority per fact (see `LONGHORIZONOS-CORE-V1.md` Section 13). Key:
 Kernel Lease = ownership; VPG = semantic truth; Artifact FS = content/version;
 D3 = repair derivation; Context VM = what process sees; claims/projections are
 caches.
 
 ## 35 Core invariants
-See core-v1-invariants.md — all PASS in the audited plane.
+See `LONGHORIZONOS-CORE-V1.md` Section 16. Every release re-runs the current
+test, lint and typecheck gates.
 
 ## Known non-blocking debt (documented, accepted)
 - 3 MEDIUM: NodeValidity two-deriver (adjudicated: VPG is the single semantic
@@ -56,5 +53,5 @@ Legacy plane is OUT-OF-SCOPE for Core V1; not deleted/merged; Core V1
 compatibility does not cover it.
 
 ## Future change policy
-See core-v1-compatibility-policy.md: Core-breaking changes require a Core v2
-proposal + independent audit.
+See `LONGHORIZONOS-CORE-V1.md` Section 18: Core-breaking changes require a Core
+v2 proposal + independent audit.

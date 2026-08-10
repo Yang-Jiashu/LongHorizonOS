@@ -126,6 +126,9 @@ class RuntimeStack:
             self.event_store,
             self.verifier_registry,
             self.workspace_dir,
+            command_trusted=bool(verification_cfg.get("command_trusted", False)),
+            command_allow_shell=bool(verification_cfg.get("command_allow_shell", False)),
+            command_allow_network=bool(verification_cfg.get("command_allow_network", False)),
         )
 
         self.worker = FakeWorker(tool_runtime=self.tool_runtime)

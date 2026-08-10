@@ -7,6 +7,10 @@ class KernelError(Exception):
     """Base kernel error."""
 
 
+class KernelInvariantViolation(KernelError):
+    """Persisted kernel state violates a required internal invariant."""
+
+
 class IllegalStateTransition(KernelError):
     """Attempted an invalid process or action state transition."""
 

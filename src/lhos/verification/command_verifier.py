@@ -7,6 +7,7 @@ import subprocess
 from lhos.domain.models import GraphNode
 from lhos.domain.verification import VerificationResult, VerificationSpec
 from lhos.ports.verifier import VerificationContext
+from lhos.subprocess_policy import CommandPolicyError, run_command
 
 
 class CommandVerifier:
@@ -23,18 +24,30 @@ class CommandVerifier:
             return VerificationResult(passed=False, summary="command verifier: no command")
         expected = spec.parameters.get("expected_exit_code", 0)
         try:
-            proc = subprocess.run(
+            proc = run_command(
                 command,
-                shell=True,
                 cwd=context.workspace_dir,
-                capture_output=True,
-                text=True,
                 timeout=spec.timeout_seconds,
+                trusted=context.command_trusted,
+                allow_shell=context.command_allow_shell,
+                allow_network=context.command_allow_network,
             )
         except subprocess.TimeoutExpired:
             return VerificationResult(
                 passed=False,
                 summary=f"command timed out after {spec.timeout_seconds}s: {command}",
+            )
+        except (CommandPolicyError, OSError, ValueError) as exc:
+            return VerificationResult(
+                passed=False,
+                summary=f"command denied or unavailable: {exc}",
+                evidence=[
+                    {
+                        "evidence_type": "command_policy",
+                        "summary": f"{command} was not executed",
+                        "metadata": {"command": command, "error": str(exc)},
+                    }
+                ],
             )
         passed = proc.returncode == expected
         tail = (proc.stdout or proc.stderr or "").strip()[-400:]

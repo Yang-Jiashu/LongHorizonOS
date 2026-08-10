@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from lhos.agent_os.kernel.errors import LeaseAcquisitionFailed
+from lhos.agent_os.kernel.errors import KernelInvariantViolation, LeaseAcquisitionFailed
 from lhos.agent_os.kernel.models import (
     KernelEvent,
     ResourceLease,
@@ -231,7 +231,10 @@ class LeaseService:
                 "SELECT * FROM leases_projection WHERE lease_id = ?",
                 (lease_id,),
             )
-            assert row is not None
+            if row is None:
+                raise KernelInvariantViolation(
+                    f"lease {lease_id!r} disappeared after a successful renewal update"
+                )
 
         lease = self._row_to_lease(row)
         lease.expires_at = new_expiry

@@ -1,6 +1,6 @@
 """Audit: Real SIGKILL recovery — crash scenarios in separate processes.
 
-Each crash scenario runs the kernel in a subprocess, kills it, then
+Every crash scenario runs the kernel in a subprocess, kills it, then
 verifies recovery in a new process.
 """
 

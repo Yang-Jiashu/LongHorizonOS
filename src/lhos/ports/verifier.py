@@ -17,6 +17,9 @@ class VerificationContext(BaseModel):
     workspace_dir: str
     worker_result: dict[str, Any] = Field(default_factory=dict)
     baseline_hashes: dict[str, str | None] = Field(default_factory=dict)
+    command_trusted: bool = False
+    command_allow_shell: bool = False
+    command_allow_network: bool = False
 
 
 class Verifier(Protocol):

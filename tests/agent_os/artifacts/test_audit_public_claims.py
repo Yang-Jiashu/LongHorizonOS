@@ -45,7 +45,7 @@ class TestREADMEClaims:
             "Crash recovery",
             "Versioned Artifact FS",
             "Namespace isolation",
-            "Optimistic concurrency",
+            "Version-checked commits",
             "Canonical URI security",
         ],
     )
