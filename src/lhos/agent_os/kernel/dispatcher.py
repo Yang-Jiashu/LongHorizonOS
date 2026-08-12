@@ -10,9 +10,11 @@ Each syscall type has a handler that:
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from contextlib import suppress
 
 from lhos.agent_os.kernel.models import (
     AcquireResourceRequest,
+    ActionState,
     CancelActionRequest,
     CheckpointRequest,
     ExitRequest,
@@ -81,20 +83,66 @@ class SyscallDispatcher:
     # ── Spawn ──────────────────────────────────────────────────────────────
 
     async def _handle_spawn(self, req: SpawnRequest) -> KernelEvent:
+        # ``pid=""`` is reserved for the trusted kernel bootstrap path used by
+        # AgentKernel.spawn().  A process-originated request is rebound to the
+        # executing PCB before it reaches the dispatcher, so its authenticated
+        # caller is req.pid.  Do not let request payload choose a different
+        # parent or mint a child with the kernel's default/full capabilities.
+        parent_capabilities = None
+        if req.pid:
+            parent = self._process_service.get_process(req.pid)
+            if parent is None or req.parent_pid not in (None, req.pid):
+                ev = KernelEvent(
+                    pid=req.pid,
+                    event_type="SPAWN_FAILED",
+                    payload={"reason": "invalid_parent"},
+                )
+                self._journal.append_event(ev)
+                return ev
+            parent_pid = req.pid
+            parent_cap_set = self._capability_service.get_capability_set(req.pid)
+            parent_capabilities = (
+                [cap.model_copy(deep=True) for cap in parent_cap_set.capabilities]
+                if parent_cap_set is not None
+                else []
+            )
+            # Namespace and resource-group membership are process security
+            # context, not child-selected spawn parameters.  Bind both to the
+            # authenticated parent just like the capability set.
+            namespace_id = parent.namespace_id
+            resource_group_id = parent.resource_group_id
+        else:
+            if req.parent_pid is not None:
+                ev = KernelEvent(
+                    pid="",
+                    event_type="SPAWN_FAILED",
+                    payload={"reason": "invalid_parent"},
+                )
+                self._journal.append_event(ev)
+                return ev
+            parent_pid = None
+            namespace_id = req.namespace_id or "default"
+            resource_group_id = req.resource_group_id
+
         pcb = self._process_service.spawn(
             program_id=req.program_id,
-            namespace_id=req.namespace_id or "default",
+            namespace_id=namespace_id,
             capability_set_id=None,
-            parent_pid=req.parent_pid,
-            resource_group_id=req.resource_group_id,
+            parent_pid=parent_pid,
+            resource_group_id=resource_group_id,
             program_state=req.initial_state,
         )
-        # Grant default capabilities
+        # Kernel-created root processes retain the historical default template.
+        # Child processes inherit the authenticated parent's current set.  The
+        # request's legacy ``capabilities`` string field is intentionally not an
+        # authority source: it cannot be used to escalate a child.
         from lhos.agent_os.services.capability_service import DEFAULT_CAPABILITIES
 
         cap_set = self._capability_service.create_capability_set(
             pcb.pid,
-            capabilities=DEFAULT_CAPABILITIES["full"],
+            capabilities=(
+                DEFAULT_CAPABILITIES["full"] if parent_capabilities is None else parent_capabilities
+            ),
         )
         # Update PCB with capability set id
         pcb.capability_set_id = cap_set.set_id
@@ -111,9 +159,17 @@ class SyscallDispatcher:
     # ── Submit Action ──────────────────────────────────────────────────────
 
     async def _handle_submit_action(self, req: SubmitActionRequest) -> KernelEvent:
-        # Capability check
+        # Capability checks are admission preconditions.  Validate the device
+        # and the complete resource bundle before creating an Action or asking
+        # LeaseService to record leases/waiters, so denial is side-effect free.
         resource = f"device:{req.device_type}"
         self._capability_service.enforce(req.pid, resource, "invoke")
+        for claim in req.resource_claims:
+            self._capability_service.enforce(
+                req.pid,
+                claim["resource_id"],
+                "acquire",
+            )
 
         # Submit
         acb = self._action_service.submit(
@@ -124,22 +180,56 @@ class SyscallDispatcher:
             side_effect_class=req.side_effect_class,
             idempotency_key=req.idempotency_key,
             timeout_seconds=req.timeout_seconds,
+            resource_claims=req.resource_claims,
         )
 
-        # Admit (capability already checked)
-        self._action_service.admit(acb.action_id)
-
-        # Acquire leases atomically
-        if req.resource_claims:
-            leases = self._lease_service.atomic_acquire(
-                req.pid,
-                req.resource_claims,
+        # Resource acquisition is part of admission. A failed acquisition must
+        # never leave a dispatchable ADMITTED action behind.
+        try:
+            leases = (
+                self._lease_service.atomic_acquire(req.pid, req.resource_claims)
+                if req.resource_claims
+                else []
             )
-            lease_ids = [lease.lease_id for lease in leases]
-            self._action_service.mark_intent_durable(acb.action_id, lease_ids)
-        else:
-            # Still mark intent durable (no leases needed)
-            self._action_service.mark_intent_durable(acb.action_id, [])
+        except Exception as exc:
+            self._action_service.reject(acb.action_id, reason=str(exc))
+            self._lease_service.clear_waiters_for_pid(req.pid)
+            raise
+
+        lease_ids = [lease.lease_id for lease in leases]
+        fencing_tokens = {lease.resource_id: lease.fencing_token for lease in leases}
+        try:
+            self._action_service.admit(acb.action_id)
+            self._action_service.mark_intent_durable(
+                acb.action_id,
+                lease_ids,
+                fencing_tokens=fencing_tokens,
+            )
+        except Exception as exc:
+            # Admission is a mini-transaction spanning ActionService and
+            # LeaseService. Compensate whichever state was durably reached so
+            # no SUBMITTED/ADMITTED action can later be dispatched without a
+            # complete resource contract. Cleanup is best effort and must not
+            # replace the original admission exception.
+            try:
+                current = self._action_service.get_action(acb.action_id)
+                if current is not None:
+                    error = {
+                        "reason": "admission_failed",
+                        "detail": type(exc).__name__,
+                    }
+                    if current.state == ActionState.SUBMITTED:
+                        self._action_service.reject(acb.action_id, reason=str(exc))
+                    elif current.state == ActionState.ADMITTED:
+                        self._action_service.fail(acb.action_id, error=error)
+            except Exception:
+                pass
+            finally:
+                with suppress(Exception):
+                    self._lease_service.release(lease_ids)
+                with suppress(Exception):
+                    self._lease_service.clear_waiters_for_pid(req.pid)
+            raise
 
         return KernelEvent(
             pid=req.pid,
@@ -151,7 +241,7 @@ class SyscallDispatcher:
 
     async def _handle_inspect_action(self, req: InspectActionRequest) -> KernelEvent:
         acb = self._action_service.get_action(req.action_id)
-        if acb is None:
+        if acb is None or acb.pid != req.pid:
             ev = KernelEvent(
                 pid=req.pid,
                 event_type="ACTION_INSPECT_FAILED",
@@ -177,7 +267,7 @@ class SyscallDispatcher:
 
     async def _handle_cancel_action(self, req: CancelActionRequest) -> KernelEvent:
         acb = self._action_service.get_action(req.action_id)
-        if acb is None:
+        if acb is None or acb.pid != req.pid:
             return KernelEvent(
                 pid=req.pid,
                 event_type="ACTION_CANCEL_FAILED",
@@ -186,6 +276,7 @@ class SyscallDispatcher:
         self._action_service.cancel(req.action_id)
         # Release leases
         self._lease_service.release(acb.lease_ids)
+        self._lease_service.clear_waiters_for_pid(acb.pid)
         return KernelEvent(
             pid=req.pid,
             event_type="ACTION_CANCELLED",
@@ -213,6 +304,17 @@ class SyscallDispatcher:
     # ── Release Resource ───────────────────────────────────────────────────
 
     async def _handle_release(self, req: ReleaseResourceRequest) -> KernelEvent:
+        # Validate the complete bundle before releasing anything. Possession
+        # of a lease ID must not grant control over another process's resource,
+        # and mixed owned/foreign requests must not partially succeed.
+        leases = [self._lease_service.get_lease(lease_id) for lease_id in req.lease_ids]
+        if any(lease is None or lease.owner_pid != req.pid for lease in leases):
+            return KernelEvent(
+                pid=req.pid,
+                event_type="RESOURCE_RELEASE_FAILED",
+                payload={"count": 0, "reason": "not_found"},
+            )
+
         count = self._lease_service.release(req.lease_ids)
         return KernelEvent(
             pid=req.pid,
@@ -313,14 +415,20 @@ class SyscallDispatcher:
 
     async def _handle_restore(self, req: RestoreRequest) -> KernelEvent:
         row = self._storage.query_one(
-            "SELECT * FROM checkpoints WHERE checkpoint_id = ?",
-            (req.checkpoint_id,),
+            "SELECT * FROM checkpoints WHERE checkpoint_id = ? AND pid = ?",
+            (req.checkpoint_id, req.pid),
         )
         if row is None:
-            raise ValueError(f"Checkpoint not found: {req.checkpoint_id}")
+            ev = KernelEvent(
+                pid=req.pid,
+                event_type="CHECKPOINT_RESTORE_FAILED",
+                payload={"checkpoint_id": req.checkpoint_id, "reason": "not_found"},
+            )
+            self._journal.append_event(ev)
+            return ev
 
         ev = KernelEvent(
-            pid=row["pid"],
+            pid=req.pid,
             event_type="CHECKPOINT_RESTORED",
             payload={
                 "checkpoint_id": req.checkpoint_id,
@@ -335,6 +443,7 @@ class SyscallDispatcher:
     async def _handle_exit(self, req: ExitRequest) -> KernelEvent:
         # Release all leases
         self._lease_service.release_all_for_pid(req.pid)
+        self._lease_service.clear_waiters_for_pid(req.pid)
         # Transition to EXITED
         self._process_service.transition(req.pid, ProcessState.EXITED)
 

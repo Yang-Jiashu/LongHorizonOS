@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ── UUID / clock helpers (same convention as Kernel + VPG) ─────────────────
@@ -55,6 +55,96 @@ class AttemptState(StrEnum):
     VERIFIED_SEMANTICALLY = "verified_semantically"
 
 
+# ── Resource accounting ─────────────────────────────────────────────────────
+class ResourceVector(BaseModel):
+    """A schedulable, additive resource vector.
+
+    CPU is expressed in millicores and memory in bytes so comparisons remain
+    integer-only and deterministic. ``model_slots`` are keyed by model/pool
+    name; a task must acquire its entire vector atomically before execution.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    cpu_millis: int = 0
+    ram_bytes: int = 0
+    gpu_count: int = 0
+    vram_bytes: int = 0
+    model_slots: dict[str, int] = Field(default_factory=dict)
+
+    @field_validator("cpu_millis", "ram_bytes", "gpu_count", "vram_bytes")
+    @classmethod
+    def _scalar_non_negative(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("resource quantities must be >= 0")
+        return value
+
+    @field_validator("model_slots")
+    @classmethod
+    def _model_slots_valid(cls, value: dict[str, int]) -> dict[str, int]:
+        normalized: dict[str, int] = {}
+        for name, count in value.items():
+            key = str(name).strip()
+            if not key:
+                raise ValueError("model slot names must be non-empty")
+            if count < 0:
+                raise ValueError("model slot quantities must be >= 0")
+            if count:
+                normalized[key] = int(count)
+        return dict(sorted(normalized.items()))
+
+    @property
+    def is_zero(self) -> bool:
+        return (
+            self.cpu_millis == 0
+            and self.ram_bytes == 0
+            and self.gpu_count == 0
+            and self.vram_bytes == 0
+            and not self.model_slots
+        )
+
+    def fits_within(self, capacity: ResourceVector) -> bool:
+        return not self.shortages(capacity)
+
+    def shortages(self, capacity: ResourceVector) -> dict[str, int]:
+        shortages: dict[str, int] = {}
+        for name in ("cpu_millis", "ram_bytes", "gpu_count", "vram_bytes"):
+            missing = getattr(self, name) - getattr(capacity, name)
+            if missing > 0:
+                shortages[name] = missing
+        for name, requested in self.model_slots.items():
+            missing = requested - capacity.model_slots.get(name, 0)
+            if missing > 0:
+                shortages[f"model_slots.{name}"] = missing
+        return shortages
+
+    def plus(self, other: ResourceVector) -> ResourceVector:
+        slot_names = set(self.model_slots) | set(other.model_slots)
+        return ResourceVector(
+            cpu_millis=self.cpu_millis + other.cpu_millis,
+            ram_bytes=self.ram_bytes + other.ram_bytes,
+            gpu_count=self.gpu_count + other.gpu_count,
+            vram_bytes=self.vram_bytes + other.vram_bytes,
+            model_slots={
+                name: self.model_slots.get(name, 0) + other.model_slots.get(name, 0)
+                for name in slot_names
+            },
+        )
+
+    def minus(self, other: ResourceVector) -> ResourceVector:
+        result = ResourceVector(
+            cpu_millis=self.cpu_millis - other.cpu_millis,
+            ram_bytes=self.ram_bytes - other.ram_bytes,
+            gpu_count=self.gpu_count - other.gpu_count,
+            vram_bytes=self.vram_bytes - other.vram_bytes,
+            model_slots={
+                name: self.model_slots.get(name, 0) - other.model_slots.get(name, 0)
+                for name in set(self.model_slots) | set(other.model_slots)
+            },
+        )
+        return result
+
+
 # ── AgentDescriptor ──────────────────────────────────────────────────────────
 class AgentDescriptor(BaseModel):
     """Scheduling authority's knowledge of an Agent process.
@@ -73,6 +163,7 @@ class AgentDescriptor(BaseModel):
 
     max_concurrency: int = 1
     cost_weight: int = 100
+    resource_capacity: ResourceVector = Field(default_factory=ResourceVector)
 
     enabled: bool = True
 
@@ -120,6 +211,7 @@ class TaskRequirements(BaseModel):
 
     priority: int = 0
     estimated_cost: int = 0
+    resources: ResourceVector = Field(default_factory=ResourceVector)
 
     max_attempts: int | None = None
 
@@ -220,6 +312,12 @@ class TaskClaim(BaseModel):
 
     lease_resource: str
     lease_id: str | None = None
+    lease_owner_pid: str | None = None
+    lease_fencing_token: int | None = None
+    lease_expires_at: datetime | None = None
+
+    resource_reservation_id: str | None = None
+    reserved_resources: ResourceVector = Field(default_factory=ResourceVector)
 
     state: ClaimState = ClaimState.PROPOSED
 

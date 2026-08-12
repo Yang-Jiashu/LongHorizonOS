@@ -2,7 +2,7 @@
 
 ## Supported version
 
-LongHorizonOS is currently a `v0.1.0` release candidate. Security fixes target
+LongHorizonOS is currently at experimental `v0.1.0`. Security fixes target
 the latest release and the `main` branch.
 
 ## Report a vulnerability

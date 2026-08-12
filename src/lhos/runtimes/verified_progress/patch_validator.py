@@ -247,9 +247,12 @@ def _attach_artifact_produces(
     binding: ArtifactVersionBinding,
     graph_id: str,
     version: int,
+    edge_id: str,
 ) -> tuple[ArtifactRefNode, VPGEdge]:
     """Create (artifact_ref_node, produces edge) for AttachArtifact."""
+    node_id = f"{task_id}::{binding.canonical_uri}@{binding.version}"
     node = ArtifactRefNode(
+        node_id=node_id,
         graph_id=graph_id,
         canonical_uri=binding.canonical_uri,
         artifact_id=binding.artifact_id,
@@ -264,6 +267,7 @@ def _attach_artifact_produces(
         created_at=_utcnow(),
     )
     edge = VPGEdge(
+        edge_id=edge_id,
         graph_id=graph_id,
         edge_type=EdgeType.PRODUCES,
         source_node_id=task_id,
@@ -333,6 +337,12 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
 
     for op in patch.operations:
         if isinstance(op, AddNodeOp):
+            if op.graph_id != graph_id:
+                raise VPGError(
+                    VPGCode.EDGE_CROSS_GRAPH,
+                    f"node {op.node_id!r} declares graph {op.graph_id!r}, "
+                    f"but patch targets {graph_id!r}",
+                )
             if op.node_id in cand_nodes:
                 raise VPGError(
                     VPGCode.NODE_ALREADY_EXISTS,
@@ -447,6 +457,7 @@ def validate_patch(req: PatchValidationRequest) -> PatchValidationResult:
                 binding,
                 graph_id,
                 proposed_version,
+                op.edge_id,
             )
 
             if op.edge_id in {e.edge_id for e in cand_edges}:

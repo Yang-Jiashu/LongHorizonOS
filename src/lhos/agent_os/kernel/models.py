@@ -115,7 +115,9 @@ class ActionControlBlock(BaseModel):
 
     state: ActionState = ActionState.SUBMITTED
 
+    resource_claims: list[dict[str, Any]] = Field(default_factory=list)
     lease_ids: list[str] = Field(default_factory=list)
+    fencing_tokens: dict[str, int] = Field(default_factory=dict)
     idempotency_key: str | None = None
     side_effect_class: SideEffectClass = SideEffectClass.PURE
     recovery_policy: str = "retry"
@@ -290,6 +292,13 @@ class ResourceLease(BaseModel):
     owner_pid: str
 
     mode: Literal["shared", "exclusive"] = "exclusive"
+    # Monotonically increases for every acquisition of a logical resource.
+    # A stale owner can retain its old lease_id in memory, but it can never
+    # regain authority once a newer fencing token has been issued.
+    # ``0`` is an explicitly unfenced compatibility value for callers that
+    # construct a descriptive lease model outside LeaseService. Authoritative
+    # acquisitions always persist a strictly positive token.
+    fencing_token: int = Field(default=0, ge=0)
 
     acquired_at: datetime = Field(default_factory=_utcnow)
     expires_at: datetime = Field(default_factory=_require_expires_at)

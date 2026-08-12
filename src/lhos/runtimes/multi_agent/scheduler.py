@@ -13,17 +13,22 @@ Scheduler owns NO resource authority — the Kernel Lease does.
 
 from __future__ import annotations
 
+import threading
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .attempts import AttemptManager
+from .durable_state import SchedulerStateCorruption, SchedulerStateStore
 from .eligibility import evaluate_eligibility
 from .lease_adapter import DEFAULT_CLAIM_TTL, claim_resource_uri
 from .matching import match_deterministic_best_fit_v1
 from .models import (
+    TERMINAL_CLAIM_STATES,
     ClaimState,
     EligibilityResult,
     MatchDecision,
+    ResourceVector,
     ScheduledExecutionAttempt,
     TaskClaim,
     TaskRequirements,
@@ -33,6 +38,7 @@ from .projections import (
 )
 from .reconciliation import ReconciliationResult
 from .requirements import decode_task_requirements
+from .resources import AtomicResourceManager, ResourceReservation
 
 
 def _now() -> datetime:
@@ -84,6 +90,9 @@ class MultiAgentScheduler:
         lease_ttl: timedelta = DEFAULT_CLAIM_TTL,
         clock: Any = _now,
         idempotent_keys: set[str] | None = None,
+        state_store: SchedulerStateStore | None = None,
+        state_path: str | None = None,
+        resource_manager: AtomicResourceManager | None = None,
     ) -> None:
         from .claims import ClaimManager
         from .lease_adapter import LeaseAdapter
@@ -94,29 +103,278 @@ class MultiAgentScheduler:
         self._leases = LeaseAdapter(lease_provider, ttl=lease_ttl)
         self._cap = capability_provider
         self._clock = clock
-        self._idempotent_keys: set[str] = set(idempotent_keys or set())
+        self._schedule_lock = threading.RLock()
+        self._resource_manager_uses_registry = resource_manager is None
+        self._resource_manager = resource_manager or AtomicResourceManager()
+        self._pending_durable_reservations: list[ResourceReservation] | None = None
+        if state_store is not None and state_path is not None:
+            raise ValueError("pass either state_store or state_path, not both")
+        self._state_store = state_store or (
+            SchedulerStateStore(state_path) if state_path is not None else None
+        )
+        durable = self._state_store.load() if self._state_store is not None else None
+        self._idempotent_keys: set[str] = set(
+            durable.idempotent_keys if durable is not None else (idempotent_keys or set())
+        )
 
         self._claims_ = ClaimManager(self._leases)
         self._attempts_ = AttemptManager()
-        self._claims: list[TaskClaim] = []
-        self._attempts: list[ScheduledExecutionAttempt] = []
-        self._match_log: list[MatchDecision] = []
-        self._events: list[Any] = []
+        self._claims: list[TaskClaim] = durable.claims if durable is not None else []
+        self._attempts: list[ScheduledExecutionAttempt] = (
+            durable.attempts if durable is not None else []
+        )
+        self._match_log: list[MatchDecision] = durable.match_log if durable is not None else []
+        self._events: list[Any] = durable.events if durable is not None else []
+        # ClaimManager/AttemptManager are mutable projections used by the
+        # lifecycle helpers. Restore their indexes alongside the public lists.
+        self._claims_._claims = {claim.claim_id: claim for claim in self._claims}
+        self._attempts_._attempts = {attempt.attempt_id: attempt for attempt in self._attempts}
+        self._sync_registry_resource_capacities()
+        if durable is not None:
+            self._restore_active_resource_reservations()
+
+    def _sync_registry_resource_capacities(self) -> None:
+        if not self._resource_manager_uses_registry:
+            return
+        agents = self._registry.list()
+        for agent in agents:
+            self._resource_manager.set_capacity(agent.agent_id, agent.resource_capacity)
+        self._try_restore_pending_resources(
+            known_agent_ids={agent.agent_id for agent in agents},
+            require_complete=False,
+        )
+
+    def _restore_active_resource_reservations(self) -> None:
+        reservations: list[ResourceReservation] = []
+        seen_reservation_ids: set[str] = set()
+        for claim in self._claims:
+            if claim.state in TERMINAL_CLAIM_STATES:
+                continue
+            if claim.resource_reservation_id is None:
+                if claim.reserved_resources.is_zero:
+                    continue
+                raise SchedulerStateCorruption(
+                    f"active claim {claim.claim_id!r} has resources but no reservation id"
+                )
+            if claim.resource_reservation_id in seen_reservation_ids:
+                raise SchedulerStateCorruption(
+                    f"duplicate durable resource reservation id {claim.resource_reservation_id!r}"
+                )
+            seen_reservation_ids.add(claim.resource_reservation_id)
+            reservations.append(
+                ResourceReservation(
+                    reservation_id=claim.resource_reservation_id,
+                    pool_id=claim.agent_id,
+                    owner_id=claim.claim_id,
+                    resources=claim.reserved_resources,
+                    created_at=claim.activated_at or claim.created_at,
+                )
+            )
+        known_agent_ids = {agent.agent_id for agent in self._registry.list()}
+        if self._resource_manager_uses_registry and any(
+            reservation.pool_id not in known_agent_ids for reservation in reservations
+        ):
+            # AgentOS constructs the scheduler before user Agents are
+            # registered.  Keep the verified durable projection in memory but
+            # defer resource accounting until those capacities are known.
+            self._pending_durable_reservations = reservations
+            return
+        self._restore_reservations(reservations)
+
+    def _try_restore_pending_resources(
+        self,
+        *,
+        known_agent_ids: set[str],
+        require_complete: bool,
+    ) -> None:
+        pending = self._pending_durable_reservations
+        if pending is None:
+            return
+        missing = sorted(
+            {
+                reservation.pool_id
+                for reservation in pending
+                if reservation.pool_id not in known_agent_ids
+            }
+        )
+        if missing:
+            if require_complete:
+                raise SchedulerStateCorruption(
+                    "durable resource reservations reference unregistered agent pools: "
+                    + ", ".join(missing)
+                )
+            return
+        self._restore_reservations(pending)
+        self._pending_durable_reservations = None
+
+    def _restore_reservations(self, reservations: list[ResourceReservation]) -> None:
+        try:
+            self._resource_manager.restore(reservations)
+        except ValueError as exc:
+            raise SchedulerStateCorruption(
+                "durable active resource reservations are invalid"
+            ) from exc
+
+    def refresh_registry_resources(self) -> None:
+        """Refresh registry-declared capacities and restore deferred state."""
+        with self._schedule_lock:
+            self._sync_registry_resource_capacities()
+
+    def retire_agent_process(self, agent_id: str, process_id: str) -> int:
+        """Fence claims belonging to a previous process for an agent id.
+
+        Kernel process records are durable logical state, so a fresh AgentOS
+        instance must not accidentally treat an old claim as owned by the new
+        worker process.  Claims are marked LOST only after any still-present
+        Kernel lease is confirmed released.
+        """
+        from .events import SchedulerEventType, record_event
+
+        with self._schedule_lock:
+            retired = 0
+            for claim in list(self._claims):
+                if (
+                    claim.agent_id != agent_id
+                    or claim.process_id == process_id
+                    or claim.state in TERMINAL_CLAIM_STATES
+                ):
+                    continue
+                lease = self._lease_lookup_for_claim(claim)
+                if lease is not None:
+                    # A torn durable row may have lost lease_id even though
+                    # the authoritative Kernel lease is still present.  Bind
+                    # the discovered lease before fencing so old ownership
+                    # cannot leak across process replacement.
+                    if claim.lease_id is None:
+                        from .reconciliation import _bind_claim_lease
+
+                        _bind_claim_lease(claim, lease)
+                    lease_id = claim.lease_id
+                    if lease_id is None:
+                        raise SchedulerStateCorruption(
+                            f"authoritative lease lookup returned an unbindable lease "
+                            f"for claim {claim.claim_id!r}"
+                        )
+                    released = self._leases.release(lease_id)
+                    if not released:
+                        from .errors import LeaseReleaseFailed
+
+                        raise LeaseReleaseFailed(
+                            claim.claim_id,
+                            lease_id,
+                            "previous agent process lease release was not confirmed",
+                        )
+                self._claims_.mark_lost(claim, reason="agent_process_replaced")
+                self._release_claim_resources(claim)
+                self._clear_task_idempotency(claim.graph_id, claim.task_id)
+                self._record_event(
+                    record_event(
+                        SchedulerEventType.CLAIM_LOST,
+                        graph_id=claim.graph_id,
+                        task_id=claim.task_id,
+                        agent_id=claim.agent_id,
+                        claim_id=claim.claim_id,
+                        graph_version=claim.graph_version,
+                        reason="agent_process_replaced",
+                    )
+                )
+                retired += 1
+            if retired:
+                self._persist_state()
+            return retired
+
+    def close(self) -> None:
+        with self._schedule_lock:
+            store, self._state_store = self._state_store, None
+            if store is not None:
+                store.close()
+
+    def _release_claim_resources(self, claim: TaskClaim) -> None:
+        reservation_id = claim.resource_reservation_id
+        if reservation_id is not None:
+            if self._pending_durable_reservations is not None:
+                self._pending_durable_reservations = [
+                    reservation
+                    for reservation in self._pending_durable_reservations
+                    if reservation.reservation_id != reservation_id
+                ]
+            self._resource_manager.release(reservation_id)
+
+    def _record_event(self, event: Any) -> Any:
+        """Append an event to memory and, when configured, durably publish it.
+
+        The snapshot is written in the same SQLite transaction as the event.
+        The in-memory append happens only after durable publication succeeds,
+        so a storage error never falsely advertises an event as committed.
+        """
+        if self._state_store is not None:
+            self._state_store.append_event(
+                event,
+                claims=self._claims,
+                attempts=self._attempts,
+                match_log=self._match_log,
+                idempotent_keys=self._idempotent_keys,
+            )
+        self._events.append(event)
+        return event
+
+    def _record_events(self, events: list[Any]) -> list[Any]:
+        """Publish a lifecycle event batch with one durable projection."""
+        if self._state_store is not None:
+            self._state_store.append_events(
+                events,
+                claims=self._claims,
+                attempts=self._attempts,
+                match_log=self._match_log,
+                idempotent_keys=self._idempotent_keys,
+            )
+        self._events.extend(events)
+        return events
+
+    def _persist_state(self) -> None:
+        """Persist a projection-only mutation when no event is emitted."""
+        if self._state_store is not None:
+            self._state_store.persist_state(
+                claims=self._claims,
+                attempts=self._attempts,
+                match_log=self._match_log,
+                idempotent_keys=self._idempotent_keys,
+            )
 
     # ── public query surface ───────────────────────────────────────────────
     @property
     def claims(self) -> list[TaskClaim]:
-        return list(self._claims)
+        with self._schedule_lock:
+            return list(self._claims)
 
     @property
     def attempts(self) -> list[ScheduledExecutionAttempt]:
-        return list(self._attempts)
+        with self._schedule_lock:
+            return list(self._attempts)
 
     @property
     def match_log(self) -> list[MatchDecision]:
-        return list(self._match_log)
+        with self._schedule_lock:
+            return list(self._match_log)
+
+    @property
+    def resource_manager(self) -> AtomicResourceManager:
+        return self._resource_manager
+
+    def set_resource_capacity(self, pool_id: str, capacity: ResourceVector) -> None:
+        """Update one schedulable pool under the lifecycle lock."""
+        with self._schedule_lock:
+            self._resource_manager.set_capacity(pool_id, capacity)
 
     def get_claim(self, task_id: str, graph_id: str | None = None) -> TaskClaim | None:
+        with self._schedule_lock:
+            return self._get_claim_locked(task_id, graph_id)
+
+    def _get_claim_locked(
+        self,
+        task_id: str,
+        graph_id: str | None = None,
+    ) -> TaskClaim | None:
         for c in self._claims:
             if (
                 c.task_id == task_id
@@ -127,10 +385,112 @@ class MultiAgentScheduler:
         return None
 
     def get_attempt_for_claim(self, claim_id: str) -> ScheduledExecutionAttempt | None:
-        return self._attempts_.latest_attempt_for_claim(claim_id)
+        with self._schedule_lock:
+            return self._attempts_.latest_attempt_for_claim(claim_id)
+
+    def mark_execution_started(self, claim: TaskClaim | str) -> ScheduledExecutionAttempt | None:
+        with self._schedule_lock:
+            return self._mark_execution_started_locked(claim)
+
+    def _mark_execution_started_locked(
+        self,
+        claim: TaskClaim | str,
+    ) -> ScheduledExecutionAttempt | None:
+        """Promote a dispatched attempt to RUNNING and journal the transition.
+
+        ``claim`` may be a TaskClaim object or claim id so SDK integrations can
+        use this method without reaching into the AttemptManager projection.
+        Terminal/unknown claims are treated as no-ops and return ``None``.
+        """
+        from .events import SchedulerEventType, record_event
+
+        claim_obj: TaskClaim | None
+        if isinstance(claim, str):
+            claim_obj = next((c for c in self._claims if c.claim_id == claim), None)
+        else:
+            claim_obj = claim
+        if claim_obj is None or claim_obj.state != ClaimState.ACTIVE:
+            return None
+        attempt = self.get_attempt_for_claim(claim_obj.claim_id)
+        if attempt is None:
+            return None
+        if attempt.state.value == "dispatched":
+            self._attempts_.mark_running(attempt)
+            self._record_event(
+                record_event(
+                    SchedulerEventType.EXECUTION_STARTED,
+                    graph_id=claim_obj.graph_id,
+                    task_id=claim_obj.task_id,
+                    agent_id=claim_obj.agent_id,
+                    claim_id=claim_obj.claim_id,
+                    attempt_id=attempt.attempt_id,
+                    graph_version=claim_obj.graph_version,
+                )
+            )
+        return attempt
+
+    def mark_execution_operationally_succeeded(
+        self,
+        claim: TaskClaim | str,
+    ) -> ScheduledExecutionAttempt | None:
+        with self._schedule_lock:
+            return self._mark_execution_operationally_succeeded_locked(claim)
+
+    def _mark_execution_operationally_succeeded_locked(
+        self,
+        claim: TaskClaim | str,
+    ) -> ScheduledExecutionAttempt | None:
+        """Record executor success without asserting semantic verification.
+
+        VPG remains the authority for the later semantic-verification
+        transition.  This milestone is durable when a state store is
+        configured, allowing a restart to distinguish a completed external
+        action from an attempt that never reached the executor.
+        """
+        from .events import SchedulerEventType, record_event
+
+        claim_obj: TaskClaim | None
+        if isinstance(claim, str):
+            claim_obj = next((c for c in self._claims if c.claim_id == claim), None)
+        else:
+            claim_obj = claim
+        if claim_obj is None or claim_obj.state != ClaimState.ACTIVE:
+            return None
+        attempt = self.get_attempt_for_claim(claim_obj.claim_id)
+        if attempt is None:
+            return None
+        if attempt.state.value in {"dispatched", "running"}:
+            self._attempts_.mark_operationally_succeeded(attempt)
+            self._record_event(
+                record_event(
+                    SchedulerEventType.EXECUTION_OPERATIONALLY_SUCCEEDED,
+                    graph_id=claim_obj.graph_id,
+                    task_id=claim_obj.task_id,
+                    agent_id=claim_obj.agent_id,
+                    claim_id=claim_obj.claim_id,
+                    attempt_id=attempt.attempt_id,
+                    graph_version=claim_obj.graph_version,
+                )
+            )
+        return attempt
 
     # ── scheduling pass ─────────────────────────────────────────────────────
     def schedule_once(
+        self,
+        graph_id: str,
+        *,
+        max_claims: int | None = None,
+    ) -> ScheduleResult:
+        with self._schedule_lock:
+            if any(
+                claim.graph_id == graph_id
+                and claim.state in {ClaimState.PROPOSED, ClaimState.ACQUIRING}
+                for claim in self._claims
+            ):
+                self._reconcile_locked()
+            return self._schedule_once_locked(graph_id, max_claims=max_claims)
+
+    def _schedule_once_locked(
         self,
         graph_id: str,
         *,
@@ -150,6 +510,9 @@ class MultiAgentScheduler:
         Returns ScheduleResult with dispatched + skipped reasons.
         """
         from .events import SchedulerEventType, record_event
+
+        # AgentOS may register agents after constructing the Scheduler.
+        self._sync_registry_resource_capacities()
 
         # Authoritative VPG frontier.
         try:
@@ -224,7 +587,7 @@ class MultiAgentScheduler:
             if not eligible_agents:
                 reasons = tuple((e.agent_id, e.reason_text) for e in eligibility)
                 result.skipped.append((task_id, f"no eligible agent; evaluated={reasons}"))
-                self._events.append(
+                self._record_event(
                     record_event(
                         SchedulerEventType.ELIGIBILITY_EVALUATED,
                         graph_id=graph_id,
@@ -253,17 +616,21 @@ class MultiAgentScheduler:
                 preferred_agent=req.preferred_agent,
             )
             self._match_log.append(decision)
-            self._events.append(
-                record_event(
-                    SchedulerEventType.MATCH_DECISION_CREATED,
-                    graph_id=graph_id,
-                    task_id=task_id,
-                    agent_id=decision.selected_agent_id,
-                    graph_version=current_version,
-                    decision_hash=decision.decision_hash,
-                    reason=f"selected {decision.selected_agent_id}",
+            try:
+                self._record_event(
+                    record_event(
+                        SchedulerEventType.MATCH_DECISION_CREATED,
+                        graph_id=graph_id,
+                        task_id=task_id,
+                        agent_id=decision.selected_agent_id,
+                        graph_version=current_version,
+                        decision_hash=decision.decision_hash,
+                        reason=f"selected {decision.selected_agent_id}",
+                    )
                 )
-            )
+            except Exception:
+                self._match_log.remove(decision)
+                raise
 
             # ── acquire exclusive kernel lease ───────────────────────────
             attempt_number = sum(
@@ -279,6 +646,7 @@ class MultiAgentScheduler:
                 agent_id=decision.selected_agent_id,
                 attempt_number=attempt_number,
                 semantic_epoch=semantic_epoch,
+                resources=req.resources,
             )
             if not acquired:
                 result.skipped.append((task_id, "claim race lost / kernel refused lease"))
@@ -334,6 +702,7 @@ class MultiAgentScheduler:
         agent_id: str,
         attempt_number: int = 0,
         semantic_epoch: int = 0,
+        resources: ResourceVector | None = None,
     ) -> bool:
         from .events import SchedulerEventType, record_event
 
@@ -344,7 +713,7 @@ class MultiAgentScheduler:
         # Re-check GraphVersion — stale readiness proof cannot linearize ownership.
         current = self._vpg.current_graph_version(graph_id)
         if current != graph_version:
-            self._events.append(
+            self._record_event(
                 record_event(
                     SchedulerEventType.CLAIM_REJECTED,
                     graph_id=graph_id,
@@ -360,7 +729,7 @@ class MultiAgentScheduler:
         # current version.
         frontier = self._vpg.ready_frontier(graph_id)
         if not any(c.task_id == task_id for c in frontier):
-            self._events.append(
+            self._record_event(
                 record_event(
                     SchedulerEventType.CLAIM_REJECTED,
                     graph_id=graph_id,
@@ -375,7 +744,7 @@ class MultiAgentScheduler:
         # Re-check agent process liveness + state.
         proc = self._process.get(agent.process_id)
         if proc is None:
-            self._events.append(
+            self._record_event(
                 record_event(
                     SchedulerEventType.CLAIM_REJECTED,
                     graph_id=graph_id,
@@ -388,7 +757,7 @@ class MultiAgentScheduler:
             return False
         state = getattr(proc, "state", None)
         if state in ("exited", "failed"):
-            self._events.append(
+            self._record_event(
                 record_event(
                     SchedulerEventType.CLAIM_REJECTED,
                     graph_id=graph_id,
@@ -396,6 +765,26 @@ class MultiAgentScheduler:
                     agent_id=agent_id,
                     graph_version=current,
                     reason=f"agent process in terminal state {state!r}",
+                )
+            )
+            return False
+
+        requested_resources = resources or ResourceVector()
+        reservation = self._resource_manager.try_reserve(
+            pool_id=agent_id,
+            owner_id=claim_id,
+            request=requested_resources,
+        )
+        if reservation is None:
+            shortages = requested_resources.shortages(self._resource_manager.available(agent_id))
+            self._record_event(
+                record_event(
+                    SchedulerEventType.CLAIM_REJECTED,
+                    graph_id=graph_id,
+                    task_id=task_id,
+                    agent_id=agent_id,
+                    graph_version=current,
+                    reason=f"resources no longer available: {shortages}",
                 )
             )
             return False
@@ -411,20 +800,52 @@ class MultiAgentScheduler:
             lease_resource=resource,
             attempt_number=attempt_number,
         )
+        claim.resource_reservation_id = reservation.reservation_id
+        claim.reserved_resources = requested_resources
         self._claims_.mark_acquiring(claim)
-        self._events.append(
-            record_event(
-                SchedulerEventType.CLAIM_PROPOSED,
-                graph_id=graph_id,
-                task_id=task_id,
-                agent_id=agent_id,
-                claim_id=claim.claim_id,
-                graph_version=current,
-            )
-        )
+        # The projection row must exist before the proposal event is
+        # committed, otherwise restart recovery cannot reconcile it.
         self._claims.append(claim)
+        try:
+            self._record_event(
+                record_event(
+                    SchedulerEventType.CLAIM_PROPOSED,
+                    graph_id=graph_id,
+                    task_id=task_id,
+                    agent_id=agent_id,
+                    claim_id=claim.claim_id,
+                    graph_version=current,
+                )
+            )
+        except Exception:
+            self._claims.remove(claim)
+            self._claims_._claims.pop(claim.claim_id, None)
+            self._release_claim_resources(claim)
+            raise
 
-        if self._claims_.try_acquire_lease(claim):
+        try:
+            lease_acquired = self._claims_.try_acquire_lease(claim)
+        except Exception as lease_exc:
+            claim.state = ClaimState.REJECTED
+            claim.reason = f"kernel_lease_acquisition_failed: {lease_exc}"
+            claim.released_at = self._clock()
+            self._release_claim_resources(claim)
+            try:
+                self._record_event(
+                    record_event(
+                        SchedulerEventType.CLAIM_REJECTED,
+                        graph_id=graph_id,
+                        task_id=task_id,
+                        agent_id=agent_id,
+                        claim_id=claim.claim_id,
+                        graph_version=current,
+                        reason=claim.reason,
+                    )
+                )
+            except Exception as persist_exc:
+                raise persist_exc from lease_exc
+            raise
+        if lease_acquired:
             attempt = self._attempts_.start_attempt(
                 attempt_id=f"attempt-{graph_id}-{task_id}-{attempt_number}",
                 graph_id=graph_id,
@@ -437,38 +858,67 @@ class MultiAgentScheduler:
                 attempt_number=attempt_number,
             )
             self._attempts.append(attempt)
-            self._events.append(
-                record_event(
-                    SchedulerEventType.CLAIM_LEASE_ACQUIRED,
-                    graph_id=graph_id,
-                    task_id=task_id,
-                    agent_id=agent_id,
-                    claim_id=claim.claim_id,
-                    graph_version=current,
-                    reason=claim.reason or "",
-                )
+            lease_event = record_event(
+                SchedulerEventType.CLAIM_LEASE_ACQUIRED,
+                graph_id=graph_id,
+                task_id=task_id,
+                agent_id=agent_id,
+                claim_id=claim.claim_id,
+                graph_version=current,
+                reason=claim.reason or "",
             )
-            self._events.append(
-                record_event(
-                    SchedulerEventType.EXECUTION_DISPATCHED,
-                    graph_id=graph_id,
-                    task_id=task_id,
-                    agent_id=agent_id,
-                    claim_id=claim.claim_id,
-                    attempt_id=attempt.attempt_id,
-                    graph_version=current,
-                    metadata={
-                        "attempt_number": attempt_number,
-                        "semantic_epoch": semantic_epoch,
-                    },
-                )
+            dispatch_event = record_event(
+                SchedulerEventType.EXECUTION_DISPATCHED,
+                graph_id=graph_id,
+                task_id=task_id,
+                agent_id=agent_id,
+                claim_id=claim.claim_id,
+                attempt_id=attempt.attempt_id,
+                graph_version=current,
+                metadata={
+                    "attempt_number": attempt_number,
+                    "semantic_epoch": semantic_epoch,
+                },
             )
+            try:
+                self._record_events([lease_event, dispatch_event])
+            except Exception as persist_exc:
+                try:
+                    self._claims_.release(
+                        claim,
+                        reason="scheduler_state_persistence_failed_after_lease",
+                    )
+                except Exception as cleanup_exc:
+                    raise cleanup_exc from persist_exc
+                self._attempts.remove(attempt)
+                self._attempts_._attempts.pop(attempt.attempt_id, None)
+                self._release_claim_resources(claim)
+                with suppress(Exception):
+                    self._persist_state()
+                raise
             return True
 
+        # Persist the terminal lease-refusal state as a durable decision.
+        self._release_claim_resources(claim)
+        self._record_event(
+            record_event(
+                SchedulerEventType.CLAIM_REJECTED,
+                graph_id=graph_id,
+                task_id=task_id,
+                agent_id=agent_id,
+                claim_id=claim.claim_id,
+                graph_version=current,
+                reason=claim.reason or "kernel_exclusive_lease_refused",
+            )
+        )
         return False
 
     # ── claim lifecycle transitions (Scheduler-initiated) ──────────────────
     def mark_task_completed(self, claim: TaskClaim) -> None:
+        with self._schedule_lock:
+            self._mark_task_completed_locked(claim)
+
+    def _mark_task_completed_locked(self, claim: TaskClaim) -> None:
         from .events import SchedulerEventType, record_event
 
         if claim.state != ClaimState.ACTIVE:
@@ -481,7 +931,7 @@ class MultiAgentScheduler:
             }:
                 self._attempts_.mark_operationally_succeeded(attempt)
             self._attempts_.mark_semantically_verified(attempt)
-            self._events.append(
+            self._record_event(
                 record_event(
                     SchedulerEventType.EXECUTION_SEMANTICALLY_VERIFIED,
                     graph_id=claim.graph_id,
@@ -493,33 +943,43 @@ class MultiAgentScheduler:
                 )
             )
         self._claims_.complete(claim)
-        self._events.append(
-            record_event(
-                SchedulerEventType.CLAIM_COMPLETED,
-                graph_id=claim.graph_id,
-                task_id=claim.task_id,
-                agent_id=claim.agent_id,
-                claim_id=claim.claim_id,
-                reason="vpg task verified",
+        try:
+            self._record_event(
+                record_event(
+                    SchedulerEventType.CLAIM_COMPLETED,
+                    graph_id=claim.graph_id,
+                    task_id=claim.task_id,
+                    agent_id=claim.agent_id,
+                    claim_id=claim.claim_id,
+                    reason="vpg task verified",
+                )
             )
-        )
+        finally:
+            self._release_claim_resources(claim)
 
     def release_claim(self, claim: TaskClaim, reason: str = "released") -> None:
+        with self._schedule_lock:
+            self._release_claim_locked(claim, reason=reason)
+
+    def _release_claim_locked(self, claim: TaskClaim, reason: str = "released") -> None:
         from .events import SchedulerEventType, record_event
 
         if claim.state in {ClaimState.RELEASED, ClaimState.LOST, ClaimState.COMPLETED}:
             return
         self._claims_.release(claim, reason=reason)
-        self._events.append(
-            record_event(
-                SchedulerEventType.CLAIM_RELEASED,
-                graph_id=claim.graph_id,
-                task_id=claim.task_id,
-                agent_id=claim.agent_id,
-                claim_id=claim.claim_id,
-                reason=reason,
+        try:
+            self._record_event(
+                record_event(
+                    SchedulerEventType.CLAIM_RELEASED,
+                    graph_id=claim.graph_id,
+                    task_id=claim.task_id,
+                    agent_id=claim.agent_id,
+                    claim_id=claim.claim_id,
+                    reason=reason,
+                )
             )
-        )
+        finally:
+            self._release_claim_resources(claim)
 
     def release_task(
         self,
@@ -528,21 +988,46 @@ class MultiAgentScheduler:
         *,
         reason: str = "execution_failed",
         retry: bool = True,
-    ) -> None:
+        expected_claim_id: str | None = None,
+    ) -> bool:
         """Release Kernel-backed ownership after one operational attempt.
 
         VPG validity is deliberately untouched.  If the task is still present
         in the authoritative ready frontier, a later scheduling pass may issue
-        a new claim and acquire a new Kernel lease.
+        a new claim and acquire a new Kernel lease.  When
+        ``expected_claim_id`` is supplied, lookup, identity validation, and
+        release occur under one lock so stale workers cannot release a
+        replacement claim.
         """
+        with self._schedule_lock:
+            return self._release_task_locked(
+                graph_id,
+                task_id,
+                reason=reason,
+                retry=retry,
+                expected_claim_id=expected_claim_id,
+            )
+
+    def _release_task_locked(
+        self,
+        graph_id: str,
+        task_id: str,
+        *,
+        reason: str,
+        retry: bool,
+        expected_claim_id: str | None,
+    ) -> bool:
         from .events import SchedulerEventType, record_event
 
-        claim = self.get_claim(task_id, graph_id)
+        claim = self._get_claim_locked(task_id, graph_id)
+        if expected_claim_id is not None and (claim is None or claim.claim_id != expected_claim_id):
+            return False
+        released = False
         if claim is not None and claim.graph_id == graph_id:
             attempt = self.get_attempt_for_claim(claim.claim_id)
             if attempt is not None:
                 self._attempts_.mark_failed(attempt, error=reason)
-                self._events.append(
+                self._record_event(
                     record_event(
                         SchedulerEventType.EXECUTION_FAILED,
                         graph_id=graph_id,
@@ -554,12 +1039,11 @@ class MultiAgentScheduler:
                         reason=reason,
                     )
                 )
-            self.release_claim(claim, reason=reason)
+            self._release_claim_locked(claim, reason=reason)
+            released = True
         if retry:
-            prefix = f"{graph_id}:{task_id}:v"
-            self._idempotent_keys = {
-                key for key in self._idempotent_keys if not key.startswith(prefix)
-            }
+            self._clear_task_idempotency(graph_id, task_id)
+        return released
 
     # ── VPG observation hook ───────────────────────────────────────────────
     def observe_vpg(self, graph_id: str) -> dict[str, int]:
@@ -567,6 +1051,10 @@ class MultiAgentScheduler:
           - Task VERIFIED  -> owning ACTIVE claim COMPLETED.
         Returns a tally of derived transitions.
         """
+        with self._schedule_lock:
+            return self._observe_vpg_locked(graph_id)
+
+    def _observe_vpg_locked(self, graph_id: str) -> dict[str, int]:
         tally: dict[str, int] = {"claims_completed": 0}
         for claim in list(self._claims):
             if claim.graph_id != graph_id:
@@ -575,7 +1063,7 @@ class MultiAgentScheduler:
                 continue
             validity = self._vpg.task_validity(graph_id, claim.task_id)
             if validity == "verified":
-                self.mark_task_completed(claim)
+                self._mark_task_completed_locked(claim)
                 tally["claims_completed"] += 1
         return tally
 
@@ -583,15 +1071,15 @@ class MultiAgentScheduler:
     def reconcile(self) -> ReconciliationResult:
         """Run reconciliation between Scheduler projection and authoritative
         Kernel + VPG state."""
+        with self._schedule_lock:
+            return self._reconcile_locked()
+
+    def _reconcile_locked(self) -> ReconciliationResult:
         from .reconciliation import reconcile as _reconcile
 
-        for claim in self._claims:
-            if claim.state == ClaimState.ACTIVE and claim.lease_id is None:
-                # Self-repair: an ACTIVE claim without a lease_id leaks
-                # ownership and must be LOST.
-                self._claims_.mark_lost(claim, reason="active_without_lease")
+        states_before = {claim.claim_id: claim.state for claim in self._claims}
 
-        return _reconcile(
+        result = _reconcile(
             self._claims,
             self._attempts,
             lease_is_live=self._leases.is_lease_active,
@@ -600,7 +1088,28 @@ class MultiAgentScheduler:
             vpg_task_stale=self._vpg_task_stale,
             lease_lookup=self._lease_lookup_for_claim,
             release_lease=self._leases.release,
+            clock_now=self._clock,
         )
+        # Dispatch idempotency protects a live/finished ownership epoch, not a
+        # failed one.  Once authoritative reconciliation moves a claim to
+        # LOST, allow the still-ready task to acquire a fresh claim.
+        for claim in self._claims:
+            if (
+                claim.state == ClaimState.LOST
+                and states_before.get(claim.claim_id) != ClaimState.LOST
+            ):
+                self._release_claim_resources(claim)
+                self._clear_task_idempotency(claim.graph_id, claim.task_id)
+            elif (
+                claim.state == ClaimState.COMPLETED
+                and states_before.get(claim.claim_id) != ClaimState.COMPLETED
+            ):
+                self._release_claim_resources(claim)
+        # Reconciliation mutates claims/attempts without emitting a scheduler
+        # lifecycle event for every repair. Publish the resulting projection
+        # so a restart observes the repaired state.
+        self._persist_state()
+        return result
 
     # ── administrative helpers ─────────────────────────────────────────────
     def _evaluate_eligibility_for_task(
@@ -631,6 +1140,15 @@ class MultiAgentScheduler:
                 process_exists=exists,
                 capability_checker=self._cap,
             )
+            shortages = self._resource_manager.shortages(agent.agent_id, req.resources)
+            if result.eligible and shortages:
+                detail = ", ".join(f"{name}={amount}" for name, amount in shortages.items())
+                result = result.model_copy(
+                    update={
+                        "eligible": False,
+                        "reasons": (*result.reasons, f"insufficient resources: {detail}"),
+                    }
+                )
             out.append(result)
         return out
 
@@ -643,11 +1161,40 @@ class MultiAgentScheduler:
     def _vpg_task_verified(self, graph_id: str, task_id: str) -> bool:
         return bool(self._vpg.task_validity(graph_id, task_id) == "verified")
 
-    def _vpg_task_stale(self, graph_id: str, task_id: str) -> bool:
-        return bool(self._vpg.task_validity(graph_id, task_id) == "stale")
+    def _vpg_task_stale(
+        self,
+        graph_id: str,
+        task_id: str,
+        claim: TaskClaim | None = None,
+    ) -> bool:
+        """Return whether a claim is invalidated by the current STALE epoch.
+
+        STALE tasks can legitimately be in the ready frontier for repair.
+        Such a newly dispatched repair claim must survive reconciliation;
+        only ownership from an older semantic epoch is obsolete.
+        """
+        if self._vpg.task_validity(graph_id, task_id) != "stale":
+            return False
+        if claim is None:
+            return True
+        payload = self._vpg.task_node_payload(graph_id, task_id) or {}
+        metadata = payload.get("metadata")
+        stale_at = metadata.get("__stale_at_version") if isinstance(metadata, dict) else None
+        if not isinstance(stale_at, int):
+            # Legacy/plain STALE signals have no repair-epoch witness, so
+            # conservatively reclaim the active ownership.
+            return True
+        attempt = self.get_attempt_for_claim(claim.claim_id)
+        claim_epoch = attempt.semantic_epoch if attempt is not None else claim.graph_version
+        return claim_epoch < stale_at
 
     def _lease_lookup_for_claim(self, claim: TaskClaim) -> Any | None:
         leases = self._leases.list_for_task(claim.graph_id, claim.task_id)
+        if claim.lease_id is None:
+            for lease in leases:
+                if getattr(lease, "owner_pid", None) == claim.process_id:
+                    return lease
+            return None
         for lease in leases:
             if lease.lease_id == claim.lease_id:
                 return lease
@@ -672,3 +1219,9 @@ class MultiAgentScheduler:
 
     def _idependent_mark_idempotent(self, key: str) -> None:
         self._idempotent_keys.add(key)
+        self._persist_state()
+
+    def _clear_task_idempotency(self, graph_id: str, task_id: str) -> None:
+        prefix = f"{graph_id}:{task_id}:v"
+        self._idempotent_keys = {key for key in self._idempotent_keys if not key.startswith(prefix)}
+        self._persist_state()

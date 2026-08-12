@@ -266,6 +266,15 @@ class TestRecoveryRecoversLostProjection:
 
         # Graph version is unchanged after recovery.
         assert rt.get_graph(gid).current_version == ver_before
+        recovered_nodes = rt.store.get_all_nodes(gid)
+        recovered_edges = rt.store.get_all_edges(gid)
+        assert {node.node_id for node in recovered_nodes} == {
+            node.node_id for node in materialized_before
+        }
+        assert {edge.edge_id for edge in recovered_edges} == {edge.edge_id for edge in edges_before}
+        recovered_task = next(node for node in recovered_nodes if node.node_id == "t1")
+        assert recovered_task.validity == NodeValidity.VERIFIED
+        assert recovered_task.lifecycle == NodeLifecycle.CLOSED
 
     def test_verify_and_recover_is_idempotent(self, verified_graph):
         rt, gid = verified_graph
@@ -285,3 +294,31 @@ class TestRecoveryRecoversLostProjection:
 
         with pytest.raises(VPGError):
             verify_and_recover(rt.store, "nonexistent-graph-id")
+
+    def test_recovery_repairs_invalid_projection_payload(self, verified_graph):
+        rt, gid = verified_graph
+        row = rt.store.conn.execute(
+            "SELECT payload_json FROM graph_nodes_projection WHERE graph_id = ? AND node_id = 't1'",
+            (gid,),
+        ).fetchone()
+        payload = json.loads(row["payload_json"])
+        payload["validity"] = "corrupt"
+        rt.store.conn.execute(
+            "UPDATE graph_nodes_projection SET payload_json = ? "
+            "WHERE graph_id = ? AND node_id = 't1'",
+            (json.dumps(payload), gid),
+        )
+        rt.store.conn.commit()
+
+        events, _ = verify_and_recover(
+            rt.store,
+            gid,
+            facts_artifact=rt.facts_artifact,
+            facts_kernel=rt.facts_kernel,
+        )
+
+        recovered = rt.store.get_node(gid, "t1")
+        assert recovered is not None
+        assert recovered.validity == NodeValidity.VERIFIED
+        assert recovered.lifecycle == NodeLifecycle.CLOSED
+        assert events[-1].payload["previous_materialized_node_count"] > 0

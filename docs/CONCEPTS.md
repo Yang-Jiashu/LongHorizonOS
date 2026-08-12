@@ -71,9 +71,10 @@ can reassign the Task only after ownership is honestly released or recovered.
 LongHorizonOS is designed so that a Worker dying with `SIGKILL` is an ordinary
 case, not an edge case. The journal is append-only, artifact writes are atomic
 and content-addressed, and the scheduler reconciles against live Kernel state.
-A Task whose owner vanished is restored to a scheduleable state with exactly-once
-semantics preserved and, where needed, an UNCERTAIN status while ownership is
-being resolved.
+A Task whose owner vanished becomes schedulable again only after ownership is
+released or recovered, and stale owners cannot commit a terminal Kernel Action
+state. This does not make driver-side irreversible effects exactly-once: those
+sinks do not yet consume the fencing token or perform their own CAS.
 
 ## Causal invalidation and local repair
 
@@ -85,11 +86,13 @@ untouched. The critical guarantee is preservation — a change in one corner of 
 verified graph should not force the whole graph to rerun.
 
 From the STALE set the runtime derives a **minimal Repair Frontier**: the
-smallest set of Tasks whose re-verification can re-close the Goal. Only those
-Tasks rerun, each producing new exact-version evidence, and the Goal reopens and
-re-closes through the same derivation it used before. Invalidation derives
-validity only — it never claims Tasks, never dispatches Workers, and never
-mutates artifact or evidence history.
+smallest set of affected Tasks that are immediately executable because their
+dependencies are currently VERIFIED and they have no active claim. Only the
+current frontier is dispatched in that scheduling step. As upstream Tasks are
+re-verified, downstream Tasks can enter later frontiers, so the full affected
+cone may rerun before the Goal re-closes. Invalidation derives validity only —
+it never claims Tasks, never dispatches Workers, and never mutates artifact or
+evidence history.
 
 ## Authority lives in Core
 

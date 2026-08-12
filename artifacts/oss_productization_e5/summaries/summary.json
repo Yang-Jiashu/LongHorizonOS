@@ -5,15 +5,15 @@
       "mean_checkpoint_recomputation_ratio": 0.533333,
       "mean_checkpoint_rerun": 5.333333,
       "mean_full_restart_rerun": 10.0,
-      "mean_invalidation_wall_ms": 6.685917,
+      "mean_invalidation_wall_ms": 22.204333,
       "mean_lhos_invalidated": 5.333333,
       "mean_lhos_preserved": 4.666667,
       "mean_lhos_rerun": 5.333333,
       "mean_preservation_ratio": 0.466667,
-      "mean_reclose_wall_ms": 81.42675,
+      "mean_reclose_wall_ms": 232.232583,
       "mean_recomputation_ratio": 0.533333,
       "mean_repair_amplification_vs_affected": 1.0,
-      "mean_trial_wall_ms": 183.74025,
+      "mean_trial_wall_ms": 625.58125,
       "mean_weighted_saving_vs_checkpoint": 0.0,
       "mean_weighted_saving_vs_full_restart": 0.521686,
       "trials": 12
@@ -23,15 +23,15 @@
       "mean_checkpoint_recomputation_ratio": 0.54,
       "mean_checkpoint_rerun": 13.5,
       "mean_full_restart_rerun": 25.0,
-      "mean_invalidation_wall_ms": 48.34975,
+      "mean_invalidation_wall_ms": 62.586583,
       "mean_lhos_invalidated": 13.5,
       "mean_lhos_preserved": 11.5,
       "mean_lhos_rerun": 13.5,
       "mean_preservation_ratio": 0.46,
-      "mean_reclose_wall_ms": 916.849833,
+      "mean_reclose_wall_ms": 1232.38375,
       "mean_recomputation_ratio": 0.54,
       "mean_repair_amplification_vs_affected": 1.0,
-      "mean_trial_wall_ms": 1886.557667,
+      "mean_trial_wall_ms": 2800.746167,
       "mean_weighted_saving_vs_checkpoint": 0.0,
       "mean_weighted_saving_vs_full_restart": 0.451167,
       "trials": 12
@@ -44,15 +44,15 @@
       "mean_checkpoint_recomputation_ratio": 0.536667,
       "mean_checkpoint_rerun": 9.416667,
       "mean_full_restart_rerun": 17.5,
-      "mean_invalidation_wall_ms": 27.517833,
+      "mean_invalidation_wall_ms": 42.395458,
       "mean_lhos_invalidated": 9.416667,
       "mean_lhos_preserved": 8.083333,
       "mean_lhos_rerun": 9.416667,
       "mean_preservation_ratio": 0.463333,
-      "mean_reclose_wall_ms": 499.138292,
+      "mean_reclose_wall_ms": 732.308167,
       "mean_recomputation_ratio": 0.536667,
       "mean_repair_amplification_vs_affected": 1.0,
-      "mean_trial_wall_ms": 1035.148958,
+      "mean_trial_wall_ms": 1713.163708,
       "mean_weighted_saving_vs_checkpoint": 0.0,
       "mean_weighted_saving_vs_full_restart": 0.486427,
       "over_invalidation_total": 0,
@@ -64,106 +64,6 @@
   },
   "benchmark": "semantic-repair",
   "invalid_trials": 0,
-  "live_model": {
-    "api_key_count": 2,
-    "base_url": "https://stepcode.basemind.com/v1",
-    "benchmark_id": "stepcode_live_semantic_repair_v1",
-    "call_saving_vs_full_restart": 0.25,
-    "call_saving_vs_task_dag_checkpoint": 0.0,
-    "initial_closure": {
-      "completion_tokens": 20,
-      "goal_closed": true,
-      "instruction_following_calls": 4,
-      "latency_p50_ms": 3589.716,
-      "latency_p95_ms": 4714.557,
-      "model_calls": 4,
-      "prompt_tokens": 100,
-      "successful_calls": 4,
-      "token_totals_complete": true,
-      "total_tokens": 120,
-      "usage_missing_calls": 0,
-      "usage_reported_calls": 4,
-      "wall_time_ms": 13799.747
-    },
-    "interpretation": "This task-level DAG case tests semantic detection and real repair cost. LongHorizonOS is expected to beat full restart and match an oracle-informed task-DAG checkpoint on model-call count.",
-    "model": "gpt-5.6-sol",
-    "model_catalog_size": 4,
-    "mutation": {
-      "affected_tasks": [
-        "T0",
-        "T1",
-        "T2"
-      ],
-      "initial_repair_frontier": [
-        "T0"
-      ],
-      "preserved_tasks": [
-        "T3"
-      ]
-    },
-    "strategies": {
-      "full_restart": {
-        "completion_tokens": 10,
-        "instruction_following_calls": 2,
-        "latency_p50_ms": 2967.474,
-        "latency_p95_ms": 4010.73,
-        "model_calls": 4,
-        "parallel_batch_wall_ms": 5935.768,
-        "prompt_tokens": 50,
-        "successful_calls": 4,
-        "token_totals_complete": false,
-        "total_tokens": 60,
-        "usage_missing_calls": 2,
-        "usage_reported_calls": 2,
-        "wall_time_ms": 11741.012
-      },
-      "longhorizonos": {
-        "completion_tokens": 10,
-        "false_verified_after_invalidation": 0,
-        "final_goal_closed": true,
-        "instruction_following_calls": 2,
-        "latency_p50_ms": 2250.925,
-        "latency_p95_ms": 4052.905,
-        "model_calls": 3,
-        "observed_attempts": 3,
-        "prompt_tokens": 50,
-        "reexecuted_tasks": [
-          "T0",
-          "T1",
-          "T2"
-        ],
-        "successful_calls": 3,
-        "token_totals_complete": false,
-        "total_tokens": 60,
-        "usage_missing_calls": 1,
-        "usage_reported_calls": 2,
-        "wall_time_ms": 8118.416
-      },
-      "state_only_resume": {
-        "false_closure": true,
-        "model_calls": 0,
-        "token_totals_complete": true,
-        "total_tokens": 0,
-        "usage_missing_calls": 0,
-        "usage_reported_calls": 0
-      },
-      "task_dag_checkpoint": {
-        "completion_tokens": 15,
-        "instruction_following_calls": 3,
-        "latency_p50_ms": 4359.154,
-        "latency_p95_ms": 4449.824,
-        "model_calls": 3,
-        "parallel_batch_wall_ms": 8221.458,
-        "prompt_tokens": 75,
-        "successful_calls": 3,
-        "token_totals_complete": true,
-        "total_tokens": 90,
-        "usage_missing_calls": 0,
-        "usage_reported_calls": 3,
-        "wall_time_ms": 12670.627
-      }
-    }
-  },
   "measurement_contract": {
     "checkpoint_baseline": "oracle-informed task-level downstream invalidation",
     "false_verified": "affected tasks still VERIFIED immediately after invalidation",
@@ -172,7 +72,7 @@
     "state_only_baseline": "completed-bit resume with no mutation reconciliation"
   },
   "quick": true,
-  "raw_sha256": "6b0bc0c776f1b76d09bf96c2535af7b8e8ad095fed00869268ef0e21340d9393",
+  "raw_sha256": "43356dec3c3c4630172913e89cc00e9471af3608205401c6d7af6b4fa2391684",
   "real_workspace": {
     "affected_tasks": [
       "Implement",
@@ -191,7 +91,7 @@
       "Inspect"
     ],
     "strategy": "longhorizonos",
-    "wall_time_ms": 249.371
+    "wall_time_ms": 322.101
   },
   "schema_version": "0.2",
   "total_trials": 24,

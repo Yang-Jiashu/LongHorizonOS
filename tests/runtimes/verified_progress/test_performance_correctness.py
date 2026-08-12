@@ -178,20 +178,22 @@ class TestS31b_CommitCeiling:
                       created_by_pid="p1"),
         ))
 
-        # Use CPU time (`time.process_time`) rather than wall clock. Wall-clock
-        # maxima are polluted by OS scheduling jitter when the suite runs under
-        # heavy concurrent load (hundreds of other tests), which makes a naive
-        # "every commit < 50 ms" assertion nondeterministic even though the
-        # commit path is consistently fast (~4 ms CPU). CPU time isolates the
-        # real commit cost from OS scheduling.
+        # Measure end-to-end latency with the highest-resolution monotonic
+        # clock.  ``process_time()`` looks attractive because it excludes
+        # scheduler pauses, but on Windows its *effective* accounting quantum
+        # is commonly 15.625 ms.  A median assertion below 10 ms is therefore
+        # mathematically impossible to measure reliably with that clock: each
+        # sample is quantised to either 0 or 15.625 ms.  ``perf_counter()`` is
+        # backed by QueryPerformanceCounter and preserves sub-millisecond
+        # resolution.  The p99 budget below still tolerates modest host jitter.
         ceilings = []
         for i in range(200):
-            t0 = time.process_time()
+            t0 = time.perf_counter()
             _submit(rt, gid, f"p{i}", (
                 AddNodeOp(node_id=f"b{i}", graph_id=gid, node_type="task",
                           created_by_pid="p1"),
             ))
-            elapsed = time.process_time() - t0
+            elapsed = time.perf_counter() - t0
             ceilings.append(elapsed)
 
         ceilings.sort()

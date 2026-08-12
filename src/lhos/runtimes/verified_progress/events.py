@@ -6,6 +6,8 @@ payload contents — only IDs, hashes, versions and state transitions.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
@@ -87,8 +89,32 @@ class GraphEvent(BaseModel):
     artifact_bindings: tuple[dict[str, Any], ...] = ()
     dependency_task_ids: tuple[str, ...] = ()
     ready_frontier: tuple[str, ...] = ()
+    # Newer durable event rows store a constant-size summary of the READY
+    # frontier instead of repeating every task id in every version.  The
+    # in-memory event still carries the full tuple while it is being assembled
+    # (which keeps the derivation API backwards compatible); GraphStore applies
+    # the compact representation at the persistence boundary.  Legacy rows
+    # that contain a full JSON list continue to populate ``ready_frontier``.
+    ready_frontier_count: int | None = None
+    ready_frontier_hash: str | None = None
     graph_version: int | None = None
 
     payload: dict[str, Any] = Field(default_factory=dict)
 
     recorded_at: datetime = Field(default_factory=_utcnow)
+
+
+def ready_frontier_hash(frontier: tuple[str, ...] | list[str]) -> str:
+    """Return the canonical digest used by compact frontier event rows.
+
+    Ordering is significant: ``compute_ready_frontier`` has a deterministic
+    order and the digest therefore detects both membership and ordering
+    changes.  Separators avoid insignificant JSON whitespace differences.
+    """
+
+    payload = json.dumps(
+        list(frontier),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()

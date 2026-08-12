@@ -28,6 +28,7 @@ class TestValidActionTransitions:
             (ActionState.SUBMITTED, ActionState.ADMITTED),
             (ActionState.SUBMITTED, ActionState.FAILED),
             (ActionState.ADMITTED, ActionState.RUNNING),
+            (ActionState.ADMITTED, ActionState.FAILED),
             (ActionState.ADMITTED, ActionState.CANCELLED),
             (ActionState.RUNNING, ActionState.COMMITTED),
             (ActionState.RUNNING, ActionState.FAILED),

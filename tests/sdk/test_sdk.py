@@ -207,7 +207,11 @@ def test_repair_flow_marks_affected_preserves_unaffected():
     assert "T1" in rep.preserved and "T3" in rep.preserved
     assert rep.frontier == ["T2"]  # minimal frontier
     assert os_.vpg.inspect_node(os_._gid_for("Ship"), "T2").validity.value == "stale"
-    # re-run restores closure
+    # Exact-version Evidence requires affected verifiers to inspect the current
+    # versions explicitly; old v1 outcomes must not be promoted to v2.
+    t2.verify = scripted_executor(artifact_id="src.py", version=2)
+    t4.verify = scripted_executor(artifact_id="rv.md", version=2)
+    # Re-run restores closure with fresh exact-version Evidence.
     r1 = os_.run(goal, max_dispatches=10)
     assert set(r1.verified) == {"T1", "T3", "T2", "T4"}
 

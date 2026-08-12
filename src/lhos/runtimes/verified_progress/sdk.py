@@ -23,7 +23,7 @@ from .errors import (
     graph_not_found,
     graph_version_conflict,
 )
-from .events import GraphEvent, GraphEventType
+from .events import GraphEvent, GraphEventType, ready_frontier_hash
 from .graph_store import GraphStore
 from .models import (
     AnyNode,
@@ -31,6 +31,7 @@ from .models import (
     EdgeType,
     GoalNode,
     GraphRecord,
+    LeaseCommitGuard,
     NodeLifecycle,
     NodeValidity,
     TaskDispatchCandidate,
@@ -45,7 +46,6 @@ from .patches import (
     GraphPatchProposal,
     PatchCommitResult,
 )
-from .projections import rebuild_projection
 from .protocols import ArtifactFactProvider, KernelEventProvider
 from .readiness import compute_ready_frontier
 from .verification import task_is_verified
@@ -164,6 +164,7 @@ class VerifiedProgressRuntime:
         *,
         _allow_empty_operations: bool = False,
         _allow_repair_frontier: bool = False,
+        _commit_guard: LeaseCommitGuard | None = None,
     ) -> PatchCommitResult:
         """Commit a patch atomically with full D1 protocol.
 
@@ -184,6 +185,12 @@ class VerifiedProgressRuntime:
         # from intervening patches is irrelevant.
         idem = self.store.has_idempotency(patch.composite_key)
         if idem is not None:
+            if _commit_guard is not None:
+                # A guarded replay is read-only, but it still represents an
+                # ownership claim.  Validate that claim under the GraphStore
+                # writer lock so a released/reassigned owner cannot present an
+                # old idempotency result as a live commit.
+                self.store.validate_commit_guard(_commit_guard)
             patch_id, committed_version = idem
             return PatchCommitResult(
                 graph_id=patch.graph_id,
@@ -196,14 +203,11 @@ class VerifiedProgressRuntime:
         if patch.expected_graph_version != rec.current_version:
             raise graph_version_conflict(patch.expected_graph_version, rec.current_version)
 
-        # snapshot current projection — deep copy so derived-state mutations
-        # during _apply_derived_after_patch don't alias the baseline and hide
-        # the diff in nodes_to_upsert.
-        import copy
-
-        current_snapshot = self.snapshot_projection(patch.graph_id)
-        current_nodes = {nid: copy.deepcopy(n) for nid, n in current_snapshot[0].items()}
-        current_edges = [copy.deepcopy(e) for e in current_snapshot[1]]
+        # ``snapshot_projection`` already returns freshly decoded model
+        # instances. ``validate_patch`` owns the one defensive deep copy needed
+        # for candidate mutations, so copying the baseline here again only
+        # adds a full-graph pass to every commit.
+        current_nodes, current_edges = self.snapshot_projection(patch.graph_id)
 
         # build operations from patch
 
@@ -231,7 +235,7 @@ class VerifiedProgressRuntime:
         # mark any STALE/derived lifecycle updates before commit
         # result.candidate_nodes are deep-copied inside validate_patch, so they
         # are independent from current_nodes — derived mutations will show up
-        # in the old-vs-new model_dump() diff below.
+        # in the old-vs-new serialized-model diff below.
         derived_events = self._apply_derived_after_patch(
             patch.graph_id,
             new_version,
@@ -246,19 +250,45 @@ class VerifiedProgressRuntime:
         nodes_to_upsert = []
         for nid, new in result.candidate_nodes.items():
             old = current_nodes.get(nid)
-            if old is None or old.model_dump() != new.model_dump():
+            # Keep this comparison byte-compatible with GraphStore's
+            # projection hash/history comparison.  In particular, nested
+            # mapping key order is part of the persisted JSON representation.
+            if old is None or old.model_dump_json() != new.model_dump_json():
                 nodes_to_upsert.append((nid, new))
 
         edges_to_upsert = result.new_edges
-        self.store.commit_patch(
-            patch,
-            patch_id=patch.patch_id,
-            committed_version=new_version,
-            applied_at=applied_at,
-            events=all_events,
-            nodes_to_upsert=nodes_to_upsert,
-            edges_to_upsert=edges_to_upsert,
-        )
+        try:
+            self.store.commit_patch(
+                patch,
+                patch_id=patch.patch_id,
+                committed_version=new_version,
+                applied_at=applied_at,
+                events=all_events,
+                nodes_to_upsert=nodes_to_upsert,
+                edges_to_upsert=edges_to_upsert,
+                projection_nodes=result.candidate_nodes.values(),
+                projection_edges=result.candidate_edges,
+                commit_guard=_commit_guard,
+            )
+        except sqlite3.IntegrityError:
+            # Two callers can pass the preflight idempotency read before one
+            # wins the writer lock.  Once the losing transaction rolls back,
+            # converge it to the winner's durable result instead of leaking
+            # a raw UNIQUE constraint error.  Any other integrity failure is
+            # re-raised unchanged.
+            raced_idem = self.store.has_idempotency(patch.composite_key)
+            if raced_idem is None:
+                raise
+            if _commit_guard is not None:
+                self.store.validate_commit_guard(_commit_guard)
+            replay_patch_id, replay_version = raced_idem
+            return PatchCommitResult(
+                graph_id=patch.graph_id,
+                patch_id=replay_patch_id,
+                committed_graph_version=replay_version,
+                patch_applied=False,
+                idempotent_replay=True,
+            )
         return PatchCommitResult(
             graph_id=patch.graph_id,
             patch_id=patch.patch_id,
@@ -329,15 +359,15 @@ class VerifiedProgressRuntime:
 
     # ── inspection ────────────────────────────────────────────────────────
     def inspect_node(self, graph_id: str, node_id: str) -> AnyNode | None:
-        nodes, _ = self.snapshot_projection(graph_id)
-        return nodes.get(node_id)
+        # `get_graph` preserves the previous behaviour of raising for an unknown
+        # graph_id (snapshot_projection used to do that); the lookup itself is a
+        # primary-key seek instead of materializing the whole projection.
+        self.get_graph(graph_id)
+        return self.store.get_node(graph_id, node_id)
 
     def inspect_edge(self, graph_id: str, edge_id: str) -> VPGEdge | None:
-        edges = self.store.get_all_edges(graph_id)
-        for e in edges:
-            if e.edge_id == edge_id:
-                return e
-        return None
+        self.get_graph(graph_id)
+        return self.store.get_edge(graph_id, edge_id)
 
     def get_events(self, graph_id: str, since_version: int | None = None) -> list[GraphEvent]:
         return self.store.get_events(graph_id, since_version)
@@ -345,71 +375,37 @@ class VerifiedProgressRuntime:
     def rebuild_projection(
         self, graph_id: str
     ) -> tuple[dict[str, AnyNode], list[VPGEdge], list[GraphEvent]]:
-        """Drop + rebuild the projection from patch history."""
-        self.store.delete_projection(graph_id)
+        """Restore and atomically replace the latest durable projection snapshot.
 
-        all_patches_rows = self.store.conn.execute(
-            "SELECT operations_json, patch_id, committed_version "
-            "FROM graph_patches WHERE graph_id = ? ORDER BY applied_at",
-            (graph_id,),
-        ).fetchall()
+        ``operations_json`` is an audit log, but it is not a lossless encoding
+        of every materialized field (for example timestamps and externally
+        supplied Evidence payloads).  Recovery therefore uses the immutable
+        per-version snapshot committed in the same transaction as the patch.
+        """
+        from .recovery import validate_recovery_history
 
-        import json as _json
-
-        patches = []
-        n_hist: dict[str, list] = {}
-        e_hist: dict[str, list] = {}
-        for row in all_patches_rows:
-            raw = _json.loads(row["operations_json"])
-            # Ensure operations are concrete (matches _normalize_patch_operations)
-            raw["operations"] = _normalize_raw_ops(raw.get("operations", []))
-            p = GraphPatchProposal(**raw)
-            patches.append(p)
-            n_row, e_row = _ops_to_nodes_edges(graph_id, p)
-            n_hist[p.patch_id] = n_row
-            e_hist[p.patch_id] = e_row
-
-        nodes, edges, evs = rebuild_projection(
+        expected_graph_version = validate_recovery_history(
+            self.store,
             graph_id,
-            patches,
-            e_hist,
-            n_hist,
-            facts_artifact=self.facts_artifact,
-            facts_kernel=self.facts_kernel,
+        ).current_version
+
+        nodes, edges = self.store.load_projection_snapshot(
+            graph_id,
+            expected_graph_version,
         )
 
-        # replace materialized store
-        with self.store.conn:
-            ndata = [
-                (n.node_id, n.graph_id, n.node_type.value, n.model_dump_json())
-                for n in nodes.values()
-            ]
-            if ndata:
-                self.store.conn.executemany(
-                    "INSERT OR REPLACE INTO graph_nodes_projection "
-                    "(node_id, graph_id, node_type, payload_json) "
-                    "VALUES (?, ?, ?, ?)",
-                    ndata,
-                )
-            for e in edges:
-                self.store.conn.execute(
-                    "INSERT OR REPLACE INTO graph_edges_projection "
-                    "(edge_id, graph_id, edge_type, source_node_id, target_node_id, "
-                    "created_in_version, created_by_pid, created_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        e.edge_id,
-                        e.graph_id,
-                        e.edge_type.value,
-                        e.source_node_id,
-                        e.target_node_id,
-                        e.created_in_version,
-                        e.created_by_pid,
-                        _dt_iso_safe(e.created_at),
-                    ),
-                )
+        self.store.replace_projection(
+            graph_id,
+            expected_graph_version=expected_graph_version,
+            nodes=nodes.values(),
+            edges=edges,
+        )
 
-        return nodes, edges, evs
+        # These events already belong to the committed history.  Rebuilding a
+        # cache must not synthesize fresh event IDs/timestamps.
+        events = self.store.get_events(graph_id, expected_graph_version)
+        events = [event for event in events if event.graph_version == expected_graph_version]
+        return nodes, edges, events
 
     def recover(self, graph_id: str):
         from .recovery import verify_and_recover
@@ -616,12 +612,15 @@ def _recompute_derived_state(
 
     # 4. ready frontier
     frontier = compute_ready_frontier(graph_id, graph_version, nodes, edges)
+    frontier_ids = tuple(candidate.task_id for candidate in frontier)
     out.append(
         GraphEvent(
             graph_id=graph_id,
             event_type=GraphEventType.READY_FRONTIER_UPDATED,
             causation_patch_id=causation_patch,
-            ready_frontier=tuple(c.task_id for c in frontier),
+            ready_frontier=frontier_ids,
+            ready_frontier_count=len(frontier_ids),
+            ready_frontier_hash=ready_frontier_hash(frontier_ids),
             graph_version=graph_version,
         )
     )

@@ -3,9 +3,36 @@
 Pre-flight checklist for cutting a release. Run this top to bottom; each step
 should pass cleanly before the next.
 
+## v0.1.0 local validation snapshot — August 12, 2026
+
+This repository is ready for a **GitHub experimental research-alpha release**,
+not a production-readiness claim.
+
+- [x] Focused correctness/public-claims gates pass.
+- [x] Ruff, formatter, Mypy, and Compileall gates pass.
+- [x] Wheel and sdist build successfully; `twine check` passes.
+- [x] The final wheel installs in a fresh virtualenv outside the repository.
+- [x] Installed `lhos --help` and `lhos demo recovery-repair --json` pass.
+- [x] README links, checked-in benchmark artifacts, license, and release notes
+      are present.
+- [ ] Complete non-slow repository suite proven green in one run. The August 12
+      Windows run did not finish within 600 seconds and exposed one isolated
+      SIGKILL-recovery flake; do not claim this gate passed.
+- [ ] VPG commit-latency audit below the aspirational p99 target. Durable
+      history growth is fixed, but full-projection commit work remains
+      superlinear.
+- [ ] Git commit, annotated `v0.1.0` tag, GitHub push, and release publication.
+      This extracted workspace has no `.git` directory, so these are manual
+      release-owner steps.
+
+For exact measurements and limitations, use
+[`docs/releases/v0.1.0.md`](releases/v0.1.0.md) as the release authority.
+
 ## Gate 1 — Code health
 
-- [ ] Regular test gate green: `make test` — 0 failures.
+- [ ] Regular test gate green: `make test` — 0 failures. This remains an
+      aspirational full-suite gate for v0.1.0; see the validation snapshot
+      above rather than marking it complete.
 - [ ] `python -m ruff check src/lhos tests/` clean.
 - [ ] `python -m ruff format --check src/lhos examples/ tests/` clean.
 - [ ] `python -m mypy src/lhos` clean.

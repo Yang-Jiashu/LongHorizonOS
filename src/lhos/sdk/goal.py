@@ -6,7 +6,9 @@ Edges via a single `GraphPatchProposal`.  The VPG remains the semantic authority
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from lhos.runtimes.multi_agent import ResourceVector
 
 from .task import Task
 
@@ -33,6 +35,7 @@ class Goal:
         required_tools: tuple[str, ...] = (),
         max_attempts: int | None = 3,
         metadata: dict | None = None,
+        resources: ResourceVector | dict[str, Any] | None = None,
     ) -> Task:
         t = Task(
             task_id,
@@ -44,6 +47,7 @@ class Goal:
             required_tools=required_tools,
             max_attempts=max_attempts,
             metadata=metadata,
+            resources=resources,
         )
         self.add_task(t)
         return t

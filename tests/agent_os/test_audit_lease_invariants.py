@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from lhos.agent_os.kernel.models import (
+    Capability,
     ProcessState,
 )
 from lhos.agent_os.programs.scripted import (
@@ -116,6 +117,14 @@ def scan_lease_invariants(kernel) -> list[dict[str, Any]]:
     return violations
 
 
+def grant_resource_acquire(kernel, pid: str, resource_id: str) -> None:
+    """Authorize the resource claim exercised by the lifecycle test."""
+    kernel._capability_service.grant(
+        pid,
+        Capability(resource_pattern=resource_id, operations={"acquire"}),
+    )
+
+
 class TestLeaseLifecycleAudit:
     """Verify lease lifecycle invariants across all terminal states."""
 
@@ -126,6 +135,7 @@ class TestLeaseLifecycleAudit:
 
         program = ScriptedProgram(program_id="lease_commit", steps=[])
         pid = await kernel.spawn(program)
+        grant_resource_acquire(kernel, pid, "resource:R1")
         program._steps = [
             submit_device_action(
                 pid,
@@ -153,6 +163,7 @@ class TestLeaseLifecycleAudit:
 
         program = ScriptedProgram(program_id="lease_fail", steps=[])
         pid = await kernel.spawn(program)
+        grant_resource_acquire(kernel, pid, "resource:R1")
         program._steps = [
             submit_device_action(
                 pid,
@@ -179,6 +190,7 @@ class TestLeaseLifecycleAudit:
 
         program = ScriptedProgram(program_id="lease_unc", steps=[])
         pid = await kernel.spawn(program)
+        grant_resource_acquire(kernel, pid, "resource:R1")
         program._steps = [
             submit_device_action(
                 pid,

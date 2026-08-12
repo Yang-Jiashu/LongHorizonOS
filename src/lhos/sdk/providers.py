@@ -61,11 +61,20 @@ class KernelLeaseProvider:
         self._k = kernel
 
     def acquire_exclusive(self, pid: str, resource_id: str, ttl: timedelta) -> Any | None:
-        leases = self._k._lease_service.atomic_acquire(
-            pid,
-            [{"resource_id": resource_id, "mode": "exclusive"}],
-            ttl=ttl,
-        )
+        # Ordinary contention is represented as ``None`` by the Scheduler
+        # provider protocol, while the Kernel expresses that same expected
+        # race with its domain exception.  Normalize only that exception;
+        # infrastructure and programming errors must still propagate.
+        from lhos.agent_os.kernel.errors import LeaseAcquisitionFailed
+
+        try:
+            leases = self._k._lease_service.atomic_acquire(
+                pid,
+                [{"resource_id": resource_id, "mode": "exclusive"}],
+                ttl=ttl,
+            )
+        except LeaseAcquisitionFailed:
+            return None
         return leases[0] if leases else None
 
     def release(self, lease_id: str) -> bool:

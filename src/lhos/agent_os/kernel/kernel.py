@@ -18,12 +18,13 @@ from lhos.agent_os.drivers.base import DriverResult
 from lhos.agent_os.drivers.mock_device import MockDeviceDriver
 from lhos.agent_os.drivers.mock_model import MockModelDriver
 from lhos.agent_os.kernel.dispatcher import SyscallDispatcher
-from lhos.agent_os.kernel.errors import IllegalStateTransition
+from lhos.agent_os.kernel.errors import IllegalStateTransition, LeaseAcquisitionFailed
 from lhos.agent_os.kernel.models import (
     ActionState,
     Clock,
     ExitRequest,
     KernelEvent,
+    KernelRequest,
     ProcessControlBlock,
     ProcessState,
     SideEffectClass,
@@ -190,6 +191,23 @@ class AgentKernel:
         # Handle the request
         if result.request is not None:
             req = result.request
+            # The currently executing PCB is the authenticated caller. Program
+            # code controls the request payload, so its pid field is untrusted
+            # and must not be allowed to impersonate another process.
+            if not isinstance(req, KernelRequest):
+                ev = KernelEvent(
+                    pid=pcb.pid,
+                    event_type="PROGRAM_REQUEST_REJECTED",
+                    payload={
+                        "reason": "invalid_request_type",
+                        "type": type(req).__name__,
+                    },
+                )
+                self._journal.append_event(ev)
+                self._lease_service.release_all_for_pid(pcb.pid)
+                self._process_service.transition(pcb.pid, ProcessState.FAILED)
+                return
+            req = req.model_copy(update={"pid": pcb.pid})
             if isinstance(req, ExitRequest) or (
                 hasattr(req, "request_type") and req.request_type == "exit"
             ):
@@ -199,7 +217,13 @@ class AgentKernel:
                 hasattr(req, "request_type") and req.request_type == "submit_action"
             ):
                 # Submit action
-                await self._dispatcher.dispatch(req)
+                try:
+                    await self._dispatcher.dispatch(req)
+                except LeaseAcquisitionFailed:
+                    # Resource contention is a normal admission failure. The
+                    # dispatcher has already made the action terminal.
+                    self._process_service.transition(pcb.pid, ProcessState.READY)
+                    return
                 # Process goes BLOCKED (waiting for action)
                 # The action_id is in the program state
                 action_id = self._get_last_action_id(pcb.pid)
@@ -207,7 +231,17 @@ class AgentKernel:
                     self._process_service.transition(
                         pcb.pid,
                         ProcessState.BLOCKED,
-                        wait_condition={"signal_type": "ACTION_COMPLETED", "action_id": action_id},
+                        # Every terminal outcome emitted by the driver/recovery
+                        # paths must wake the owner. Waiting only for COMPLETED
+                        # strands processes forever after FAILED/UNCERTAIN.
+                        wait_condition={
+                            "signal_types": [
+                                "ACTION_COMPLETED",
+                                "ACTION_FAILED",
+                                "ACTION_UNCERTAIN",
+                            ],
+                            "action_id": action_id,
+                        },
                     )
                 else:
                     # No action to wait for → back to READY
@@ -238,6 +272,37 @@ class AgentKernel:
             return None
         return actions[-1].action_id
 
+    def _fail_action_if_running(
+        self,
+        action_id: str,
+        error: dict[str, Any] | None = None,
+    ) -> bool:
+        """Conditionally fail an in-flight action after an async race.
+
+        Driver completion/recovery runs concurrently with cancellation,
+        timeout, or another recovery pass.  A stale callback must not attempt
+        to overwrite a terminal Action or emit a contradictory signal.
+        """
+        return self._action_service.fail_if_running(action_id, error)
+
+    def _mark_action_uncertain_if_running(
+        self,
+        action_id: str,
+        detail: dict[str, Any] | None = None,
+    ) -> bool:
+        return self._action_service.mark_uncertain_if_running(action_id, detail)
+
+    def _action_is_running(self, action_id: str) -> bool:
+        """Return whether an action is still eligible for an external retry.
+
+        This check closes the common cancellation/recovery window between an
+        ``unknown`` driver result and a PURE-action retry.  It is deliberately
+        read-only; the terminal transition itself remains linearized by the
+        ActionService conditional methods.
+        """
+        action = self._action_service.get_action(action_id)
+        return action is not None and action.state == ActionState.RUNNING
+
     # ── Dispatch pending actions to drivers ────────────────────────────────
 
     async def _dispatch_pending_actions(self) -> None:
@@ -253,14 +318,49 @@ class AgentKernel:
         ]
 
         for acb in admitted:
+            valid_contract, contract_error = self._lease_service.validate_action_contract(
+                acb.pid,
+                acb.resource_claims,
+                acb.lease_ids,
+                self._clock.now(),
+            )
+            if not valid_contract:
+                error = {
+                    "reason": "invalid_resource_contract",
+                    "detail": contract_error,
+                }
+                self._action_service.fail(acb.action_id, error=error)
+                self._lease_service.release(acb.lease_ids)
+                self._lease_service.clear_waiters_for_pid(acb.pid)
+                self._signal_service.send(
+                    target_pid=acb.pid,
+                    signal_type="ACTION_FAILED",
+                    source_pid="kernel",
+                    payload={"action_id": acb.action_id, "error": error},
+                )
+                continue
+
             driver = self._drivers.get(acb.device_type)
             if driver is None:
                 # No driver — fail the action
-                self._action_service.fail(acb.action_id, error={"reason": "no_driver"})
+                error = {"reason": "no_driver"}
+                self._action_service.fail(acb.action_id, error=error)
+                self._lease_service.release(acb.lease_ids)
+                self._lease_service.clear_waiters_for_pid(acb.pid)
+                self._signal_service.send(
+                    target_pid=acb.pid,
+                    signal_type="ACTION_FAILED",
+                    source_pid="kernel",
+                    payload={"action_id": acb.action_id, "error": error},
+                )
                 continue
 
             # Dispatch to driver
             self._action_service.dispatch(acb.action_id)
+            # Capture the exact lease/fencing contract after the RUNNING
+            # transition. This snapshot is persisted at admission and is
+            # rechecked atomically before every terminal commit.
+            fencing_tokens = dict(acb.fencing_tokens)
 
             try:
                 result: DriverResult = await driver.dispatch(
@@ -269,14 +369,48 @@ class AgentKernel:
                     acb.arguments,
                 )
             except Exception as e:
-                self._action_service.fail(acb.action_id, error={"reason": str(e)})
+                error = {"reason": str(e)}
+                failed = self._fail_action_if_running(acb.action_id, error=error)
                 # Release leases
                 self._lease_service.release(acb.lease_ids)
+                if failed:
+                    self._signal_service.send(
+                        target_pid=acb.pid,
+                        signal_type="ACTION_FAILED",
+                        source_pid="kernel",
+                        payload={"action_id": acb.action_id, "error": error},
+                    )
                 continue
 
             # Process result based on side effect class
             if result.status == "completed":
-                self._action_service.commit(acb.action_id, result=result.output)
+                committed, fence_error = self._action_service.commit_if_fenced(
+                    acb.action_id,
+                    result=result.output,
+                    now=self._clock.now(),
+                )
+                if not committed:
+                    stale_error: dict[str, Any] = {
+                        "reason": "stale_fenced_completion",
+                        "detail": fence_error,
+                        "fencing_tokens": fencing_tokens,
+                    }
+                    failed = self._fail_action_if_running(acb.action_id, error=stale_error)
+                    self._lease_service.release(acb.lease_ids)
+                    if failed:
+                        self._signal_service.send(
+                            target_pid=acb.pid,
+                            signal_type="ACTION_FAILED",
+                            source_pid="kernel",
+                            payload={
+                                "action_id": acb.action_id,
+                                "error": {
+                                    "reason": "stale_fenced_completion",
+                                    "detail": fence_error,
+                                },
+                            },
+                        )
+                    continue
                 self._lease_service.release(acb.lease_ids)
                 # Send signal
                 self._signal_service.send(
@@ -286,23 +420,65 @@ class AgentKernel:
                     payload={"action_id": acb.action_id, "result": result.output},
                 )
             elif result.status == "failed":
-                self._action_service.fail(acb.action_id, error=result.error or {})
+                error = result.error or {}
+                failed = self._fail_action_if_running(acb.action_id, error=error)
                 self._lease_service.release(acb.lease_ids)
-                self._signal_service.send(
-                    target_pid=acb.pid,
-                    signal_type="ACTION_FAILED",
-                    source_pid="kernel",
-                    payload={"action_id": acb.action_id, "error": result.error or {}},
-                )
+                if failed:
+                    self._signal_service.send(
+                        target_pid=acb.pid,
+                        signal_type="ACTION_FAILED",
+                        source_pid="kernel",
+                        payload={"action_id": acb.action_id, "error": error},
+                    )
             elif result.status == "unknown":
                 # Side effect may or may not have happened
                 if acb.side_effect_class == SideEffectClass.PURE:
                     # Safe to retry
-                    retry_result = await driver.dispatch(
-                        acb.action_id, acb.operation, acb.arguments
-                    )
+                    if not self._action_is_running(acb.action_id):
+                        self._lease_service.release(acb.lease_ids)
+                        continue
+                    try:
+                        retry_result = await driver.dispatch(
+                            acb.action_id,
+                            acb.operation,
+                            acb.arguments,
+                        )
+                    except Exception as exc:
+                        error = {"reason": "retry_failed", "error": str(exc)}
+                        failed = self._fail_action_if_running(acb.action_id, error=error)
+                        self._lease_service.release(acb.lease_ids)
+                        if failed:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_FAILED",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id, "error": error},
+                            )
+                        continue
                     if retry_result.status == "completed":
-                        self._action_service.commit(acb.action_id, result=retry_result.output)
+                        committed, fence_error = self._action_service.commit_if_fenced(
+                            acb.action_id,
+                            result=retry_result.output,
+                            now=self._clock.now(),
+                        )
+                        if not committed:
+                            error = {
+                                "reason": "stale_fenced_completion",
+                                "detail": fence_error,
+                            }
+                            failed = self._fail_action_if_running(
+                                acb.action_id,
+                                error=error,
+                            )
+                            self._lease_service.release(acb.lease_ids)
+                            if failed:
+                                self._signal_service.send(
+                                    target_pid=acb.pid,
+                                    signal_type="ACTION_FAILED",
+                                    source_pid="kernel",
+                                    payload={"action_id": acb.action_id, "error": error},
+                                )
+                            continue
                         self._lease_service.release(acb.lease_ids)
                         self._signal_service.send(
                             target_pid=acb.pid,
@@ -310,20 +486,75 @@ class AgentKernel:
                             source_pid="kernel",
                             payload={"action_id": acb.action_id, "result": retry_result.output},
                         )
-                    else:
-                        self._action_service.mark_uncertain(acb.action_id)
+                    elif retry_result.status == "failed":
+                        error = retry_result.error or {}
+                        failed = self._fail_action_if_running(acb.action_id, error=error)
                         self._lease_service.release(acb.lease_ids)
-                        self._signal_service.send(
-                            target_pid=acb.pid,
-                            signal_type="ACTION_UNCERTAIN",
-                            source_pid="kernel",
-                            payload={"action_id": acb.action_id},
-                        )
+                        if failed:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_FAILED",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id, "error": error},
+                            )
+                    elif retry_result.status == "unknown":
+                        uncertain = self._mark_action_uncertain_if_running(acb.action_id)
+                        self._lease_service.release(acb.lease_ids)
+                        if uncertain:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_UNCERTAIN",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id},
+                            )
+                    # ``running`` means the retry is still in flight. Preserve
+                    # RUNNING and its leases for the recovery inspector.
                 elif acb.side_effect_class == SideEffectClass.IDEMPOTENT:
                     # Inspect to check if effect happened
-                    inspect = await driver.inspect(acb.action_id)
+                    if not self._action_is_running(acb.action_id):
+                        self._lease_service.release(acb.lease_ids)
+                        continue
+                    try:
+                        inspect = await driver.inspect(acb.action_id)
+                    except Exception as exc:
+                        detail = {"reason": "inspect_failed", "error": str(exc)}
+                        uncertain = self._mark_action_uncertain_if_running(
+                            acb.action_id,
+                            detail=detail,
+                        )
+                        self._lease_service.release(acb.lease_ids)
+                        if uncertain:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_UNCERTAIN",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id, "detail": detail},
+                            )
+                        continue
                     if inspect.status == "completed":
-                        self._action_service.commit(acb.action_id, result=inspect.output)
+                        committed, fence_error = self._action_service.commit_if_fenced(
+                            acb.action_id,
+                            result=inspect.output,
+                            now=self._clock.now(),
+                        )
+                        if not committed:
+                            error = {
+                                "reason": "stale_fenced_completion",
+                                "detail": fence_error,
+                            }
+                            failed = self._fail_action_if_running(
+                                acb.action_id,
+                                error=error,
+                            )
+                            self._lease_service.release(acb.lease_ids)
+                            if failed:
+                                self._signal_service.send(
+                                    target_pid=acb.pid,
+                                    signal_type="ACTION_FAILED",
+                                    source_pid="kernel",
+                                    payload={"action_id": acb.action_id, "error": error},
+                                )
+                            continue
                         self._lease_service.release(acb.lease_ids)
                         self._signal_service.send(
                             target_pid=acb.pid,
@@ -331,25 +562,40 @@ class AgentKernel:
                             source_pid="kernel",
                             payload={"action_id": acb.action_id, "result": inspect.output},
                         )
-                    else:
-                        self._action_service.mark_uncertain(acb.action_id)
+                    elif inspect.status == "failed":
+                        error = inspect.error or {}
+                        failed = self._fail_action_if_running(acb.action_id, error=error)
                         self._lease_service.release(acb.lease_ids)
+                        if failed:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_FAILED",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id, "error": error},
+                            )
+                    elif inspect.status == "unknown":
+                        uncertain = self._mark_action_uncertain_if_running(acb.action_id)
+                        self._lease_service.release(acb.lease_ids)
+                        if uncertain:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_UNCERTAIN",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id},
+                            )
+                    # ``running`` is not uncertainty. Keep the Action and its
+                    # leases intact for a later recovery inspection.
+                else:
+                    # NON_REVERSIBLE or UNKNOWN → UNCERTAIN, no auto retry
+                    uncertain = self._mark_action_uncertain_if_running(acb.action_id)
+                    self._lease_service.release(acb.lease_ids)
+                    if uncertain:
                         self._signal_service.send(
                             target_pid=acb.pid,
                             signal_type="ACTION_UNCERTAIN",
                             source_pid="kernel",
                             payload={"action_id": acb.action_id},
                         )
-                else:
-                    # NON_REVERSIBLE or UNKNOWN → UNCERTAIN, no auto retry
-                    self._action_service.mark_uncertain(acb.action_id)
-                    self._lease_service.release(acb.lease_ids)
-                    self._signal_service.send(
-                        target_pid=acb.pid,
-                        signal_type="ACTION_UNCERTAIN",
-                        source_pid="kernel",
-                        payload={"action_id": acb.action_id},
-                    )
 
     # ── Recover incomplete actions ─────────────────────────────────────────
 
@@ -364,7 +610,25 @@ class AgentKernel:
         for acb in running:
             driver = self._drivers.get(acb.device_type)
             if driver is None:
-                self._action_service.fail(acb.action_id, error={"reason": "no_driver"})
+                error = {"reason": "no_driver"}
+                failed = self._fail_action_if_running(acb.action_id, error=error)
+                self._lease_service.release(acb.lease_ids)
+                if failed:
+                    self._signal_service.send(
+                        target_pid=acb.pid,
+                        signal_type="ACTION_FAILED",
+                        source_pid="kernel",
+                        payload={"action_id": acb.action_id, "error": error},
+                    )
+                continue
+
+            # ``running`` was collected from a projection snapshot.  A
+            # cancellation or timeout may have won since that snapshot was
+            # read, so avoid making a stale external inspect call when the
+            # Action is already terminal.  This narrows (but cannot entirely
+            # eliminate) the check-to-driver-call window; drivers still need a
+            # cancellable/fencing-aware contract for strict external fencing.
+            if not self._action_is_running(acb.action_id):
                 self._lease_service.release(acb.lease_ids)
                 continue
 
@@ -372,15 +636,45 @@ class AgentKernel:
             try:
                 inspect = await driver.inspect(acb.action_id)
             except Exception as e:
-                self._action_service.mark_uncertain(
+                detail = {"reason": "inspect_failed", "error": str(e)}
+                uncertain = self._mark_action_uncertain_if_running(
                     acb.action_id,
-                    detail={"reason": "inspect_failed", "error": str(e)},
+                    detail=detail,
                 )
                 self._lease_service.release(acb.lease_ids)
+                if uncertain:
+                    self._signal_service.send(
+                        target_pid=acb.pid,
+                        signal_type="ACTION_UNCERTAIN",
+                        source_pid="kernel",
+                        payload={"action_id": acb.action_id, "detail": detail},
+                    )
                 continue
 
             if inspect.status == "completed":
-                self._action_service.commit(acb.action_id, result=inspect.output)
+                committed, fence_error = self._action_service.commit_if_fenced(
+                    acb.action_id,
+                    result=inspect.output,
+                    now=self._clock.now(),
+                )
+                if not committed:
+                    stale_error: dict[str, Any] = {
+                        "reason": "stale_fenced_completion",
+                        "detail": fence_error,
+                    }
+                    failed = self._fail_action_if_running(
+                        acb.action_id,
+                        error=stale_error,
+                    )
+                    self._lease_service.release(acb.lease_ids)
+                    if failed:
+                        self._signal_service.send(
+                            target_pid=acb.pid,
+                            signal_type="ACTION_FAILED",
+                            source_pid="kernel",
+                            payload={"action_id": acb.action_id, "error": stale_error},
+                        )
+                    continue
                 self._lease_service.release(acb.lease_ids)
                 self._signal_service.send(
                     target_pid=acb.pid,
@@ -389,22 +683,52 @@ class AgentKernel:
                     payload={"action_id": acb.action_id, "result": inspect.output},
                 )
             elif inspect.status == "failed":
-                self._action_service.fail(acb.action_id, error=inspect.error or {})
+                error = inspect.error or {}
+                failed = self._fail_action_if_running(acb.action_id, error=error)
                 self._lease_service.release(acb.lease_ids)
-                self._signal_service.send(
-                    target_pid=acb.pid,
-                    signal_type="ACTION_FAILED",
-                    source_pid="kernel",
-                    payload={"action_id": acb.action_id, "error": inspect.error or {}},
-                )
-            else:
+                if failed:
+                    self._signal_service.send(
+                        target_pid=acb.pid,
+                        signal_type="ACTION_FAILED",
+                        source_pid="kernel",
+                        payload={"action_id": acb.action_id, "error": error},
+                    )
+            elif inspect.status == "unknown":
                 # Unknown → UNCERTAIN for non-pure actions
                 if acb.side_effect_class == SideEffectClass.PURE:
                     # Pure actions can be retried
                     try:
+                        if not self._action_is_running(acb.action_id):
+                            self._lease_service.release(acb.lease_ids)
+                            continue
                         result = await driver.dispatch(acb.action_id, acb.operation, acb.arguments)
                         if result.status == "completed":
-                            self._action_service.commit(acb.action_id, result=result.output)
+                            committed, fence_error = self._action_service.commit_if_fenced(
+                                acb.action_id,
+                                result=result.output,
+                                now=self._clock.now(),
+                            )
+                            if not committed:
+                                stale_retry_error: dict[str, Any] = {
+                                    "reason": "stale_fenced_completion",
+                                    "detail": fence_error,
+                                }
+                                failed = self._fail_action_if_running(
+                                    acb.action_id,
+                                    error=stale_retry_error,
+                                )
+                                self._lease_service.release(acb.lease_ids)
+                                if failed:
+                                    self._signal_service.send(
+                                        target_pid=acb.pid,
+                                        signal_type="ACTION_FAILED",
+                                        source_pid="kernel",
+                                        payload={
+                                            "action_id": acb.action_id,
+                                            "error": stale_retry_error,
+                                        },
+                                    )
+                                continue
                             self._lease_service.release(acb.lease_ids)
                             self._signal_service.send(
                                 target_pid=acb.pid,
@@ -412,21 +736,55 @@ class AgentKernel:
                                 source_pid="kernel",
                                 payload={"action_id": acb.action_id, "result": result.output},
                             )
-                        else:
-                            self._action_service.mark_uncertain(acb.action_id)
+                        elif result.status == "failed":
+                            error = result.error or {}
+                            failed = self._fail_action_if_running(acb.action_id, error=error)
                             self._lease_service.release(acb.lease_ids)
-                    except Exception:
-                        self._action_service.mark_uncertain(acb.action_id)
+                            if failed:
+                                self._signal_service.send(
+                                    target_pid=acb.pid,
+                                    signal_type="ACTION_FAILED",
+                                    source_pid="kernel",
+                                    payload={"action_id": acb.action_id, "error": error},
+                                )
+                        elif result.status == "unknown":
+                            uncertain = self._mark_action_uncertain_if_running(acb.action_id)
+                            self._lease_service.release(acb.lease_ids)
+                            if uncertain:
+                                self._signal_service.send(
+                                    target_pid=acb.pid,
+                                    signal_type="ACTION_UNCERTAIN",
+                                    source_pid="kernel",
+                                    payload={"action_id": acb.action_id},
+                                )
+                        # ``running`` remains in flight with leases retained.
+                    except Exception as exc:
+                        detail = {"reason": "retry_failed", "error": str(exc)}
+                        uncertain = self._mark_action_uncertain_if_running(
+                            acb.action_id,
+                            detail=detail,
+                        )
                         self._lease_service.release(acb.lease_ids)
+                        if uncertain:
+                            self._signal_service.send(
+                                target_pid=acb.pid,
+                                signal_type="ACTION_UNCERTAIN",
+                                source_pid="kernel",
+                                payload={"action_id": acb.action_id, "detail": detail},
+                            )
                 else:
-                    self._action_service.mark_uncertain(acb.action_id)
+                    uncertain = self._mark_action_uncertain_if_running(acb.action_id)
                     self._lease_service.release(acb.lease_ids)
-                    self._signal_service.send(
-                        target_pid=acb.pid,
-                        signal_type="ACTION_UNCERTAIN",
-                        source_pid="kernel",
-                        payload={"action_id": acb.action_id},
-                    )
+                    if uncertain:
+                        self._signal_service.send(
+                            target_pid=acb.pid,
+                            signal_type="ACTION_UNCERTAIN",
+                            source_pid="kernel",
+                            payload={"action_id": acb.action_id},
+                        )
+            # ``running`` is an affirmative in-flight observation. Preserve
+            # RUNNING and its lease bundle; a future recovery pass will inspect
+            # it again without redispatching the external operation.
 
     # ── Deadlock recovery ──────────────────────────────────────────────────
 

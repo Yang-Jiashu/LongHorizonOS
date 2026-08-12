@@ -175,6 +175,61 @@ def test_benchmark_modes_are_mutually_exclusive():
         core.build_parser().parse_args(["benchmark", "--quick", "--full"])
 
 
+@pytest.mark.parametrize("benchmark_name", ["async-agentos", "async-workers"])
+def test_async_agentos_benchmark_cli_json_is_machine_readable(capsys, benchmark_name):
+    assert (
+        core.main(
+            [
+                "benchmark",
+                benchmark_name,
+                "--json",
+                "--tasks",
+                "24",
+                "--delay-ms",
+                "100",
+                "--min-speedup",
+                "1.5",
+            ]
+        )
+        == 0
+    )
+    data = json.loads(capsys.readouterr().out)
+    assert data["benchmark"] == "agentos_run_async_end_to_end"
+    assert data["valid"] is True
+    assert data["async_runtime"]["capacity_violations"] == 0
+
+
+def test_async_agentos_benchmark_human_report_matches_scope(capsys):
+    assert (
+        core.main(
+            [
+                "benchmark",
+                "async-agentos",
+                "--tasks",
+                "24",
+                "--delay-ms",
+                "100",
+                "--min-speedup",
+                "1.5",
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    assert "ASYNC AGENTOS END-TO-END BENCHMARK" in output
+    assert "public-SDK latency" in output
+    assert "physical CPU/GPU/RAM/VRAM utilization" in output
+
+
+def test_benchmark_help_promotes_async_agentos_name(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        core.build_parser().parse_args(["benchmark", "--help"])
+    assert exc_info.value.code == 0
+    output = capsys.readouterr().out
+    assert "async-agentos" in output
+    assert "async-workers" not in output
+
+
 def test_cli_state_not_found(tmp_path):
     r = subprocess.run(
         [

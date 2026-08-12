@@ -97,6 +97,7 @@ _ACTION_TRANSITIONS: dict[tuple[ActionState, ActionState], str] = {
     (ActionState.SUBMITTED, ActionState.ADMITTED): "admission_pass",
     (ActionState.SUBMITTED, ActionState.FAILED): "admission_fail",
     (ActionState.ADMITTED, ActionState.RUNNING): "dispatched",
+    (ActionState.ADMITTED, ActionState.FAILED): "dispatch_precondition_failed",
     (ActionState.ADMITTED, ActionState.CANCELLED): "cancelled_pre_dispatch",
     (ActionState.RUNNING, ActionState.COMMITTED): "driver_success",
     (ActionState.RUNNING, ActionState.FAILED): "driver_failure",

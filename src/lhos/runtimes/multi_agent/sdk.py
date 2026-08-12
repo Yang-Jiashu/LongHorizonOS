@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .models import ResourceVector
 from .scheduler import MultiAgentScheduler, ScheduleResult
 
 
@@ -46,6 +47,14 @@ class SchedulerSession:
     def attempt_for_claim(self, claim_id: str) -> Any | None:
         return self._s.get_attempt_for_claim(claim_id)
 
+    def mark_execution_started(self, claim: Any | str) -> Any | None:
+        """Promote the claim's attempt to RUNNING."""
+        return self._s.mark_execution_started(claim)
+
+    def mark_execution_operationally_succeeded(self, claim: Any | str) -> Any | None:
+        """Record executor success without asserting semantic verification."""
+        return self._s.mark_execution_operationally_succeeded(claim)
+
     def release_task(
         self,
         graph_id: str,
@@ -53,14 +62,28 @@ class SchedulerSession:
         *,
         reason: str = "execution_failed",
         retry: bool = True,
-    ) -> None:
+        expected_claim_id: str | None = None,
+    ) -> bool:
         """Release operational ownership without changing VPG semantics."""
-        self._s.release_task(
+        return self._s.release_task(
             graph_id,
             task_id,
             reason=reason,
             retry=retry,
+            expected_claim_id=expected_claim_id,
         )
+
+    def set_resource_capacity(self, pool_id: str, capacity: ResourceVector) -> None:
+        self._s.set_resource_capacity(pool_id, capacity)
+
+    def refresh_registry_resources(self) -> None:
+        self._s.refresh_registry_resources()
+
+    def retire_agent_process(self, agent_id: str, process_id: str) -> int:
+        return self._s.retire_agent_process(agent_id, process_id)
+
+    def close(self) -> None:
+        self._s.close()
 
     # ── reconcile ──────────────────────────────────────────────────────────
     def reconcile(self) -> Any:
@@ -69,9 +92,9 @@ class SchedulerSession:
     def observe_vpg(self, graph_id: str) -> dict[str, int]:
         return self._s.observe_vpg(graph_id)
 
-    def run_pass(self, graph_id: str) -> ScheduleResult:
+    def run_pass(self, graph_id: str, **kwargs: Any) -> ScheduleResult:
         """schedule_once + observe_vpg + reconcile — a coherent full step."""
-        res = self._s.schedule_once(graph_id)
+        res = self._s.schedule_once(graph_id, **kwargs)
         self._s.observe_vpg(graph_id)
         self._s.reconcile()
         return res

@@ -126,27 +126,22 @@ class TestBlockedZeroPolling:
         await kernel.tick()
         assert counting_program.step_count == 1  # Still 1, no polling!
 
-        # Tick 3: recovery runs, action goes UNCERTAIN
-        # Note: ACTION_UNCERTAIN signal doesn't match wait_condition (ACTION_COMPLETED)
-        # so the process stays BLOCKED. This is a known Phase B limitation:
-        # the kernel should also wake processes on ACTION_UNCERTAIN/ACTION_FAILED.
+        # Tick 3: recovery observes that the driver is still running.  The
+        # action remains in flight and the process must still not be polled.
         await kernel.tick()
-        assert counting_program.step_count == 1  # Still no polling!
+        assert counting_program.step_count == 1
+        pcb = kernel._process_service.get_process(pid)
+        assert pcb is not None
+        assert pcb.state == ProcessState.BLOCKED
 
-        # Manually send a matching signal to wake the process
-        actions = kernel._action_service.list_by_pid(pid)
-        if actions:
-            action_id = actions[-1].action_id
-            kernel._signal_service.send(
-                target_pid=pid,
-                signal_type="ACTION_COMPLETED",
-                source_pid="kernel",
-                payload={"action_id": action_id, "result": {"manual": True}},
-            )
-
-        # Tick 4: signal delivered, process wakes
+        # Once the external driver reports completion, the matching terminal
+        # signal wakes the process on the next tick.
+        pending_driver.complete()
         await kernel.tick()
-        assert counting_program.step_count >= 2  # Now stepped
+        assert counting_program.step_count == 2
+        pcb = kernel._process_service.get_process(pid)
+        assert pcb is not None
+        assert pcb.state == ProcessState.READY
 
     @pytest.mark.asyncio
     async def test_blocked_process_has_zero_model_polling(self) -> None:

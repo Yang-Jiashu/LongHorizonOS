@@ -48,5 +48,7 @@ print("D3 preserved (VERIFIED):", repair.preserved)  # T1, T3
 print("Repair Frontier:", repair.frontier)  # minimal [T2]
 
 # Re-run with fresh Evidence to restore closure
+t2.verify = scripted_executor(artifact_id="source.py", version=2)
+t4.verify = scripted_executor(artifact_id="review.md", version=2)
 restored = os_.run(goal, max_dispatches=10)
 print("Re-verified:", restored.verified)

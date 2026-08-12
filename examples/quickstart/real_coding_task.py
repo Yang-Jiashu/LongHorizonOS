@@ -77,12 +77,18 @@ print("D3 affected (->STALE):", sorted(rep.affected))
 print("D3 preserved (VERIFIED):", sorted(rep.preserved))
 print("Repair Frontier:", sorted(rep.frontier))
 
-# 5) re-verify with fresh Evidence (real shell on v2) -> re-close
+# 5) re-verify every affected task with fresh, exact-version Evidence -> re-close
 for t in goal.tasks:
-    if t.task_id == "Implement":
+    if t.task_id in ("Inspect", "Implement"):
         t.verify = CommandVerifier(
             "test -f source.py", artifact_id="source.py", version=2, shell=sh, cwd=tmp, workspace=ws
         )
+    elif t.task_id == "Review":
+        t.verify = CommandVerifier(
+            "true", artifact_id="review.md", version=2, shell=sh, cwd=tmp, workspace=ws
+        )
 r1 = os_.run(goal, max_dispatches=12)
 print("Phase 2 VERIFIED:", sorted(r1.verified))
+assert r1.goal_state == "closed", f"goal did not reclose: {r1.as_dict()}"
+assert set(r1.verified) == {"Inspect", "Independent", "Implement", "Review"}
 print("GOAL RECLOSED")

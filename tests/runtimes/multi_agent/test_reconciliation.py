@@ -106,8 +106,9 @@ def test_reconcile_process_dead_marks_claim_lost():
     assert claims[0].state == ClaimState.LOST
 
 
-def test_reconcile_vanished_lease_marks_lost_and_releases():
+def test_reconcile_vanished_lease_marks_lost_without_release_call():
     claims = [_claim(lease_id="lease-1")]
+    release_calls = []
 
     res = reconcile(
         claims,
@@ -117,12 +118,46 @@ def test_reconcile_vanished_lease_marks_lost_and_releases():
         vpg_task_verified=lambda graph_id, task_id: False,
         vpg_task_stale=lambda graph_id, task_id: False,
         lease_lookup=lambda c: None,
-        release_lease=lambda lid: True,
+        release_lease=lambda lid: release_calls.append(lid) or True,
         clock_now=_now,
     )
     assert res.claims_marked_lost == 1
-    assert res.orphan_leases_released >= 1
+    # The authoritative lookup already proved that the lease disappeared.
+    # Cleanup is therefore idempotently complete; do not call a provider with
+    # a stale lease id (which may legitimately return False).
+    assert release_calls == []
+    assert res.orphan_leases_released == 0
     assert claims[0].state == ClaimState.LOST
+
+
+def test_reconcile_release_false_preserves_active_claim():
+    """A present lease that cannot be released must fail closed.
+
+    Reconciliation must not mark the claim terminal (or free scheduler-side
+    capacity) until the authoritative lease provider confirms release.
+    """
+    claims = [_claim(lease_id="lease-1")]
+    release_calls = []
+
+    def release_false(lease_id):
+        release_calls.append(lease_id)
+        return False
+
+    with pytest.raises(LeaseReleaseFailed):
+        reconcile(
+            claims,
+            [],
+            lease_is_live=lambda lease: True,
+            process_is_alive=lambda pid: True,
+            vpg_task_verified=lambda graph_id, task_id: True,
+            vpg_task_stale=lambda graph_id, task_id: False,
+            lease_lookup=lambda claim: _lease("lease-1"),
+            release_lease=release_false,
+            clock_now=_now,
+        )
+
+    assert release_calls == ["lease-1"]
+    assert claims[0].state == ClaimState.ACTIVE
 
 
 def test_reconcile_task_verified_completes_claim():
@@ -141,6 +176,30 @@ def test_reconcile_task_verified_completes_claim():
     )
     assert res.claims_completed == 1
     assert claims[0].state == ClaimState.COMPLETED
+
+
+def test_reconcile_binds_discovered_lease_when_claim_row_lost_lease_id():
+    """A recovered lease must still be released when the row lacks lease_id."""
+    claims = [_claim(lease_id=None)]
+    lease = _lease("lease-recovered")
+    release_calls: list[str] = []
+
+    res = reconcile(
+        claims,
+        [],
+        lease_is_live=lambda value: value.lease_id == "lease-recovered",
+        process_is_alive=lambda pid: True,
+        vpg_task_verified=lambda graph_id, task_id: True,
+        vpg_task_stale=lambda graph_id, task_id: False,
+        lease_lookup=lambda claim: lease,
+        release_lease=lambda lease_id: release_calls.append(lease_id) or True,
+        clock_now=_now,
+    )
+
+    assert claims[0].state == ClaimState.COMPLETED
+    assert claims[0].lease_id == "lease-recovered"
+    assert release_calls == ["lease-recovered"]
+    assert res.orphan_leases_released == 1
 
 
 def test_reconcile_release_exception_preserves_active_claim():
@@ -202,6 +261,27 @@ def test_detect_invariants_violations_d2_i5_no_lease_id():
         process_is_alive=lambda pid: True,
     )
     assert any("D2-I5" in v and "no lease" in v for v in violations)
+
+
+def test_detect_invariants_violations_accepts_lease_object_callback():
+    """Modern LeaseAdapter-style liveness callbacks receive lease objects."""
+    claims = [_claim(lease_id="lease-1")]
+    lease = _lease("lease-1")
+    seen: list[object] = []
+
+    def lease_is_live(value):
+        seen.append(value)
+        return value is lease
+
+    violations = detect_invariants_violations(
+        claims,
+        lease_is_live=lease_is_live,
+        lease_lookup=lambda claim: lease,
+        process_is_alive=lambda pid: True,
+    )
+
+    assert violations == []
+    assert seen == [lease]
 
 
 def test_detect_invariants_violations_d2_i7_dead_process():

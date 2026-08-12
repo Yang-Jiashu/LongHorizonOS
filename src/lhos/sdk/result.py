@@ -65,6 +65,9 @@ class RepairOutcome:
     preserved: list[str] = field(default_factory=list)
     frontier: list[str] = field(default_factory=list)
     causes: list[str] = field(default_factory=list)
+    # Structured cause records are additive to the legacy human-readable
+    # ``causes`` strings so callers can audit exact ArtifactVersion transitions.
+    cause_details: list[dict[str, Any]] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -72,6 +75,7 @@ class RepairOutcome:
             "preserved": self.preserved,
             "repair_frontier": self.frontier,
             "causes": self.causes,
+            "cause_details": self.cause_details,
         }
 
     def __repr__(self) -> str:

@@ -10,7 +10,7 @@ Process / Lease / Capability authority — no more, no less.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Protocol, runtime_checkable
 
 
@@ -45,7 +45,8 @@ class LeaseInfo(Protocol):
     resource_id: str
     owner_pid: str
     mode: str
-    expires_at: str | None
+    fencing_token: int
+    expires_at: datetime | str | None
 
 
 class LeaseProvider(Protocol):

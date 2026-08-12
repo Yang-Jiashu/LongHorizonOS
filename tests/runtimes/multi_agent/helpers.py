@@ -143,7 +143,7 @@ def scheduler_with_agents(world, agent_specs):
     )
 
 
-def fake_scheduler(agent_specs, *, fake_vpg):
+def fake_scheduler(agent_specs, *, fake_vpg, **scheduler_kwargs):
     """Build a scheduler with a FakeVPG — no Kernel involved beyond the agent
     processes used solely for liveness checks (caller must supply a Kernel
     world or a NullProcessProvider)."""
@@ -195,6 +195,7 @@ def fake_scheduler(agent_specs, *, fake_vpg):
         process_provider=_NullProc(),
         lease_provider=_NullLease(),
         capability_provider=_NullCap(),
+        **scheduler_kwargs,
     )
 
 

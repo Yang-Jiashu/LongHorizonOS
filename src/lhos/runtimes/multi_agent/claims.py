@@ -106,6 +106,10 @@ class ClaimManager:
             claim.released_at = _now()
             return False
         claim.lease_id = lease.lease_id
+        claim.lease_owner_pid = getattr(lease, "owner_pid", claim.process_id)
+        token = getattr(lease, "fencing_token", None)
+        claim.lease_fencing_token = int(token) if token is not None else None
+        claim.lease_expires_at = getattr(lease, "expires_at", None)
         claim.state = ClaimState.ACTIVE
         claim.activated_at = _now()
         claim.reason = "kernel_lease_acquired_ownership_linearized"

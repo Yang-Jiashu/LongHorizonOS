@@ -24,7 +24,7 @@ quality, planning quality or maximum scheduler throughput.
 
 The checkpoint baseline is deliberately oracle-informed. For workloads whose
 semantic dependencies are identical to task edges, LongHorizonOS is expected to
-match it—not beat it.
+match it, not beat it.
 
 ## Workloads
 
@@ -94,6 +94,10 @@ is not inferred from the affected-node count.
 
 ## Reference quick result
 
+The percentages below are a checked-in reference snapshot, not a promise about
+wall time on every machine. Re-run the command in the Reproduce section and
+report the generated summary, environment, and commit when publishing results.
+
 Generated from `24` deterministic trials:
 
 | Metric | Result |
@@ -109,16 +113,16 @@ Generated from `24` deterministic trials:
 | Ownership conflicts | `0` |
 | False `VERIFIED` | `0` |
 | State-only false-closure trials | `24 / 24` |
-| Mean invalidation latency | `27.518 ms` |
-| Mean Goal reclosure latency | `499.138 ms` |
+| Mean invalidation latency | environment-dependent; recorded in each run |
+| Mean Goal reclosure latency | environment-dependent; recorded in each run |
 
 The result demonstrates safe selective repair and substantial savings versus
-full restart. It demonstrates parity—not superiority—against the
+full restart. It demonstrates parity, not superiority, against the
 oracle-informed task-DAG checkpoint.
 
 ## Reference live result
 
-With StepCode model `gpt-5.6-sol` and two rotating keys:
+One opt-in observation used StepCode model `gpt-5.6-sol` and two rotating keys:
 
 | Strategy | Model calls | Semantic outcome |
 |---|---:|---|
@@ -127,8 +131,10 @@ With StepCode model `gpt-5.6-sol` and two rotating keys:
 | Oracle task-DAG checkpoint | `3` | Correct repair |
 | LongHorizonOS | `3` | Goal reclosed; `0` false `VERIFIED` |
 
-LongHorizonOS saved `25%` of model calls versus full restart and matched the
-task-DAG checkpoint.
+In that observation, LongHorizonOS used `25%` fewer model calls than full
+restart and matched the task-DAG checkpoint. This is not part of the offline
+default benchmark, is not continuously reproduced by CI, and is not a
+statistically powered provider/model comparison.
 
 StepCode may omit usage or return zero usage for a successful response.
 Therefore token totals are comparable only when `token_totals_complete` is

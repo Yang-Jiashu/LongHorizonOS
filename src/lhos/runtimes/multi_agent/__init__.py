@@ -15,6 +15,7 @@ This runtime implements:
     - Crash-safe task reassignment via Projection + Event log + Reconciliation
 """
 
+from .durable_state import SchedulerStateCorruption, SchedulerStateStore
 from .errors import (
     ConcurrencyViolation,
     D2Error,
@@ -31,15 +32,27 @@ from .models import (
     AgentCapabilitySnapshot,
     AgentDescriptor,
     AgentMatchScore,
+    AttemptState,
     ClaimState,
     EligibilityResult,
     MatchDecision,
+    ResourceVector,
     ScheduledExecutionAttempt,
     TaskClaim,
     TaskRequirements,
 )
 from .registry import AgentRegistry
+from .resources import AtomicResourceManager, ResourceReservation
 from .sdk import SchedulerSession, create_scheduler
+from .worker_pool import (
+    AsyncWorkerPool,
+    CapacityRequestTooLarge,
+    DispatchRejected,
+    WorkerJob,
+    WorkerOutcome,
+    WorkerPoolError,
+    WorkerStatus,
+)
 
 __all__ = [
     "TERMINAL_CLAIM_STATES",
@@ -47,9 +60,14 @@ __all__ = [
     "AgentDescriptor",
     "AgentMatchScore",
     "AgentRegistry",
+    "AsyncWorkerPool",
+    "AtomicResourceManager",
+    "AttemptState",
+    "CapacityRequestTooLarge",
     "ClaimState",
     "ConcurrencyViolation",
     "D2Error",
+    "DispatchRejected",
     "EligibilityResult",
     "GraphVersionStale",
     "KernelLeaseRequired",
@@ -57,11 +75,19 @@ __all__ = [
     "LeaseReleaseFailed",
     "MatchDecision",
     "NoEligibleAgentError",
+    "ResourceReservation",
+    "ResourceVector",
     "ScheduledExecutionAttempt",
     "SchedulerSession",
+    "SchedulerStateCorruption",
+    "SchedulerStateStore",
     "SemanticNotReadyError",
     "TaskAlreadyClaimed",
     "TaskClaim",
     "TaskRequirements",
+    "WorkerJob",
+    "WorkerOutcome",
+    "WorkerPoolError",
+    "WorkerStatus",
     "create_scheduler",
 ]

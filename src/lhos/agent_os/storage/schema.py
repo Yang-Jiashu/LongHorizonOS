@@ -55,7 +55,9 @@ CREATE TABLE IF NOT EXISTS actions_projection (
     operation TEXT NOT NULL,
     arguments_json TEXT NOT NULL,
     state TEXT NOT NULL,
+    resource_claims_json TEXT NOT NULL DEFAULT '[]',
     lease_ids_json TEXT NOT NULL DEFAULT '[]',
+    fencing_tokens_json TEXT NOT NULL DEFAULT '{}',
     idempotency_key TEXT,
     side_effect_class TEXT NOT NULL DEFAULT 'pure',
     recovery_policy TEXT NOT NULL DEFAULT 'retry',
@@ -73,10 +75,18 @@ CREATE TABLE IF NOT EXISTS leases_projection (
     resource_id TEXT NOT NULL,
     owner_pid TEXT NOT NULL,
     mode TEXT NOT NULL,
+    fencing_token INTEGER NOT NULL,
     acquired_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     renewable INTEGER NOT NULL DEFAULT 1,
     revocable INTEGER NOT NULL DEFAULT 1
+)
+"""
+
+CREATE_RESOURCE_FENCES = """
+CREATE TABLE IF NOT EXISTS resource_fencing_tokens (
+    resource_id TEXT PRIMARY KEY,
+    last_token INTEGER NOT NULL
 )
 """
 
@@ -252,12 +262,47 @@ CREATE TABLE IF NOT EXISTS namespace_snapshots_projection (
 )
 """
 
+# Transactional outbox for durable internal-state -> external-delivery intents.
+#
+# The outbox is deliberately independent from any particular broker or driver.
+# A row becomes visible to a dispatcher only after the SQLite transaction that
+# created it commits.  Delivery is therefore at-least-once: a process crash
+# between an external call and ``ack`` leaves the row claimable again.
+CREATE_TRANSACTIONAL_OUTBOX = """
+CREATE TABLE IF NOT EXISTS transactional_outbox (
+    outbox_id TEXT PRIMARY KEY,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    destination TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    payload_hash TEXT NOT NULL,
+    headers_json TEXT NOT NULL DEFAULT '{}',
+    aggregate_type TEXT,
+    aggregate_id TEXT,
+    causation_id TEXT,
+    correlation_id TEXT,
+    transaction_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'in_flight', 'delivered', 'failed')),
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    available_at TEXT NOT NULL,
+    claimed_by TEXT,
+    claim_token TEXT,
+    claimed_at TEXT,
+    claim_expires_at TEXT,
+    last_error_json TEXT,
+    delivery_result_json TEXT,
+    created_at TEXT NOT NULL,
+    delivered_at TEXT
+)
+"""
+
 ALL_DDL = [
     CREATE_JOURNAL_EVENTS,
     CREATE_JOURNAL_META,
     CREATE_PROCESSES,
     CREATE_ACTIONS,
     CREATE_LEASES,
+    CREATE_RESOURCE_FENCES,
     CREATE_SIGNALS,
     CREATE_PROGRAM_STATES,
     CREATE_CHECKPOINTS,
@@ -273,6 +318,7 @@ ALL_DDL = [
     CREATE_ARTIFACT_WATCHES_PROJECTION,
     CREATE_IDEMPOTENCY_INDEX,
     CREATE_SNAPSHOTS_PROJECTION,
+    CREATE_TRANSACTIONAL_OUTBOX,
 ]
 
 CREATE_INDEXES = [
@@ -296,4 +342,11 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_mounts_ns ON mounts_projection(namespace_id)",
     "CREATE INDEX IF NOT EXISTS idx_watches_pid ON artifact_watches_projection(pid)",
     "CREATE INDEX IF NOT EXISTS idx_watches_ns ON artifact_watches_projection(namespace_id)",
+    "CREATE INDEX IF NOT EXISTS idx_outbox_ready "
+    "ON transactional_outbox(status, available_at, created_at)",
+    "CREATE INDEX IF NOT EXISTS idx_outbox_claim_expiry "
+    "ON transactional_outbox(status, claim_expires_at)",
+    "CREATE INDEX IF NOT EXISTS idx_outbox_aggregate "
+    "ON transactional_outbox(aggregate_type, aggregate_id)",
+    "CREATE INDEX IF NOT EXISTS idx_outbox_transaction ON transactional_outbox(transaction_id)",
 ]

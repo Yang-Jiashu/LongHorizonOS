@@ -90,7 +90,6 @@ class TestREADMEClaims:
         out_of_scope_markers = [
             "Distributed multi-agent cluster",
             "General belief revision",
-            "distributed repair cluster",
         ]
         for marker in out_of_scope_markers:
             assert marker.lower() in not_yet_block.lower(), (

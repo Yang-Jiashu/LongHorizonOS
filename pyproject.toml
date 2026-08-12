@@ -9,6 +9,14 @@ description = "LongHorizonOS: a Verified Progress Graph runtime for long-horizon
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
+keywords = [
+    "agent-os",
+    "long-horizon-agents",
+    "multi-agent",
+    "semantic-recovery",
+    "resource-scheduling",
+    "verified-progress-graph",
+]
 authors = [
     { name = "LongHorizonOS Contributors" },
 ]
@@ -23,6 +31,13 @@ dependencies = [
     "pyyaml>=6.0",
     "networkx>=3.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Yang-Jiashu/LongHorizonOS"
+Repository = "https://github.com/Yang-Jiashu/LongHorizonOS"
+Issues = "https://github.com/Yang-Jiashu/LongHorizonOS/issues"
+Documentation = "https://github.com/Yang-Jiashu/LongHorizonOS/tree/main/docs"
+Changelog = "https://github.com/Yang-Jiashu/LongHorizonOS/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -77,6 +92,8 @@ target-version = "py311"
 # ruff-clean.  Excluded so `ruff check .` is clean without a 36-file
 # pre-existing D1-test edit (avoiding D3 scope creep per §32).
 extend-exclude = [
+  "build",
+  "dist",
   "tests/runtimes/verified_progress/conftest.py",
   "tests/runtimes/verified_progress/test_*.py",
   "examples/verified_progress/basic_graph_closure.py",

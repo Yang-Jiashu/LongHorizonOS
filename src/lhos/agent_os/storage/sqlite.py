@@ -47,6 +47,45 @@ class SQLiteStorage:
         with self.transaction():
             for ddl in ALL_DDL:
                 self.conn.execute(ddl)
+            # Backward-compatible additive migrations for databases created
+            # before action resource contracts were persisted.
+            action_columns = {
+                row["name"]
+                for row in self.conn.execute("PRAGMA table_info(actions_projection)").fetchall()
+            }
+            if "resource_claims_json" not in action_columns:
+                self.conn.execute(
+                    "ALTER TABLE actions_projection "
+                    "ADD COLUMN resource_claims_json TEXT NOT NULL DEFAULT '[]'"
+                )
+            if "fencing_tokens_json" not in action_columns:
+                self.conn.execute(
+                    "ALTER TABLE actions_projection "
+                    "ADD COLUMN fencing_tokens_json TEXT NOT NULL DEFAULT '{}'"
+                )
+            lease_columns = {
+                row["name"]
+                for row in self.conn.execute("PRAGMA table_info(leases_projection)").fetchall()
+            }
+            if "fencing_token" not in lease_columns:
+                # Existing leases pre-date fencing and therefore cannot safely
+                # authorize a new external commit. Give every legacy row a
+                # positive token and advance the durable per-resource counter
+                # to at least that value before accepting new acquisitions.
+                self.conn.execute(
+                    "ALTER TABLE leases_projection "
+                    "ADD COLUMN fencing_token INTEGER NOT NULL DEFAULT 1"
+                )
+            self.conn.execute(
+                """
+                INSERT INTO resource_fencing_tokens(resource_id, last_token)
+                SELECT resource_id, MAX(fencing_token)
+                FROM leases_projection
+                GROUP BY resource_id
+                ON CONFLICT(resource_id) DO UPDATE SET
+                    last_token = MAX(last_token, excluded.last_token)
+                """
+            )
             for idx in CREATE_INDEXES:
                 self.conn.execute(idx)
             # Initialize journal meta

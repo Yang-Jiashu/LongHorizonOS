@@ -3,6 +3,8 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+dist-final/
+dist-release-check/
 *.whl
 *.tar.gz
 .pytest_cache/
@@ -17,6 +19,7 @@ htmlcov/
 *.db
 *.db-wal
 *.db-shm
+tmp-*.sqlite
 .DS_Store
 
 # Runtime data is not committed; audit reports are.
@@ -26,6 +29,11 @@ artifacts/*
 !artifacts/traces/.gitkeep
 !artifacts/checkpoints/.gitkeep
 !artifacts/benchmark_results/.gitkeep
+# Keep only the checked-in benchmark reports linked from the public README.
+artifacts/benchmark_results/*
+!artifacts/benchmark_results/
+!artifacts/benchmark_results/multi-agent-runtime.json
+!artifacts/benchmark_results/vpg-incremental-history-2026-08-12-frontier-summary-final.json
 !artifacts/reports/.gitkeep
 !artifacts/oss_productization_e5/
 !artifacts/oss_productization_e5/**

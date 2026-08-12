@@ -84,12 +84,21 @@ def test_real_coding_workload_and_semantic_repair(tmp_path):
     # Repair Frontier contains the source.py-pinning task (t1 and t2 both pin it)
     assert any(t in rep.frontier for t in ("Inspect", "Implement"))
 
-    # Re-verify Implement against v2 with real shell; goal re-closes.
+    # Re-verify every affected task against its current exact version.
     for t in goal.tasks:
-        if t.task_id == "Implement":
+        if t.task_id in ("Inspect", "Implement"):
             t.verify = CommandVerifier(
                 "test -f source.py",
                 artifact_id="source.py",
+                version=2,
+                shell=sh,
+                cwd=tmp_path,
+                workspace=ws,
+            )
+        elif t.task_id == "Review":
+            t.verify = CommandVerifier(
+                "true",
+                artifact_id="review.md",
                 version=2,
                 shell=sh,
                 cwd=tmp_path,

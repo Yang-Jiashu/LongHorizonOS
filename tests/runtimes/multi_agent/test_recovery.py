@@ -91,3 +91,52 @@ def test_finalize_release_exception_preserves_active_claim():
             release_lease=bad_release,
         )
     assert claims[0].state == ClaimState.ACTIVE
+
+
+def test_finalize_release_false_preserves_active_claim():
+    """A present lease must be confirmed released before marking LOST."""
+    claims = [_claim(claim_id="c1", lease_id="lease-1")]
+
+    with pytest.raises(LeaseReleaseFailed):
+        finalize_after_restart(
+            claims,
+            lease_is_live=lambda lid: False,
+            process_is_alive=lambda pid: True,
+            release_lease=lambda lid: False,
+        )
+    assert claims[0].state == ClaimState.ACTIVE
+
+
+def test_finalize_missing_lease_is_idempotent_and_skips_release():
+    """A lease already absent at restart needs no second release call."""
+    claims = [_claim(claim_id="c1", lease_id="lease-1")]
+    calls: list[str] = []
+
+    tally = finalize_after_restart(
+        claims,
+        lease_is_live=lambda lid: False,
+        process_is_alive=lambda pid: True,
+        lease_lookup=lambda claim: None,
+        release_lease=lambda lid: calls.append(lid) or False,
+    )
+
+    assert tally["claims_marked_lost"] == 1
+    assert tally["orphan_leases_released"] == 0
+    assert calls == []
+    assert claims[0].state == ClaimState.LOST
+
+
+def test_finalize_active_without_lease_marks_lost_without_provider_call():
+    claims = [_claim(claim_id="c1", lease_id=None)]
+    calls: list[str] = []
+
+    tally = finalize_after_restart(
+        claims,
+        lease_is_live=lambda lid: True,
+        process_is_alive=lambda pid: True,
+        release_lease=lambda lid: calls.append(lid) or True,
+    )
+
+    assert tally["claims_marked_lost"] == 1
+    assert calls == []
+    assert claims[0].reason == "restart_active_without_lease"

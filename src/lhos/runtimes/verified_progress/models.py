@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ── UUID helper (mirrors kernel convention) ─────────────────────────────────
@@ -102,6 +102,24 @@ class GraphVersion(BaseModel):
     projection_hash: str
     committed_by_pid: str
     committed_at: datetime
+
+
+# ── Conditional graph commit authority ───────────────────────────────────────
+class LeaseCommitGuard(BaseModel):
+    """Exact Kernel lease generation required to authorize one graph commit.
+
+    The guard is an immutable value snapshot, not a callback.  GraphStore
+    validates it against the authoritative lease tables after acquiring the
+    SQLite writer lock and before writing any graph row.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    lease_id: str = Field(min_length=1)
+    resource_id: str = Field(min_length=1)
+    owner_pid: str = Field(min_length=1)
+    fencing_token: int = Field(gt=0)
+    expires_at: datetime
 
 
 # ── ArtifactVersionBinding ────────────────────────────────────────────────────
