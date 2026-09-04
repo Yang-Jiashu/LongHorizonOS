@@ -1,0 +1,367 @@
+[
+  {
+    "crash_point": "after_lease_before_execution",
+    "description": "After lease+checkpoint, before EXECUTION_STARTED",
+    "status": "PASS",
+    "pre_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_lease_before_execution:n3": {
+          "state": "pending",
+          "version": 1,
+          "attempts": 0
+        },
+        "sigkill-after_lease_before_execution:n2": {
+          "state": "ready",
+          "version": 2,
+          "attempts": 0
+        },
+        "sigkill-after_lease_before_execution:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 30,
+      "evidence": 1,
+      "tool_call_completed": 1,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "post_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_lease_before_execution:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_lease_before_execution:n2": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_lease_before_execution:n3": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 72,
+      "evidence": 3,
+      "tool_call_completed": 4,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "pre_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "MISSING",
+      "n3": "MISSING"
+    },
+    "post_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "9495a0ad1261df0f"
+    },
+    "verified": 3,
+    "total": 3,
+    "all_files_exist": true,
+    "no_duplicate_tool_keys": true,
+    "stdout": "run sigkill-after_lease_before_execution: resumed, status completed\n",
+    "stderr": ""
+  },
+  {
+    "crash_point": "during_tool_execution",
+    "description": "Worker crashes before any tool calls execute",
+    "status": "PASS",
+    "pre_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-during_tool_execution:n3": {
+          "state": "pending",
+          "version": 1,
+          "attempts": 0
+        },
+        "sigkill-during_tool_execution:n2": {
+          "state": "running",
+          "version": 4,
+          "attempts": 1
+        },
+        "sigkill-during_tool_execution:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 31,
+      "evidence": 1,
+      "tool_call_completed": 1,
+      "duplicate_tool_keys": false,
+      "crash_injected": 0,
+      "checkpoint_restored": 0
+    },
+    "post_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-during_tool_execution:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-during_tool_execution:n2": {
+          "state": "verified",
+          "version": 11,
+          "attempts": 2
+        },
+        "sigkill-during_tool_execution:n3": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 77,
+      "evidence": 3,
+      "tool_call_completed": 4,
+      "duplicate_tool_keys": false,
+      "crash_injected": 0,
+      "checkpoint_restored": 1
+    },
+    "pre_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "MISSING",
+      "n3": "MISSING"
+    },
+    "post_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "9495a0ad1261df0f"
+    },
+    "verified": 3,
+    "total": 3,
+    "all_files_exist": true,
+    "no_duplicate_tool_keys": true,
+    "stdout": "run sigkill-during_tool_execution: resumed, status completed\n",
+    "stderr": ""
+  },
+  {
+    "crash_point": "after_tool_side_effect_before_event",
+    "description": "After tool side-effects, before CLAIM_SUBMITTED",
+    "status": "PASS",
+    "pre_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_tool_side_effect_before_event:n3": {
+          "state": "pending",
+          "version": 1,
+          "attempts": 0
+        },
+        "sigkill-after_tool_side_effect_before_event:n2": {
+          "state": "running",
+          "version": 4,
+          "attempts": 1
+        },
+        "sigkill-after_tool_side_effect_before_event:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 34,
+      "evidence": 1,
+      "tool_call_completed": 2,
+      "duplicate_tool_keys": false,
+      "crash_injected": 0,
+      "checkpoint_restored": 0
+    },
+    "post_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_tool_side_effect_before_event:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_tool_side_effect_before_event:n2": {
+          "state": "verified",
+          "version": 11,
+          "attempts": 2
+        },
+        "sigkill-after_tool_side_effect_before_event:n3": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 80,
+      "evidence": 3,
+      "tool_call_completed": 5,
+      "duplicate_tool_keys": false,
+      "crash_injected": 0,
+      "checkpoint_restored": 1
+    },
+    "pre_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "MISSING"
+    },
+    "post_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "9495a0ad1261df0f"
+    },
+    "verified": 3,
+    "total": 3,
+    "all_files_exist": true,
+    "no_duplicate_tool_keys": true,
+    "stdout": "run sigkill-after_tool_side_effect_before_event: resumed, status completed\n",
+    "stderr": ""
+  },
+  {
+    "crash_point": "after_claim_before_verification",
+    "description": "After CLAIM_SUBMITTED, before verification",
+    "status": "PASS",
+    "pre_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_claim_before_verification:n2": {
+          "state": "claimed_done",
+          "version": 5,
+          "attempts": 1
+        },
+        "sigkill-after_claim_before_verification:n3": {
+          "state": "pending",
+          "version": 1,
+          "attempts": 0
+        },
+        "sigkill-after_claim_before_verification:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 41,
+      "evidence": 1,
+      "tool_call_completed": 3,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "post_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_claim_before_verification:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_claim_before_verification:n2": {
+          "state": "verified",
+          "version": 12,
+          "attempts": 2
+        },
+        "sigkill-after_claim_before_verification:n3": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 79,
+      "evidence": 3,
+      "tool_call_completed": 4,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "pre_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "MISSING"
+    },
+    "post_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "9495a0ad1261df0f"
+    },
+    "verified": 3,
+    "total": 3,
+    "all_files_exist": true,
+    "no_duplicate_tool_keys": true,
+    "stdout": "run sigkill-after_claim_before_verification: resumed, status completed\n",
+    "stderr": ""
+  },
+  {
+    "crash_point": "after_verified_before_commit",
+    "description": "After VERIFIED commit, before next node",
+    "status": "PASS",
+    "pre_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_verified_before_commit:n3": {
+          "state": "pending",
+          "version": 1,
+          "attempts": 0
+        },
+        "sigkill-after_verified_before_commit:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_verified_before_commit:n2": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 47,
+      "evidence": 2,
+      "tool_call_completed": 3,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "post_state": {
+      "node_count": 3,
+      "nodes": {
+        "sigkill-after_verified_before_commit:n1": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_verified_before_commit:n2": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        },
+        "sigkill-after_verified_before_commit:n3": {
+          "state": "verified",
+          "version": 7,
+          "attempts": 1
+        }
+      },
+      "events": 69,
+      "evidence": 3,
+      "tool_call_completed": 4,
+      "duplicate_tool_keys": false,
+      "crash_injected": 1,
+      "checkpoint_restored": 0
+    },
+    "pre_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "MISSING"
+    },
+    "post_hashes": {
+      "n1": "16f4412386134a8f",
+      "n2": "74b2605a7d193a5d",
+      "n3": "9495a0ad1261df0f"
+    },
+    "verified": 3,
+    "total": 3,
+    "all_files_exist": true,
+    "no_duplicate_tool_keys": true,
+    "stdout": "run sigkill-after_verified_before_commit: resumed, status completed\n",
+    "stderr": ""
+  }
+]

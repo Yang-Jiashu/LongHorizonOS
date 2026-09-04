@@ -1,0 +1,77 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+dist-final/
+dist-final-*/
+dist-release-check/
+dist-release-*/
+*.whl
+*.tar.gz
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+.venv/
+.venv-audit/
+.env
+*.db
+*.db-wal
+*.db-shm
+tmp-*.sqlite
+tmp_*.txt
+tmp-route-workspace/
+format_check.txt
+.DS_Store
+
+# Runtime data is not committed; audit reports are.
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/audit/
+!artifacts/traces/.gitkeep
+!artifacts/checkpoints/.gitkeep
+!artifacts/benchmark_results/.gitkeep
+# Keep only the checked-in benchmark reports linked from the public README.
+artifacts/benchmark_results/*
+!artifacts/benchmark_results/
+!artifacts/benchmark_results/multi-agent-runtime.json
+!artifacts/benchmark_results/vpg-incremental-history-2026-08-12-frontier-summary-final.json
+!artifacts/resource-aware-runtime-20260815.json
+!artifacts/adaptive-wallclock-runtime-20260816.json
+!artifacts/full-test-nonslow-20260816-final-after-outbox.log
+!artifacts/slow-tests-20260816-final.log
+!artifacts/full-test-nonslow-20260816-post-format.log
+!artifacts/slow-tests-20260816-post-format.log
+!artifacts/reports/.gitkeep
+!artifacts/oss_productization_e5/
+!artifacts/oss_productization_e5/**
+benchmarks/pilot/config_loader/initial_repo
+
+# --- Dev-only scratch & ad-hoc scripts (kept locally, never shipped) ---
+# Root-anchored: _*.py at repo root only — MUST NOT match package __init__.py
+/_*.py
+/_*.md
+/_*.md.txt
+# Never ignore package markers, wherever they live
+!**/__init__.py
+*.log
+ablation_*.py
+ablation_*.json
+multi_model_benchmark.py
+multi_model_results.json
+bench_scalability.py
+bench_scalability.json
+OPTIMIZATION_LOG.md
+RESEARCH-RESULTS.md
+A-DESIGN.md
+DELIVERY-SUMMARY.md
+CONTEXT-HOT-POTATO.md
+
+# 发版残留防护（2026-09-04）
+*.bak
+*.bak-*
+tmp_*.py
+tmp-*.py

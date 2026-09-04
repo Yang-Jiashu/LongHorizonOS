@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "calculate_total": {
+    "signature": "calculate_total(subtotal, discount_percent=0) -> Decimal",
+    "rounding": "ROUND_HALF_UP to two decimal places",
+    "validation": [
+      "subtotal must be non-negative",
+      "discount_percent must be between 0 and 100"
+    ]
+  },
+  "quote": {
+    "required_fields": ["subtotal"],
+    "optional_fields": ["discount_percent"],
+    "response_fields": ["total"]
+  }
+}

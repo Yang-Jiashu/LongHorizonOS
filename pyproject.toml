@@ -1,0 +1,136 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lhos"
+version = "0.1.0"
+description = "Stateful online compute management for long-horizon agents"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+keywords = [
+    "agent-os",
+    "long-horizon-agents",
+    "multi-agent",
+    "semantic-recovery",
+    "resource-scheduling",
+    "verified-progress-graph",
+]
+authors = [
+    { name = "LongHorizonOS Contributors" },
+]
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "networkx>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Yang-Jiashu/LongHorizonOS"
+Repository = "https://github.com/Yang-Jiashu/LongHorizonOS"
+Issues = "https://github.com/Yang-Jiashu/LongHorizonOS/issues"
+Documentation = "https://github.com/Yang-Jiashu/LongHorizonOS/tree/main/docs"
+Changelog = "https://github.com/Yang-Jiashu/LongHorizonOS/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff==0.16.2",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+    "types-networkx>=3.0",
+]
+
+[project.scripts]
+# Core V1 native CLI (read-only observability, E3).  `lhos legacy` routes to
+# the legacy spec-20 CLI.
+lhos = "lhos.cli.core:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff==0.16.2",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0",
+    "types-networkx>=3.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"lhos.infrastructure.db" = ["schema.sql", "migrations/*.sql"]
+"lhos.agents" = ["prompts/*.md"]
+"lhos.agent_os.storage" = ["schema.sql"]
+"lhos.configs" = ["default.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "slow: long-running scale and stress audits excluded from the regular CI gate",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Pre-existing baseline lint debt (out of D3 scope): these D1-test/example
+# files predate D3.1 and were never repo-wide ruff-gate-clean.  D3's own code
+# (src/lhos/runtimes/invalidation + its invalidation test dir) is individually
+# ruff-clean.  Excluded so `ruff check .` is clean without a 36-file
+# pre-existing D1-test edit (avoiding D3 scope creep per §32).
+extend-exclude = [
+  "build",
+  "dist",
+  "tests/runtimes/verified_progress/conftest.py",
+  "tests/runtimes/verified_progress/test_*.py",
+  "examples/verified_progress/basic_graph_closure.py",
+  "scripts/d21_*.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B023", "B017", "RUF059", "F841", "E731", "E741", "B007", "B905", "RUF002", "RUF003", "SIM102"]
+"scripts/*" = ["B023", "E402"]
+"examples/*" = ["RUF059", "F841", "E731", "E741"]
+"src/lhos/benchmarks/transcript.py" = ["B023"]
+
+[tool.ruff.format]
+# These historical audit files contain mixed line endings in the source archive.
+# Keep them linted; exclude only formatter enforcement until Git renormalizes them.
+exclude = [
+  "tests/agent_os/artifacts/test_audit_26_gates.py",
+  "tests/agent_os/artifacts/test_audit_benchmark.py",
+  "tests/agent_os/artifacts/test_audit_demo_independence.py",
+  "tests/agent_os/artifacts/test_audit_mutation.py",
+  "tests/agent_os/artifacts/test_audit_public_claims.py",
+  "tests/agent_os/test_audit_sigkill.py",
+  "tests/demo/test_demo.py",
+  "tests/unit/test_capability_manifest.py",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["networkx.*", "yaml.*"]
+ignore_missing_imports = true

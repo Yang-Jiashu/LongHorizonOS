@@ -1,0 +1,20 @@
+{
+  "schema_version": "lhos-lhtb-controlled-queue.v1",
+  "repo": "C:\\Users\\yangjiashu\\Downloads\\LongHorizonOS-main\\LongHorizonOS-main",
+  "wait_for": {
+    "output": "D:\\LHTB-results\\lhtb-exposed30-forced60-fixed900-20260822-r4",
+    "pid": null
+  },
+  "steps": [
+    {
+      "name": "invalid9_natural_fixed900_pair_rerun_r3",
+      "output": "D:\\LHTB-results\\lhtb-full46-invalid9-natural-fixed900-rerun-20260823-r3",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-full46-invalid9-natural-fixed900-rerun-20260823-r3",
+      "arm": "both",
+      "resource_aware_pairs": true,
+      "max_concurrency": 3,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456
+    }
+  ]
+}

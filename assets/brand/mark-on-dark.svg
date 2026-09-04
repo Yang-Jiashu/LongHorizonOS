@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="208" height="196" viewBox="0 0 208 196" role="img" aria-label="LongHorizonOS">
+  <g transform="translate(-23.260 -29.260) scale(0.99422)">
+    <circle cx="128" cy="128" r="76" fill="none" stroke="#FFFFFF"
+            stroke-width="21" stroke-linecap="round"
+            stroke-dasharray="350.18 127.34"
+            transform="rotate(-42.00 128 128)"/>
+    <path d="M96 130 L124 158 L192 82" fill="none" stroke="#FF5A1F"
+          stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

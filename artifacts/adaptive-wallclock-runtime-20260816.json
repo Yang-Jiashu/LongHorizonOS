@@ -1,0 +1,262 @@
+﻿{
+  "adaptive": {
+    "admitted_batches": [
+      [
+        "a-heavy",
+        "c-light"
+      ],
+      [
+        "b-heavy",
+        "d-light"
+      ]
+    ],
+    "closure": true,
+    "correctness": {
+      "admitted_batches_conflict_safe": true,
+      "all_attempts_crossed_claim_and_lease": true,
+      "all_tasks_verified": true,
+      "all_verified_tasks_have_valid_evidence": true,
+      "executor_completed_all_tasks": true,
+      "goal_closed": true,
+      "no_active_claims": true,
+      "no_active_reservations": true,
+      "no_executor_capacity_violation": true,
+      "no_live_kernel_leases": true,
+      "selected_batches_conflict_safe": true,
+      "semantic_attempt_count_matches_verified_tasks": true
+    },
+    "dispatched_attempts": 4,
+    "elapsed_seconds": 0.227945,
+    "epochs": 2,
+    "executor_capacity_violation_events": 0,
+    "executor_completed_task_ids": [
+      "a-heavy",
+      "b-heavy",
+      "c-light",
+      "d-light"
+    ],
+    "executor_peak_parallelism": 2,
+    "executor_peak_resources": {
+      "cpu_millis": 1000,
+      "gpu_count": 0,
+      "model_slots": {},
+      "ram_bytes": 0,
+      "vram_bytes": 0
+    },
+    "goal_state": "closed",
+    "mode": "adaptive",
+    "policy": "resource-aware-conflict-greedy.v1",
+    "resource_aware": true,
+    "runtime_audit": {
+      "active_claims_after_run": 0,
+      "active_reservations_after_run": 0,
+      "attempt_state_counts": {
+        "verified_semantically": 4
+      },
+      "claims_created": 4,
+      "claims_with_kernel_lease": 4,
+      "claims_with_positive_fence": 4,
+      "graph_id": "b8da5ed4e60a4ff08afaca278ea6a64b",
+      "graph_version": 5,
+      "live_kernel_leases_after_run": 0,
+      "pass_evidence_nodes": 4,
+      "scheduler_attempts": 4,
+      "valid_evidence_bindings_by_task": {
+        "a-heavy": 1,
+        "b-heavy": 1,
+        "c-light": 1,
+        "d-light": 1
+      }
+    },
+    "scheduler_resource_rejections": 0,
+    "selected_batches": [
+      [
+        "a-heavy",
+        "c-light"
+      ],
+      [
+        "b-heavy",
+        "d-light"
+      ]
+    ],
+    "verified_task_ids": [
+      "a-heavy",
+      "b-heavy",
+      "c-light",
+      "d-light"
+    ]
+  },
+  "benchmark": "adaptive_wallclock_runtime",
+  "benchmark_version": 1,
+  "comparison": {
+    "epoch_reduction": 1,
+    "observed_speedup": 1.304736,
+    "same_verified_goal": true,
+    "scheduler_resource_rejection_reduction": 1,
+    "wall_clock_is_informational_not_a_gate": true,
+    "wall_time_reduction_seconds_observed": 0.069463
+  },
+  "scope": {
+    "authoritative_path": "adaptive policy -> Scheduler logical admission -> TaskClaim -> Kernel Lease -> AsyncWorkerPool -> async executor -> verifier -> VPG Evidence",
+    "bounded": true,
+    "deterministic_workload": true,
+    "does_not_measure": "real LLM/provider quality or latency, tokens, dollars, physical CPU/GPU/RAM/VRAM utilization or isolation, distributed placement, or production throughput",
+    "offline": true,
+    "public_agentos_run_async": true,
+    "real_asyncio_sleep": true,
+    "real_perf_counter_wall_clock": true,
+    "simulated_clock": false,
+    "wall_clock_caveat": "elapsed values are local observations; correctness gates use graph closure, epochs, rejection counts, ownership, and Evidence",
+    "wall_clock_gate": false
+  },
+  "static": {
+    "admitted_batches": [
+      [
+        "a-heavy"
+      ],
+      [
+        "b-heavy",
+        "c-light"
+      ],
+      [
+        "d-light"
+      ]
+    ],
+    "closure": true,
+    "correctness": {
+      "admitted_batches_conflict_safe": true,
+      "all_attempts_crossed_claim_and_lease": true,
+      "all_tasks_verified": true,
+      "all_verified_tasks_have_valid_evidence": true,
+      "executor_completed_all_tasks": true,
+      "goal_closed": true,
+      "no_active_claims": true,
+      "no_active_reservations": true,
+      "no_executor_capacity_violation": true,
+      "no_live_kernel_leases": true,
+      "selected_batches_conflict_safe": true,
+      "semantic_attempt_count_matches_verified_tasks": true
+    },
+    "dispatched_attempts": 4,
+    "elapsed_seconds": 0.297408,
+    "epochs": 3,
+    "executor_capacity_violation_events": 0,
+    "executor_completed_task_ids": [
+      "a-heavy",
+      "b-heavy",
+      "c-light",
+      "d-light"
+    ],
+    "executor_peak_parallelism": 2,
+    "executor_peak_resources": {
+      "cpu_millis": 1000,
+      "gpu_count": 0,
+      "model_slots": {},
+      "ram_bytes": 0,
+      "vram_bytes": 0
+    },
+    "goal_state": "closed",
+    "mode": "static",
+    "policy": "conflict-aware-fixed-parallelism.v1",
+    "resource_aware": false,
+    "runtime_audit": {
+      "active_claims_after_run": 0,
+      "active_reservations_after_run": 0,
+      "attempt_state_counts": {
+        "verified_semantically": 4
+      },
+      "claims_created": 4,
+      "claims_with_kernel_lease": 4,
+      "claims_with_positive_fence": 4,
+      "graph_id": "42127926ad3d43a8b1f6907960aac394",
+      "graph_version": 5,
+      "live_kernel_leases_after_run": 0,
+      "pass_evidence_nodes": 4,
+      "scheduler_attempts": 4,
+      "valid_evidence_bindings_by_task": {
+        "a-heavy": 1,
+        "b-heavy": 1,
+        "c-light": 1,
+        "d-light": 1
+      }
+    },
+    "scheduler_resource_rejections": 1,
+    "selected_batches": [
+      [
+        "a-heavy",
+        "b-heavy"
+      ],
+      [
+        "b-heavy",
+        "c-light"
+      ],
+      [
+        "d-light"
+      ]
+    ],
+    "verified_task_ids": [
+      "a-heavy",
+      "b-heavy",
+      "c-light",
+      "d-light"
+    ]
+  },
+  "valid": true,
+  "violations": [],
+  "workload": {
+    "declared_conflicts": [
+      {
+        "left_task_id": "a-heavy",
+        "reason": "write_write",
+        "resource": "workspace://shared-control",
+        "right_task_id": "d-light"
+      }
+    ],
+    "delay_seconds_per_task": 0.05,
+    "logical_capacity": {
+      "cpu_millis": 1000,
+      "gpu_count": 0,
+      "model_slots": {},
+      "ram_bytes": 0,
+      "vram_bytes": 0
+    },
+    "max_concurrency": 2,
+    "max_parallelism": 2,
+    "task_ids": [
+      "a-heavy",
+      "b-heavy",
+      "c-light",
+      "d-light"
+    ],
+    "task_requests": {
+      "a-heavy": {
+        "cpu_millis": 700,
+        "gpu_count": 0,
+        "model_slots": {},
+        "ram_bytes": 0,
+        "vram_bytes": 0
+      },
+      "b-heavy": {
+        "cpu_millis": 700,
+        "gpu_count": 0,
+        "model_slots": {},
+        "ram_bytes": 0,
+        "vram_bytes": 0
+      },
+      "c-light": {
+        "cpu_millis": 300,
+        "gpu_count": 0,
+        "model_slots": {},
+        "ram_bytes": 0,
+        "vram_bytes": 0
+      },
+      "d-light": {
+        "cpu_millis": 300,
+        "gpu_count": 0,
+        "model_slots": {},
+        "ram_bytes": 0,
+        "vram_bytes": 0
+      }
+    }
+  }
+}

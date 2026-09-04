@@ -1,0 +1,60 @@
+{
+  "benchmark": "vpg_incremental_projection_history",
+  "workload": "one new task node per committed patch",
+  "results": [
+    {
+      "patches": 100,
+      "elapsed_seconds": 0.89542,
+      "mean_commit_ms": 8.954196,
+      "database_bytes": 483328,
+      "durable_files_bytes": 483328,
+      "node_history_rows": 100,
+      "edge_history_rows": 0,
+      "history_payload_bytes": 35274,
+      "ready_frontier_payload_bytes": 11892,
+      "patch_payload_bytes": 90970,
+      "snapshot_headers": 101,
+      "latest_node_count": 100,
+      "latest_edge_count": 0,
+      "old_full_history_row_baseline": 5050,
+      "history_row_reduction_percent": 98.019802
+    },
+    {
+      "patches": 200,
+      "elapsed_seconds": 4.032194,
+      "mean_commit_ms": 20.16097,
+      "database_bytes": 888832,
+      "durable_files_bytes": 888832,
+      "node_history_rows": 200,
+      "edge_history_rows": 0,
+      "history_payload_bytes": 70874,
+      "ready_frontier_payload_bytes": 23892,
+      "patch_payload_bytes": 182270,
+      "snapshot_headers": 201,
+      "latest_node_count": 200,
+      "latest_edge_count": 0,
+      "old_full_history_row_baseline": 20100,
+      "history_row_reduction_percent": 99.004975
+    },
+    {
+      "patches": 400,
+      "elapsed_seconds": 17.201912,
+      "mean_commit_ms": 43.00478,
+      "database_bytes": 1638400,
+      "durable_files_bytes": 1638400,
+      "node_history_rows": 400,
+      "edge_history_rows": 0,
+      "history_payload_bytes": 142074,
+      "ready_frontier_payload_bytes": 47892,
+      "patch_payload_bytes": 364870,
+      "snapshot_headers": 401,
+      "latest_node_count": 400,
+      "latest_edge_count": 0,
+      "old_full_history_row_baseline": 80200,
+      "history_row_reduction_percent": 99.501247
+    }
+  ],
+  "violations": [],
+  "valid": true,
+  "scope_note": "This proves linear durable entity-history growth for this workload; it does not claim linear end-to-end commit time. READY frontier event summaries are also checked for linear durable payload."
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "config_loader",
+  "hidden_requirements": [
+    {"id": "req_8", "description": "ConfigLoader class exists with load() method", "weight": 1.0},
+    {"id": "req_9", "description": "ConfigLoader has get() method with default", "weight": 0.5},
+    {"id": "req_10", "description": "Nested config objects load correctly", "weight": 0.5}
+  ],
+  "hidden_test_count": 7,
+  "oracle_graph": {
+    "nodes": [
+      {"temp_id": "n1", "title": "Inspect project", "specification": "Read project files"},
+      {"temp_id": "n2", "title": "Create config_loader.py", "specification": "Create the config loader module"},
+      {"temp_id": "n3", "title": "Migrate app.py", "specification": "Update app.py to use config_loader"},
+      {"temp_id": "n4", "title": "Add tests", "specification": "Write public tests"},
+      {"temp_id": "n5", "title": "Update README", "specification": "Update README with config_loader docs"}
+    ],
+    "edges": [
+      {"source": "n2", "target": "n1", "kind": "depends_on"},
+      {"source": "n3", "target": "n2", "kind": "depends_on"},
+      {"source": "n4", "target": "n3", "kind": "depends_on"},
+      {"source": "n5", "target": "n3", "kind": "depends_on"}
+    ]
+  }
+}

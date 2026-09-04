@@ -1,0 +1,59 @@
+{
+  "schema_version": "lhos-lhtb-controlled-queue.v1",
+  "repo": "C:\\Users\\yangjiashu\\Downloads\\LongHorizonOS-main\\LongHorizonOS-main",
+  "wait_for": {
+    "output": "D:\\LHTB-results\\lhtb-full46-primary-natural-fixed900-20260822-r3",
+    "pid": 7888
+  },
+  "steps": [
+    {
+      "name": "sentinel16_natural_fresh_batch",
+      "output": "D:\\LHTB-results\\lhtb-sentinel16-natural-fresh-batch-20260822-r3",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-sentinel16-natural-fresh-batch-20260822-r3",
+      "arm": "fresh",
+      "resource_aware_pairs": true,
+      "max_concurrency": 3,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456,
+      "cooldown_seconds": 120
+    },
+    {
+      "name": "sentinel16_natural_lhos_batch",
+      "output": "D:\\LHTB-results\\lhtb-sentinel16-natural-lhos-batch-20260822-r3",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-sentinel16-natural-lhos-batch-20260822-r3",
+      "arm": "lhos",
+      "resource_aware_pairs": true,
+      "max_concurrency": 3,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456,
+      "cooldown_seconds": 120
+    },
+    {
+      "name": "sentinel16_natural_merge",
+      "kind": "merge_arms",
+      "fresh_output": "D:\\LHTB-results\\lhtb-sentinel16-natural-fresh-batch-20260822-r3",
+      "lhos_output": "D:\\LHTB-results\\lhtb-sentinel16-natural-lhos-batch-20260822-r3",
+      "output": "D:\\LHTB-results\\lhtb-sentinel16-natural-arm-batch-merged-20260822-r3"
+    },
+    {
+      "name": "forced60_exposed30",
+      "output": "D:\\LHTB-results\\lhtb-exposed30-forced60-fixed900-20260822-r3",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-exposed30-forced60-fixed900-20260822-r3",
+      "arm": "both",
+      "resource_aware_pairs": true,
+      "max_concurrency": 3,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456
+    },
+    {
+      "name": "official_ttv5_natural",
+      "output": "D:\\LHTB-results\\lhtb-ttv5-natural-official-20260822-r3",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-ttv5-natural-official-20260822-r3",
+      "arm": "both",
+      "resource_aware_pairs": true,
+      "max_concurrency": 1,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456
+    }
+  ]
+}

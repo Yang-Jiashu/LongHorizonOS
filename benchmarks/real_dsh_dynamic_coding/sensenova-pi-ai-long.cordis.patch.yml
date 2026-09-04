@@ -1,0 +1,47 @@
+- id: agent-default-model
+  config:
+    provider: sensenova
+    model: deepseek-v4-flash
+
+- id: llm-pi-ai
+  config:
+    providers:
+      sensenova:
+        displayName: SenseNova
+        apiKeyEnv: DEEPSEEK_API_KEY
+        api: openai-completions
+        baseURL: !!js process.env.DEEPSEEK_BASE_URL
+        reasoning: low
+        defaultContextWindow: 1000000
+        defaultMaxTokens: 12288
+        streamIdleTimeoutMs: 180000
+        compat:
+          supportsDeveloperRole: false
+          supportsReasoningEffort: true
+          supportsUsageInStreaming: true
+          maxTokensField: max_tokens
+          thinkingFormat: openai
+          requiresReasoningContentOnAssistantMessages: true
+          supportsStrictMode: false
+        models:
+          - id: deepseek-v4-flash
+            name: DeepSeek-V4-Flash
+            contextWindow: 1000000
+            maxTokens: 12288
+            reasoningEfforts:
+              off: none
+              low: low
+              medium: medium
+              high: high
+
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none
+    packChunks: false
+
+- id: session-title-llm
+  disabled: true
+
+- id: tool-web
+  disabled: true

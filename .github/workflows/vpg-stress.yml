@@ -1,0 +1,26 @@
+name: VPG stress audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  stress:
+    name: Scale, concurrency, and state-machine audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: python -m pip install ".[dev]"
+      - name: Run slow VPG audits
+        run: python -m pytest -q -m slow tests/runtimes/verified_progress

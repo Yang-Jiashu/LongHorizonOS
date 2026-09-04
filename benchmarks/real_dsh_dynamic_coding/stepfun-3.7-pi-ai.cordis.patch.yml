@@ -1,0 +1,46 @@
+- id: agent-default-model
+  config:
+    provider: stepfun
+    model: step-3.7-flash
+
+- id: llm-pi-ai
+  config:
+    providers:
+      stepfun:
+        displayName: StepFun
+        apiKeyEnv: STEPFUN_API_KEY
+        api: openai-completions
+        baseURL: https://api.stepfun.com/step_plan/v1
+        reasoning: medium
+        defaultContextWindow: 256000
+        defaultMaxTokens: 8192
+        streamIdleTimeoutMs: 180000
+        compat:
+          supportsDeveloperRole: false
+          supportsReasoningEffort: true
+          supportsUsageInStreaming: true
+          maxTokensField: max_tokens
+          thinkingFormat: openai
+          requiresReasoningContentOnAssistantMessages: false
+          supportsStrictMode: false
+        models:
+          - id: step-3.7-flash
+            name: Step 3.7 Flash
+            contextWindow: 256000
+            maxTokens: 8192
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none
+    packChunks: false
+
+- id: session-title-llm
+  disabled: true
+
+- id: tool-web
+  disabled: true

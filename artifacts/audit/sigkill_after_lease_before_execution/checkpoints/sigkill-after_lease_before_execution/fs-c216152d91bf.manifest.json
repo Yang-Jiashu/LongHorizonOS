@@ -1,0 +1,10 @@
+{
+  "checkpoint_id": "fs-c216152d91bf",
+  "run_id": "sigkill-after_lease_before_execution",
+  "reason": "before:sigkill-after_lease_before_execution:n2",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_lease_before_execution/workspace",
+  "files": {
+    "n1.txt": "16f4412386134a8f4561b0d1280f0fe2474d1208e0197a9d4b4916fb24396d7c"
+  },
+  "created_at": "2026-08-03T21:43:16.267708+08:00"
+}

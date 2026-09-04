@@ -1,0 +1,82 @@
+{
+  "goal": "crash/resume smoke test",
+  "nodes": [
+    {
+      "temp_id": "n1",
+      "kind": "subtask",
+      "title": "Inspect repository",
+      "specification": "Inspect repository structure and write an inventory file.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "type": "file_exists",
+        "path": "inventory.txt"
+      },
+      "metadata": {
+        "script": {
+          "summary": "Wrote repository inventory.",
+          "produced_artifacts": [
+            {
+              "path": "inventory.txt",
+              "content": "src/\ntests/\nREADME.md\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "temp_id": "n2",
+      "kind": "subtask",
+      "title": "Implement parser",
+      "specification": "Write a minimal configuration parser module.",
+      "schedulable": true,
+      "progress_weight": 2.0,
+      "verification_spec": {
+        "type": "file_contains",
+        "path": "parser.py",
+        "substring": "def parse"
+      },
+      "metadata": {
+        "script": {
+          "summary": "Implemented parser.py.",
+          "produced_artifacts": [
+            {
+              "path": "parser.py",
+              "content": "def parse(text):\n    return dict(line.split('=', 1) for line in text.splitlines() if '=' in line)\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "temp_id": "n3",
+      "kind": "subtask",
+      "title": "Run smoke check",
+      "specification": "Verify the parser module compiles.",
+      "schedulable": true,
+      "progress_weight": 1.0,
+      "verification_spec": {
+        "type": "command",
+        "command": "python -m py_compile parser.py"
+      },
+      "metadata": {
+        "script": {
+          "summary": "parser.py compiles cleanly.",
+          "crash_on_attempt": 1
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "n2",
+      "target": "n1",
+      "kind": "depends_on"
+    },
+    {
+      "source": "n3",
+      "target": "n2",
+      "kind": "depends_on"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "event": "order_priced",
+  "fields": ["event", "order_id", "total"],
+  "money_format": "two decimal places"
+}

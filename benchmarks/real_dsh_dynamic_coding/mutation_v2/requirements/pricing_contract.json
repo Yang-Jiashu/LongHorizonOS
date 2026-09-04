@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "calculate_total": {
+    "signature": "calculate_total(subtotal, *, discount_percent=0, tax_rate, currency) -> PriceBreakdown",
+    "rounding": "ROUND_HALF_UP to two decimal places for discount, tax, and total",
+    "validation": [
+      "subtotal must be non-negative",
+      "discount_percent must be between 0 and 100",
+      "tax_rate must be between 0 and 100",
+      "currency must be a three-letter alphabetic code"
+    ],
+    "result_fields": ["subtotal", "discount", "tax", "total", "currency"]
+  },
+  "quote": {
+    "required_fields": ["subtotal", "tax_rate", "currency"],
+    "optional_fields": ["discount_percent"],
+    "response_fields": ["subtotal", "discount", "tax", "total", "currency"]
+  }
+}

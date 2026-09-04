@@ -1,0 +1,45 @@
+job_name: lhtb-dsh-langchain-baseline-gate
+jobs_dir: D:/LHTB-jobs
+n_attempts: 1
+n_concurrent_trials: 1
+timeout_multiplier: 1.0
+
+environment:
+  type: docker
+  force_build: false
+  delete: true
+  mounts:
+    - type: bind
+      source: D:/LHTB-dsh-runtime
+      target: /opt/lhtb-runtime
+      read_only: true
+    - type: bind
+      source: C:/Users/yangjiashu/Downloads/LongHorizonOS-main/LongHorizonOS-main/benchmarks/real_dsh_dynamic_coding/stepfun-3.7-pi-ai.cordis.patch.yml
+      target: /opt/lhtb-stepfun-3.7.cordis.patch.yml
+      read_only: true
+
+agents:
+  - import_path: scripts.lhtb_dsh_harbor_agent:LHTBDeepSeekHarnessAgent
+    model_name: stepfun/step-3.7-flash
+    override_timeout_sec: 180
+    override_setup_timeout_sec: 120
+    env:
+      STEPFUN_API_KEY: ${STEPFUN_API_KEY}
+    kwargs:
+      arm: baseline
+      bundle_root: /opt
+      node_path: /opt/lhtb-runtime/node-v24.19.0-linux-x64/bin/node
+      dsh_path: /opt/lhtb-runtime/dsh-0.1.0-rc.8/node_modules/@deepseek-ai/dsh/lib/bin.js
+      patch_path: /opt/lhtb-stepfun-3.7.cordis.patch.yml
+      credential_env: STEPFUN_API_KEY
+      profile: headless
+      workdir: /app
+      expected_dsh_version: 0.1.0-rc.8
+      permission_mode: workspace-write
+      tools_mode: native
+      require_container_internet: true
+
+datasets:
+  - path: D:/LHTB-local-pilot/tasks
+    task_names:
+      - langchain-version-migration

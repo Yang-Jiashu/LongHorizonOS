@@ -1,0 +1,32 @@
+{
+  "task_id": "config_loader",
+  "task_name": "Config Loader Module",
+  "goal": "Add a configuration loading module to the existing SampleApp project that supports JSON file loading with proper error handling.",
+  "requirements": [
+    {"id": "req_1", "description": "Support loading config from JSON files", "weight": 1.0},
+    {"id": "req_2", "description": "Clear error for missing config files", "weight": 1.0},
+    {"id": "req_3", "description": "Clear error for invalid JSON", "weight": 1.0},
+    {"id": "req_4", "description": "Migrate existing caller to new config module", "weight": 1.0},
+    {"id": "req_5", "description": "Add public unit tests", "weight": 1.0},
+    {"id": "req_6", "description": "Update README", "weight": 0.5},
+    {"id": "req_7", "description": "No regressions in existing tests", "weight": 1.0}
+  ],
+  "environment": {
+    "python_version": "3.11",
+    "dependencies": ["pydantic>=2.5", "pytest>=8.0"],
+    "project_structure": "src/sample_app/"
+  },
+  "tools": ["filesystem_read", "filesystem_write", "shell_command"],
+  "budget": {
+    "max_total_tokens": 200000,
+    "max_model_calls": 100,
+    "max_tool_calls": 100,
+    "max_wall_clock_seconds": 3600
+  },
+  "verification": {
+    "public_tests": "tests_public/",
+    "hidden_tests": "tests_hidden/",
+    "grader": "grader/grader.py"
+  },
+  "initial_commit": "fixed_initial_commit"
+}

@@ -1,0 +1,130 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0
+collected 161 items
+
+tests/e2e/test_tiny_repository_task.py .                                 [  0%]
+tests/integration/test_benchmark_run.py .......                          [  4%]
+tests/integration/test_checkpoint_restore.py ..                          [  6%]
+tests/integration/test_crash_injection.py .....                          [  9%]
+tests/integration/test_event_projection.py .                             [  9%]
+tests/integration/test_invalidation_loop.py ...                          [ 11%]
+tests/integration/test_run_resume.py .                                   [ 12%]
+tests/integration/test_verification_commit.py ....                       [ 14%]
+tests/unit/test_benchmark_metrics.py ..............                      [ 23%]
+tests/unit/test_context_compiler.py .......                              [ 27%]
+tests/unit/test_generator.py ........................................... [ 54%]
+                                                                         [ 54%]
+tests/unit/test_invalidation.py ...                                      [ 56%]
+tests/unit/test_patch_validator.py ......                                [ 60%]
+tests/unit/test_readiness.py ..........                                  [ 66%]
+tests/unit/test_scheduler.py .....                                       [ 69%]
+tests/unit/test_state_machine.py ....................................... [ 93%]
+..........                                                               [100%]
+
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.11.15-final-0 _______________
+
+Name                                                           Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------------------------------------------------
+src/lhos/__init__.py                                               0      0      0      0   100%
+src/lhos/agents/__init__.py                                        0      0      0      0   100%
+src/lhos/agents/executor.py                                       22     22      0      0     0%   9-49
+src/lhos/agents/planner.py                                        23     23      2      0     0%   8-49
+src/lhos/agents/semantic_reconciler.py                            14     14      2      0     0%   9-31
+src/lhos/benchmarks/__init__.py                                    0      0      0      0   100%
+src/lhos/benchmarks/adapter.py                                    47     47      6      0     0%   8-105
+src/lhos/benchmarks/controlled/__init__.py                         3      0      0      0   100%
+src/lhos/benchmarks/controlled/environment.py                     16      0      4      0   100%
+src/lhos/benchmarks/controlled/generator.py                      201      3     70      5    97%   113-114, 144, 151->165, 369->409, 390->409
+src/lhos/benchmarks/controlled/oracle.py                          74      1     32      3    96%   35, 63->69, 119->109
+src/lhos/benchmarks/controlled/task_schema.py                     35      0      2      0   100%
+src/lhos/benchmarks/metrics.py                                    47      0     22      1    99%   64->62
+src/lhos/benchmarks/modes.py                                      38      8     10      3    73%   51-53, 69, 85, 90, 144, 146
+src/lhos/benchmarks/runner.py                                     82      4     28      4    93%   36->35, 58, 96-97, 141
+src/lhos/benchmarks/scoring.py                                   126      3     52      7    94%   58, 121->130, 122->121, 148, 151, 179->184, 250->248
+src/lhos/benchmarks/transcript.py                                151     14     50     13    85%   61, 62->59, 126->240, 132, 134, 160->167, 162->161, 185-188, 191->190, 198-199, 204->221, 238, 245-248
+src/lhos/bootstrap.py                                             79      3      8      2    94%   62-63, 92
+src/lhos/cli/__init__.py                                           0      0      0      0   100%
+src/lhos/cli/benchmark.py                                         77     77     26      0     0%   12-161
+src/lhos/cli/inject.py                                            20     20      0      0     0%   9-43
+src/lhos/cli/inspect.py                                           38     38      0      0     0%   3-70
+src/lhos/cli/main.py                                              70     70      2      0     0%   3-93
+src/lhos/cli/replay.py                                            27     14      4      0    48%   25-39
+src/lhos/cli/resume.py                                            27     27      2      0     0%   3-41
+src/lhos/cli/run.py                                               33     33      0      0     0%   3-53
+src/lhos/config.py                                                23     23      8      0     0%   6-38
+src/lhos/domain/__init__.py                                        0      0      0      0   100%
+src/lhos/domain/budgets.py                                        32      6     14      6    74%   28, 30, 38, 40, 42, 44
+src/lhos/domain/enums.py                                          45      0      0      0   100%
+src/lhos/domain/errors.py                                         20      0      0      0   100%
+src/lhos/domain/events.py                                         61      0      0      0   100%
+src/lhos/domain/graph_patch.py                                     8      0      0      0   100%
+src/lhos/domain/models.py                                         81      0      0      0   100%
+src/lhos/domain/verification.py                                   20      1      4      1    92%   30
+src/lhos/graph/__init__.py                                         0      0      0      0   100%
+src/lhos/graph/critical_path.py                                   33      6     10      4    77%   28, 30, 34-35, 43, 52
+src/lhos/graph/initial_builder.py                                 50      5     20      5    86%   36, 43, 45, 78, 100
+src/lhos/graph/invalidation.py                                    56      2     22      2    95%   61, 64
+src/lhos/graph/patch_validator.py                                163     77     86     13    50%   61, 63, 102-108, 111-114, 121, 128, 131->136, 132->131, 140-179, 182-199, 219-232, 246-256, 259-262, 273-302
+src/lhos/graph/projection.py                                      37      1     12      1    96%   36
+src/lhos/graph/queries.py                                         50      2      6      1    95%   27-28, 120->119
+src/lhos/graph/readiness.py                                       64      2     32      2    96%   61, 68
+src/lhos/graph/reconciler.py                                      51     11     18      4    70%   53, 68, 81-88, 93->95, 107-110
+src/lhos/graph/state_machine.py                                   20      0      6      0   100%
+src/lhos/infrastructure/__init__.py                                0      0      0      0   100%
+src/lhos/infrastructure/checkpoints/__init__.py                    0      0      0      0   100%
+src/lhos/infrastructure/checkpoints/filesystem_checkpoint.py      56      4     16      6    86%   34, 36->35, 70, 73->79, 76, 85
+src/lhos/infrastructure/checkpoints/git_checkpoint.py             41      2      6      2    91%   34, 73
+src/lhos/infrastructure/checkpoints/noop.py                        9      2      0      0    78%   10, 17
+src/lhos/infrastructure/db/__init__.py                             0      0      0      0   100%
+src/lhos/infrastructure/db/connection.py                          42      5     10      1    85%   22->24, 52-56
+src/lhos/infrastructure/db/sqlite_event_store.py                  37      3      8      3    87%   35, 61, 80
+src/lhos/infrastructure/db/sqlite_graph_store.py                 212     33     42      9    80%   59, 107, 139, 172, 183, 214-233, 245, 267-284, 293-300, 320, 345, 384
+src/lhos/infrastructure/llm/__init__.py                            0      0      0      0   100%
+src/lhos/infrastructure/llm/adapter.py                            20     20      0      0     0%   7-52
+src/lhos/infrastructure/llm/structured_output.py                  27     27      2      0     0%   8-58
+src/lhos/infrastructure/llm/usage_tracking.py                     24     24      0      0     0%   3-36
+src/lhos/infrastructure/telemetry/__init__.py                      0      0      0      0   100%
+src/lhos/infrastructure/telemetry/jsonl_tracer.py                 12      5      0      0    58%   13-14, 17-19
+src/lhos/infrastructure/telemetry/metrics_collector.py            21     21      0      0     0%   3-41
+src/lhos/infrastructure/tools/__init__.py                          0      0      0      0   100%
+src/lhos/infrastructure/tools/fake_tool.py                        23      2      6      2    86%   33, 36
+src/lhos/infrastructure/tools/filesystem_tool.py                  46     20     14      2    47%   26, 45-85
+src/lhos/infrastructure/tools/registry.py                         25      4      6      3    77%   19, 24, 30, 37
+src/lhos/infrastructure/tools/shell_tool.py                       21     11      2      0    43%   13, 20-38
+src/lhos/ports/__init__.py                                         0      0      0      0   100%
+src/lhos/ports/benchmark.py                                        8      8      0      0     0%   3-15
+src/lhos/ports/checkpoint.py                                       4      4      0      0     0%   3-11
+src/lhos/ports/event_store.py                                      4      4      0      0     0%   3-9
+src/lhos/ports/graph_store.py                                      5      5      0      0     0%   3-85
+src/lhos/ports/llm.py                                              9      9      0      0     0%   3-16
+src/lhos/ports/telemetry.py                                        3      0      0      0   100%
+src/lhos/ports/tools.py                                           27      0      0      0   100%
+src/lhos/ports/verifier.py                                        12      0      0      0   100%
+src/lhos/runtime/__init__.py                                       0      0      0      0   100%
+src/lhos/runtime/budget_manager.py                                38      6      2      1    82%   23, 42-43, 73-75
+src/lhos/runtime/context_compiler.py                             143     15     56      7    85%   104, 125->127, 137, 149, 151, 180, 255-266
+src/lhos/runtime/controller.py                                   227     20     58     12    88%   151, 164, 175, 188, 195, 280-298, 457, 465, 474, 499, 512->496, 518-524
+src/lhos/runtime/cost_aware_scheduler.py                          56      4     10      4    88%   58, 64, 78, 116
+src/lhos/runtime/fifo_scheduler.py                                11      0      2      0   100%
+src/lhos/runtime/recovery.py                                      58     16     30      5    72%   46-48, 59-60, 74-80, 82-83, 104->97, 121-141
+src/lhos/runtime/scheduler.py                                      9      0      0      0   100%
+src/lhos/runtime/termination.py                                   23      1      8      1    94%   25
+src/lhos/runtime/tool_runtime.py                                  40      9     14      4    69%   44, 58, 62-63, 89-106, 122->124
+src/lhos/runtime/verification_gate.py                             76      8     22      6    84%   51, 61->63, 67-70, 107, 124, 129
+src/lhos/runtime/worker.py                                        63      2     22      4    93%   98, 103->145, 124->123, 141
+src/lhos/verification/__init__.py                                  0      0      0      0   100%
+src/lhos/verification/command_verifier.py                         26      7      2      1    71%   23, 34-35, 71-74
+src/lhos/verification/composite_verifier.py                       40      6      4      0    86%   56-59, 75-76
+src/lhos/verification/file_verifier.py                            73     28     26      4    54%   30, 59-77, 91, 94, 101-105, 134-165
+src/lhos/verification/json_verifier.py                            44      9     22      7    73%   32-33, 37, 39->38, 42-43, 54, 59, 62-63, 68->77
+src/lhos/verification/llm_verifier.py                             20      9      4      0    46%   25-39
+src/lhos/verification/registry.py                                 32      2      2      1    91%   16, 20
+----------------------------------------------------------------------------------------------------------
+TOTAL                                                           3731    912    956    162    74%
+Coverage HTML written to dir artifacts/audit/htmlcov
+============================= 161 passed in 9.88s ==============================

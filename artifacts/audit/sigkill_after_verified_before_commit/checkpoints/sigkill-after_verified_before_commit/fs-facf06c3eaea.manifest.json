@@ -1,0 +1,12 @@
+{
+  "checkpoint_id": "fs-facf06c3eaea",
+  "run_id": "sigkill-after_verified_before_commit",
+  "reason": "verified:sigkill-after_verified_before_commit:n3:attempt1",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_verified_before_commit/workspace",
+  "files": {
+    "n1.txt": "16f4412386134a8f4561b0d1280f0fe2474d1208e0197a9d4b4916fb24396d7c",
+    "n2.txt": "74b2605a7d193a5d0bebcf55bfbf57d13019ac5c9fe8a56b310864b6639109b9",
+    "n3.txt": "9495a0ad1261df0f4466db04d8fdc470925480f39aa4c31dfc74ea3271eadede"
+  },
+  "created_at": "2026-08-03T21:43:18.924762+08:00"
+}

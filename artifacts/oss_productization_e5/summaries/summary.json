@@ -1,0 +1,99 @@
+{
+  "aggregate": {
+    "n10": {
+      "mean_affected_fraction": 0.533333,
+      "mean_checkpoint_recomputation_ratio": 0.533333,
+      "mean_checkpoint_rerun": 5.333333,
+      "mean_full_restart_rerun": 10.0,
+      "mean_invalidation_wall_ms": 25.26125,
+      "mean_lhos_invalidated": 5.333333,
+      "mean_lhos_preserved": 4.666667,
+      "mean_lhos_rerun": 5.333333,
+      "mean_preservation_ratio": 0.466667,
+      "mean_reclose_wall_ms": 293.245167,
+      "mean_recomputation_ratio": 0.533333,
+      "mean_repair_amplification_vs_affected": 1.0,
+      "mean_trial_wall_ms": 859.38475,
+      "mean_weighted_saving_vs_checkpoint": 0.0,
+      "mean_weighted_saving_vs_full_restart": 0.521686,
+      "trials": 12
+    },
+    "n25": {
+      "mean_affected_fraction": 0.54,
+      "mean_checkpoint_recomputation_ratio": 0.54,
+      "mean_checkpoint_rerun": 13.5,
+      "mean_full_restart_rerun": 25.0,
+      "mean_invalidation_wall_ms": 40.312,
+      "mean_lhos_invalidated": 13.5,
+      "mean_lhos_preserved": 11.5,
+      "mean_lhos_rerun": 13.5,
+      "mean_preservation_ratio": 0.46,
+      "mean_reclose_wall_ms": 1096.787083,
+      "mean_recomputation_ratio": 0.54,
+      "mean_repair_amplification_vs_affected": 1.0,
+      "mean_trial_wall_ms": 2458.383083,
+      "mean_weighted_saving_vs_checkpoint": 0.0,
+      "mean_weighted_saving_vs_full_restart": 0.451167,
+      "trials": 12
+    },
+    "overall": {
+      "false_verified_total": 0,
+      "final_goal_closure_failures": 0,
+      "lhos_checkpoint_equal_rerun_trials": 24,
+      "mean_affected_fraction": 0.536667,
+      "mean_checkpoint_recomputation_ratio": 0.536667,
+      "mean_checkpoint_rerun": 9.416667,
+      "mean_full_restart_rerun": 17.5,
+      "mean_invalidation_wall_ms": 32.786625,
+      "mean_lhos_invalidated": 9.416667,
+      "mean_lhos_preserved": 8.083333,
+      "mean_lhos_rerun": 9.416667,
+      "mean_preservation_ratio": 0.463333,
+      "mean_reclose_wall_ms": 695.016125,
+      "mean_recomputation_ratio": 0.536667,
+      "mean_repair_amplification_vs_affected": 1.0,
+      "mean_trial_wall_ms": 1658.883917,
+      "mean_weighted_saving_vs_checkpoint": 0.0,
+      "mean_weighted_saving_vs_full_restart": 0.486427,
+      "over_invalidation_total": 0,
+      "ownership_conflicts_total": 0,
+      "state_only_false_closure_trials": 24,
+      "trials": 24,
+      "under_invalidation_total": 0
+    }
+  },
+  "benchmark": "semantic-repair",
+  "invalid_trials": 0,
+  "measurement_contract": {
+    "checkpoint_baseline": "oracle-informed task-level downstream invalidation",
+    "false_verified": "affected tasks still VERIFIED immediately after invalidation",
+    "lhos_rerun": "observed scheduler attempts after invalidation",
+    "ownership_conflicts": "overlapping activated claim intervals",
+    "state_only_baseline": "completed-bit resume with no mutation reconciliation"
+  },
+  "quick": true,
+  "raw_sha256": "88dc5e0a03aca2404d0cfc8f747dd8fd84daae487e0e9385308856bf8e24c5f1",
+  "real_workspace": {
+    "affected_tasks": [
+      "Implement",
+      "Inspect",
+      "Review"
+    ],
+    "benchmark_id": "semantic_repair_real_workspace",
+    "final_goal_closed": true,
+    "full_restart_avoided": true,
+    "new_evidence_count": 3,
+    "preserved_tasks": [
+      "Independent Analysis"
+    ],
+    "repair_attempts": 3,
+    "repair_frontier": [
+      "Inspect"
+    ],
+    "strategy": "longhorizonos",
+    "wall_time_ms": 709.425
+  },
+  "schema_version": "0.2",
+  "total_trials": 24,
+  "valid_trials": 24
+}

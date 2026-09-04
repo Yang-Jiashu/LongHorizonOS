@@ -1,0 +1,11 @@
+# Cost-aware scheduler: deterministic heuristic scoring (spec section 11.2).
+type: "cost_aware"
+weights:
+  criticality: 1.0
+  unlock: 0.7
+  progress: 1.0
+  age: 0.1
+  token_cost: 0.3
+  time_cost: 0.3
+  risk: 0.5
+  context_switch: 0.1

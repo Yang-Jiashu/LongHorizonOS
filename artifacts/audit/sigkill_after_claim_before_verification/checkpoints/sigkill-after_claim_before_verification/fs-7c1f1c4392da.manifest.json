@@ -1,0 +1,11 @@
+{
+  "checkpoint_id": "fs-7c1f1c4392da",
+  "run_id": "sigkill-after_claim_before_verification",
+  "reason": "before:sigkill-after_claim_before_verification:n3",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_claim_before_verification/workspace",
+  "files": {
+    "n1.txt": "16f4412386134a8f4561b0d1280f0fe2474d1208e0197a9d4b4916fb24396d7c",
+    "n2.txt": "74b2605a7d193a5d0bebcf55bfbf57d13019ac5c9fe8a56b310864b6639109b9"
+  },
+  "created_at": "2026-08-03T21:43:18.270924+08:00"
+}

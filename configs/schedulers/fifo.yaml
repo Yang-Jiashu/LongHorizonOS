@@ -1,0 +1,2 @@
+# FIFO scheduler: baseline, selects the node with the smallest ready_at.
+type: "fifo"

@@ -1,0 +1,8 @@
+{
+  "checkpoint_id": "fs-3ad466fd625f",
+  "run_id": "sigkill-after_verified_before_commit",
+  "reason": "before:sigkill-after_verified_before_commit:n1",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_verified_before_commit/workspace",
+  "files": {},
+  "created_at": "2026-08-03T21:43:18.498276+08:00"
+}

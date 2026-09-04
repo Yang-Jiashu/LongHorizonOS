@@ -1,0 +1,11 @@
+{
+  "checkpoint_id": "fs-accade392526",
+  "run_id": "sigkill-after_verified_before_commit",
+  "reason": "verified:sigkill-after_verified_before_commit:n2:attempt1",
+  "workspace": "/Users/jiashuyang/Documents/kimi/Workspaces/longhorizonOS/longhorizonos/artifacts/audit/sigkill_after_verified_before_commit/workspace",
+  "files": {
+    "n1.txt": "16f4412386134a8f4561b0d1280f0fe2474d1208e0197a9d4b4916fb24396d7c",
+    "n2.txt": "74b2605a7d193a5d0bebcf55bfbf57d13019ac5c9fe8a56b310864b6639109b9"
+  },
+  "created_at": "2026-08-03T21:43:18.518131+08:00"
+}

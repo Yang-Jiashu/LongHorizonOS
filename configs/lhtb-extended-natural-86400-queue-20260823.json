@@ -1,0 +1,27 @@
+{
+  "schema_version": "lhos-lhtb-controlled-queue.v1",
+  "repo": "C:\\Users\\yangjiashu\\Downloads\\LongHorizonOS-main\\LongHorizonOS-main",
+  "wait_for": {
+    "output": "D:\\LHTB-results\\lhtb-full46-invalid9-natural-fixed900-rerun-20260823-r3",
+    "pid": 38588
+  },
+  "steps": [
+    {
+      "name": "extended_natural_86400_six_task_pair_r1",
+      "output": "D:\\LHTB-results\\lhtb-extended-natural-86400-20260823-r1",
+      "jobs_dir": "D:\\LHTB-jobs\\lhtb-extended-natural-86400-20260823-r1",
+      "arm": "both",
+      "external_checkpoint_watch": true,
+      "checkpoint_cutoffs": [3600, 5400, 10800, 14400, 18000, 21600, 28800],
+      "checkpoint_poll_seconds": 0.25,
+      "checkpoint_capture_concurrency": 2,
+      "checkpoint_max_capture_attempts": 3,
+      "checkpoint_startup_timeout_seconds": 60,
+      "checkpoint_completion_timeout_seconds": 600,
+      "resource_aware_pairs": true,
+      "max_concurrency": 3,
+      "pair_capacity_cpus": 12,
+      "pair_capacity_memory_mb": 19456
+    }
+  ]
+}

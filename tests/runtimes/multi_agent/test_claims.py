@@ -1,0 +1,318 @@
+"""Claim lifecycle and Kernel-lease binding."""
+
+from __future__ import annotations
+
+import pytest
+
+from lhos.runtimes.multi_agent import ClaimState
+from lhos.runtimes.multi_agent.claims import ClaimManager
+from lhos.runtimes.multi_agent.errors import LeaseReleaseFailed
+from lhos.runtimes.multi_agent.lease_adapter import claim_resource_uri
+from lhos.runtimes.multi_agent.reconciliation import reconcile
+
+
+class FakeLease:
+    def __init__(self, lease_id, resource_id, owner_pid):
+        self.lease_id = lease_id
+        self.resource_id = resource_id
+        self.owner_pid = owner_pid
+        self.mode = "exclusive"
+
+
+class FakeLeaseProvider:
+    def __init__(self, fail_first=False):
+        self.acquired = []
+        self.released = []
+        self._live_leases: dict[str, FakeLease] = {}
+        self.fail_first = fail_first
+
+    def acquire_exclusive(self, pid, resource_id, ttl):
+        if self.fail_first:
+            return None
+        lease = FakeLease(
+            lease_id=f"lease-{pid}-{resource_id}",
+            resource_id=resource_id,
+            owner_pid=pid,
+        )
+        self.acquired.append((pid, resource_id))
+        self._live_leases[lease.lease_id] = lease
+        return lease
+
+    def release(self, lease_id):
+        if lease_id is None or lease_id not in self._live_leases:
+            return False
+        self._live_leases.pop(lease_id)
+        self.released.append(lease_id)
+        return True
+
+    def release_all_for_pid(self, pid):
+        return 0
+
+    def get(self, lease_id):
+        return None
+
+    def list_for_resource(self, resource_id):
+        return []
+
+    def list_for_pid(self, pid):
+        return []
+
+    def reclaim_expired(self):
+        return 0
+
+
+class MalformedFencingTokenProvider(FakeLeaseProvider):
+    """Provider double that returns an acquired lease with invalid fencing data."""
+
+    def acquire_exclusive(self, pid, resource_id, ttl):
+        lease = super().acquire_exclusive(pid, resource_id, ttl)
+        if lease is not None:
+            lease.fencing_token = "not-an-integer"
+        return lease
+
+
+class MalformedTokenReleaseOnceFailsProvider(MalformedFencingTokenProvider):
+    """Malformed provider whose first cleanup attempt is not confirmed."""
+
+    def __init__(self):
+        super().__init__()
+        self.release_attempts = 0
+
+    def release(self, lease_id):
+        self.release_attempts += 1
+        if self.release_attempts == 1:
+            self.released.append(lease_id)
+            return False
+        return super().release(lease_id)
+
+
+def _adapter():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    return LeaseAdapter(FakeLeaseProvider())
+
+
+def _adapter_failing():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    return LeaseAdapter(FakeLeaseProvider(fail_first=True))
+
+
+def test_claim_lifecycle_proposed_to_active():
+    mgr = ClaimManager(_adapter())
+    c = mgr.propose(
+        claim_id="c1",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    assert c.state == ClaimState.PROPOSED
+    mgr.mark_acquiring(c)
+    assert c.state == ClaimState.ACQUIRING
+    assert mgr.try_acquire_lease(c) is True
+    assert c.state == ClaimState.ACTIVE
+    assert c.lease_id is not None
+
+
+def test_claim_lease_refusal_marks_rejected():
+    mgr = ClaimManager(_adapter_failing())
+    c = mgr.propose(
+        claim_id="c2",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(c)
+    assert mgr.try_acquire_lease(c) is False
+    assert c.state == ClaimState.REJECTED
+
+
+def test_malformed_acquired_fencing_token_fails_closed_and_releases_lease():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    provider = MalformedFencingTokenProvider()
+    mgr = ClaimManager(LeaseAdapter(provider))
+    c = mgr.propose(
+        claim_id="c-malformed-fence",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(c)
+
+    # The provider did grant a lease, but malformed authority data must not
+    # linearize ownership.  The manager must compensate by releasing it.
+    assert mgr.try_acquire_lease(c) is False
+    assert c.state == ClaimState.REJECTED
+    assert c.reason == "kernel_lease_malformed_fencing_token"
+    assert c.lease_id is None
+    assert provider.released == [
+        "lease-p1-vpg://g1/task/t1/claim",
+    ]
+    assert provider._live_leases == {}
+
+
+def test_malformed_token_release_failure_stays_reconcilable_and_is_cleaned_up():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    provider = MalformedTokenReleaseOnceFailsProvider()
+    mgr = ClaimManager(LeaseAdapter(provider))
+    claim = mgr.propose(
+        claim_id="c-malformed-fence-release-failure",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(claim)
+
+    with pytest.raises(LeaseReleaseFailed):
+        mgr.try_acquire_lease(claim)
+
+    # A failed compensation must remain visible to reconciliation rather
+    # than becoming terminal REJECTED (which would be skipped forever).
+    assert claim.state == ClaimState.ACQUIRING
+    assert claim.lease_id is not None
+    assert claim.released_at is None
+    assert provider._live_leases
+
+    lease = next(iter(provider._live_leases.values()))
+    result = reconcile(
+        [claim],
+        [],
+        lease_is_live=lambda value: True,
+        process_is_alive=lambda pid: True,
+        vpg_task_verified=lambda graph_id, task_id: False,
+        vpg_task_stale=lambda graph_id, task_id: False,
+        lease_lookup=lambda current: lease,
+        release_lease=provider.release,
+    )
+    assert result.claims_marked_lost == 1
+    assert claim.state == ClaimState.LOST
+    assert provider._live_leases == {}
+    assert provider.release_attempts == 2
+
+
+def test_claim_completes_and_releases_lease():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    provider = FakeLeaseProvider()
+    mgr = ClaimManager(LeaseAdapter(provider))
+    c = mgr.propose(
+        claim_id="c3",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(c)
+    mgr.try_acquire_lease(c)
+    mgr.complete(c)
+    assert c.state == ClaimState.COMPLETED
+    assert provider.released == [c.lease_id]
+
+
+def test_claim_lost_path():
+    mgr = ClaimManager(_adapter())
+    c = mgr.propose(
+        claim_id="c4",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(c)
+    mgr.try_acquire_lease(c)
+    mgr.mark_lost(c, reason="process_dead")
+    assert c.state == ClaimState.LOST
+
+
+def test_active_claim_counts():
+    mgr = ClaimManager(_adapter())
+    c1 = mgr.propose(
+        claim_id="c5",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    c2 = mgr.propose(
+        claim_id="c6",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t2",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t2"),
+    )
+    for c in (c1, c2):
+        mgr.mark_acquiring(c)
+        mgr.try_acquire_lease(c)
+    assert mgr.current_active_claims("a1") == 2
+    assert len(mgr.active_claims_for_task("g1", "t1")) == 1
+    mgr.release(c1)
+    assert mgr.current_active_claims("a1") == 1
+
+
+def test_release_is_idempotent_on_lease():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    provider = FakeLeaseProvider()
+    mgr = ClaimManager(LeaseAdapter(provider))
+    c = mgr.propose(
+        claim_id="c7",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(c)
+    mgr.try_acquire_lease(c)
+    n0 = len(provider.released)
+    mgr.release(c)
+    mgr.release(c)  # second release must not double-release
+    assert len(provider.released) == n0 + 1
+
+
+def test_release_failure_preserves_active_claim():
+    from lhos.runtimes.multi_agent.lease_adapter import LeaseAdapter
+
+    class FailingReleaseProvider(FakeLeaseProvider):
+        def release(self, lease_id):
+            raise RuntimeError("kernel unavailable")
+
+    mgr = ClaimManager(LeaseAdapter(FailingReleaseProvider()))
+    claim = mgr.propose(
+        claim_id="c-release-failure",
+        graph_id="g1",
+        graph_version=1,
+        task_id="t1",
+        agent_id="a1",
+        process_id="p1",
+        lease_resource=claim_resource_uri("g1", "t1"),
+    )
+    mgr.mark_acquiring(claim)
+    assert mgr.try_acquire_lease(claim)
+
+    with pytest.raises(LeaseReleaseFailed):
+        mgr.release(claim)
+    assert claim.state == ClaimState.ACTIVE

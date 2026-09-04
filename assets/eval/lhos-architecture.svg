@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="os" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f8fd"/>
+      <stop offset="1" stop-color="#e8f0fa"/>
+    </linearGradient>
+    <linearGradient id="harness" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f8fa"/>
+      <stop offset="1" stop-color="#eef0f3"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3d6fb4"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a93a0"/>
+    </marker>
+  </defs>
+
+  <!-- OS control plane -->
+  <rect x="20" y="18" width="920" height="238" rx="14" fill="url(#os)" stroke="#3d6fb4" stroke-width="1.6"/>
+  <text x="40" y="48" font-size="17" font-weight="700" fill="#23405e">LongHorizonOS — control plane</text>
+  <text x="40" y="68" font-size="12" fill="#5b6b80">outside the harness, zero extra model tokens</text>
+
+  <!-- observe -->
+  <rect x="46" y="86" width="258" height="146" rx="10" fill="#ffffff" stroke="#c9d6e8" stroke-width="1.2"/>
+  <text x="62" y="112" font-size="13.5" font-weight="700" fill="#3d6fb4">OBSERVE</text>
+  <text x="62" y="132" font-size="11.5" fill="#33404f">per-slice telemetry</text>
+  <text x="62" y="152" font-size="11" fill="#5b6b80">· cache cost per call</text>
+  <text x="62" y="169" font-size="11" fill="#5b6b80">· writes / tests landing</text>
+  <text x="62" y="186" font-size="11" fill="#5b6b80">· verifier signal (hash only)</text>
+  <text x="62" y="210" font-size="10.5" font-style="italic" fill="#8a93a0">prompt bodies never leave the box</text>
+
+  <!-- decide -->
+  <rect x="352" y="86" width="288" height="146" rx="10" fill="#ffffff" stroke="#c9d6e8" stroke-width="1.2"/>
+  <text x="368" y="112" font-size="13.5" font-weight="700" fill="#3d6fb4">DECIDE — at every slice boundary</text>
+  <rect x="368" y="124" width="256" height="24" rx="5" fill="#eef4fb"/>
+  <text x="380" y="140" font-size="11" fill="#23405e">resume — work is paying off</text>
+  <rect x="368" y="154" width="256" height="24" rx="5" fill="#eef4fb"/>
+  <text x="380" y="170" font-size="11" fill="#23405e">restart + handoff — context is the cost</text>
+  <rect x="368" y="184" width="256" height="24" rx="5" fill="#fdeeee"/>
+  <text x="380" y="200" font-size="11" fill="#8a2f2f">halt — 8M tokens of zero progress</text>
+  <text x="368" y="224" font-size="10.5" font-style="italic" fill="#8a93a0">fail-closed: any doubt = keep running</text>
+
+  <!-- act -->
+  <rect x="688" y="86" width="226" height="146" rx="10" fill="#ffffff" stroke="#c9d6e8" stroke-width="1.2"/>
+  <text x="704" y="112" font-size="13.5" font-weight="700" fill="#3d6fb4">ACT</text>
+  <text x="704" y="134" font-size="11" fill="#5b6b80">· durable session resume</text>
+  <text x="704" y="151" font-size="11" fill="#5b6b80">· versioned compact handoff</text>
+  <text x="704" y="168" font-size="11" fill="#5b6b80">· fencing tokens + leases</text>
+  <text x="704" y="185" font-size="11" fill="#5b6b80">· crash recovery journal</text>
+  <text x="704" y="210" font-size="10.5" font-style="italic" fill="#8a93a0">restart must be earned</text>
+
+  <!-- arrows inside OS -->
+  <line x1="304" y1="159" x2="350" y2="159" stroke="#3d6fb4" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="640" y1="159" x2="686" y2="159" stroke="#3d6fb4" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- control boundary -->
+  <line x1="20" y1="284" x2="940" y2="284" stroke="#8a93a0" stroke-width="1.2" stroke-dasharray="6 5"/>
+  <text x="480" y="278" font-size="10.5" fill="#8a93a0" text-anchor="middle">— control boundary: observe + intervene only —</text>
+
+  <!-- telemetry up -->
+  <line x1="175" y1="330" x2="175" y2="262" stroke="#8a93a0" stroke-width="1.6" marker-end="url(#arrg)"/>
+  <text x="163" y="322" font-size="10.5" fill="#8a93a0" text-anchor="end">telemetry</text>
+
+  <!-- control down -->
+  <line x1="800" y1="262" x2="800" y2="330" stroke="#3d6fb4" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text x="812" y="300" font-size="10.5" fill="#3d6fb4">resume / restart / halt</text>
+
+  <!-- harness box -->
+  <rect x="20" y="330" width="920" height="72" rx="14" fill="url(#harness)" stroke="#c3cad3" stroke-width="1.2"/>
+  <text x="480" y="360" font-size="13.5" font-weight="700" fill="#33404f" text-anchor="middle">agent harness  ⇄  model  ⇄  verifier</text>
+  <text x="480" y="384" font-size="11.5" fill="#8a93a0" text-anchor="middle">untouched · unmodified · unaware of the OS</text>
+</svg>

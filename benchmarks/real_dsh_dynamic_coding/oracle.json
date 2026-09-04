@@ -1,0 +1,19 @@
+{
+  "benchmark": "real_dsh_dynamic_coding",
+  "mutation": "pricing-contract-v1-to-v2",
+  "task_order": [
+    "pricing_core",
+    "audit",
+    "pricing_api",
+    "integration"
+  ],
+  "affected_tasks": [
+    "pricing_core",
+    "pricing_api",
+    "integration"
+  ],
+  "preserved_tasks": [
+    "audit"
+  ],
+  "final_requirement_version": 2
+}

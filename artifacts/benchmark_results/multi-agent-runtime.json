@@ -1,0 +1,157 @@
+{
+  "async_runtime": {
+    "active_resource_reservations_after_run": 0,
+    "agent_capacity_violations": 0,
+    "attempt_count": 24,
+    "capacity_violations": 0,
+    "claim_count": 24,
+    "completed_tasks": 24,
+    "configured_agent_concurrency": {
+      "agent-0": 2,
+      "agent-1": 2
+    },
+    "configured_max_concurrency": 4,
+    "correctness": {
+      "all_attempts_semantically_verified": true,
+      "all_claims_completed": true,
+      "all_claims_had_full_resource_vector": true,
+      "all_executors_completed": true,
+      "all_tasks_dispatched_once": true,
+      "all_tasks_verified": true,
+      "goal_closed": true,
+      "no_active_executors_after_run": true,
+      "no_active_reservations_after_run": true,
+      "no_run_failures": true
+    },
+    "elapsed_samples_seconds": [
+      0.9536377999465913,
+      0.9099959000013769,
+      1.0202667999546975
+    ],
+    "elapsed_seconds": 0.9536377999465913,
+    "global_capacity_violations": 0,
+    "mode": "agentos_run_async_parallel",
+    "ownership_admission_violations": 0,
+    "peak_active_resource_reservations": 4,
+    "peak_by_agent": {
+      "agent-0": 2,
+      "agent-1": 2
+    },
+    "peak_concurrency": 4,
+    "repetitions": 3,
+    "resource_admission_violations": 0
+  },
+  "baseline": {
+    "active_resource_reservations_after_run": 0,
+    "agent_capacity_violations": 0,
+    "attempt_count": 24,
+    "capacity_violations": 0,
+    "claim_count": 24,
+    "completed_tasks": 24,
+    "configured_agent_concurrency": {
+      "agent-0": 2,
+      "agent-1": 2
+    },
+    "configured_max_concurrency": 1,
+    "correctness": {
+      "all_attempts_semantically_verified": true,
+      "all_claims_completed": true,
+      "all_claims_had_full_resource_vector": true,
+      "all_executors_completed": true,
+      "all_tasks_dispatched_once": true,
+      "all_tasks_verified": true,
+      "goal_closed": true,
+      "no_active_executors_after_run": true,
+      "no_active_reservations_after_run": true,
+      "no_run_failures": true
+    },
+    "elapsed_samples_seconds": [
+      2.0257893000380136,
+      2.1811256999499165,
+      2.0667597000137903
+    ],
+    "elapsed_seconds": 2.0667597000137903,
+    "global_capacity_violations": 0,
+    "mode": "agentos_run_async_serial",
+    "ownership_admission_violations": 0,
+    "peak_active_resource_reservations": 1,
+    "peak_by_agent": {
+      "agent-0": 1,
+      "agent-1": 1
+    },
+    "peak_concurrency": 1,
+    "repetitions": 3,
+    "resource_admission_violations": 0
+  },
+  "benchmark": "agentos_run_async_end_to_end",
+  "benchmark_version": 3,
+  "comparison": {
+    "estimator": "median of paired serial/parallel speedup samples",
+    "min_speedup_threshold": 1.5,
+    "parallel_over_serial_ratio": 0.47074875947300954,
+    "parallel_over_serial_ratio_samples": [
+      0.47074875947300954,
+      0.4172138726448789,
+      0.49365526139680865
+    ],
+    "repetitions": 3,
+    "speedup": 2.124275380182569,
+    "speedup_samples": [
+      2.124275380182569,
+      2.3968522275173068,
+      2.0257051391906113
+    ]
+  },
+  "samples": [
+    {
+      "order": "serial_then_parallel",
+      "parallel_elapsed_seconds": 0.9536377999465913,
+      "sample": 1,
+      "serial_elapsed_seconds": 2.0257893000380136,
+      "speedup": 2.124275380182569
+    },
+    {
+      "order": "parallel_then_serial",
+      "parallel_elapsed_seconds": 0.9099959000013769,
+      "sample": 2,
+      "serial_elapsed_seconds": 2.1811256999499165,
+      "speedup": 2.3968522275173068
+    },
+    {
+      "order": "serial_then_parallel",
+      "parallel_elapsed_seconds": 1.0202667999546975,
+      "sample": 3,
+      "serial_elapsed_seconds": 2.0667597000137903,
+      "speedup": 2.0257051391906113
+    }
+  ],
+  "scope": {
+    "does_not_measure": "physical CPU/GPU/RAM/VRAM utilization, model throughput, external API latency, or distributed scheduling",
+    "evidence_and_vpg_goal_closure": true,
+    "external_api_calls": false,
+    "independent_verification": true,
+    "kernel_leases": true,
+    "measures": "median paired controlled public-SDK latency and I/O-shaped executor overlap through semantic Goal closure",
+    "offline": true,
+    "public_agentos_run_async": true,
+    "scheduler_claims": true,
+    "scheduler_resource_admission": true
+  },
+  "valid": true,
+  "violations": [],
+  "workload": {
+    "agent_count": 2,
+    "delay_seconds": 0.05,
+    "task_count": 24,
+    "task_resource_vector": {
+      "cpu_millis": 500,
+      "gpu_count": 1,
+      "model_slots": {
+        "benchmark-model": 1
+      },
+      "ram_bytes": 16000000,
+      "vram_bytes": 256000000
+    },
+    "workload_kind": "independent asyncio.sleep I/O-shaped Agent tasks"
+  }
+}
