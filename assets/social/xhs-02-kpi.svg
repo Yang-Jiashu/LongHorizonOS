@@ -1,112 +1,142 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440">
   <defs>
     <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0c1322"/>
-      <stop offset="100%" stop-color="#101520"/>
+      <stop offset="0%" stop-color="#0c1322"/><stop offset="100%" stop-color="#101520"/>
     </linearGradient>
-    <linearGradient id="green" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#1FAA59"/>
-      <stop offset="100%" stop-color="#2ea043"/>
-    </linearGradient>
-    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#4A7DBF"/>
-      <stop offset="100%" stop-color="#6B8DD6"/>
-    </linearGradient>
-    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#7B5BF2"/>
-      <stop offset="100%" stop-color="#8957e5"/>
-    </linearGradient>
-    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#FF8A3D"/>
-      <stop offset="100%" stop-color="#FF5A1F"/>
-    </linearGradient>
-    <filter id="s">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/>
-    </filter>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1FAA59"/><stop offset="100%" stop-color="#2ea043"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4A7DBF"/><stop offset="100%" stop-color="#6B8DD6"/></linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7B5BF2"/><stop offset="100%" stop-color="#8957e5"/></linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF8A3D"/><stop offset="100%" stop-color="#FF5A1F"/></linearGradient>
+    <linearGradient id="cite" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3760D6"/><stop offset="100%" stop-color="#587BE8"/></linearGradient>
+    <linearGradient id="warn" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF5A1F"/><stop offset="100%" stop-color="#FF8A3D"/></linearGradient>
+    <filter id="s2"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/></filter>
   </defs>
-
   <rect width="1080" height="1440" fill="url(#bg2)"/>
-
-  <!-- Title -->
-  <g transform="translate(70, 90)">
+  <g transform="translate(70, 72)">
     <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-          font-size="62" font-weight="900" fill="#FFFFFF" letter-spacing="0">
-      46 个真实任务 · 配对实测
-    </text>
-    <text y="70" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-          font-size="28" fill="#888895" letter-spacing="1.5">
-      46 LHTB (LongHorizonBenchmark) TASKS · PAIRED A/B · SAME MODEL / SAME HARNESS
-    </text>
+          font-size="54" font-weight="900" fill="#FFFFFF">46 个真实任务 · 配对实测</text>
+    <text y="62" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="22" fill="#9898a5">PAIRED A/B · 同模型 stepfun/step-3.7-flash · 同任务二进制 · 同预算</text>
   </g>
-
-  <!-- KPI card 1: 37/42 -->
-  <g transform="translate(70, 220)" filter="url(#s)">
-    <rect width="940" height="250" rx="28" fill="#0d1b14" stroke="#1FAA59" stroke-opacity="0.28"/>
-    <rect x="0" y="0" width="10" height="250" rx="5" fill="url(#green)"/>
-    <g transform="translate(50, 50)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="136" font-weight="900" fill="#1FAA59" letter-spacing="-4">37/42</text>
+  <!-- [1] 37/42 y=152 H=270 → bottom 422. 内容 transY=34 → 可写 y up to 236.
+       行: 大数字 104(y=104) + 分隔线(142) + 3小字 174/204/228 → last y=228 ≤ 236 ✓ -->
+  <g transform="translate(70, 152)" filter="url(#s2)">
+    <rect width="940" height="270" rx="24" fill="#0f2018" stroke="#1FAA59" stroke-opacity="0.6" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="270" rx="5" fill="url(#green)"/>
+    <g transform="translate(76, 34)">
+      <text y="102" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="100" font-weight="900" fill="#1FAA59" letter-spacing="-4">37/42</text>
+      <text x="468" y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">reward 持平或更优</text>
+      <line x1="0" y1="132" x2="840" y2="132" stroke="#1FAA59" stroke-opacity="0.18" stroke-width="1"/>
+      <text x="0" y="164" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="17" font-weight="700" fill="#c8e0c8">· 有效分母 = 42</text>
+      <text x="0" y="194" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#a8c0a8">· 46 总 − 3 个无有效 lhos 结果 − 1 个 matpower 跨套件不合法配对</text>
+      <text x="0" y="224" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#a8c0a8">· 这 42 对中 · LongHorizonOS 37 对 ≥ baseline harness 原 reward</text>
+    </g>
+  </g>
+  <!-- [2] 22/27 y=444 H=250 → bottom 694. transY=30 → 可写 up to 220.
+       行: 数字 82 + 分隔线 116 + 3行 150/180/208 → last y=208 ≤ 220 ✓ -->
+  <g transform="translate(70, 444)" filter="url(#s2)">
+    <rect width="940" height="250" rx="24" fill="#101828" stroke="#4A7DBF" stroke-opacity="0.55" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="250" rx="5" fill="url(#blue)"/>
+    <g transform="translate(76, 30)">
+      <text y="82" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="82" font-weight="900" fill="#4A7DBF" letter-spacing="-3">22/27<tspan font-size="38" fill="#6B8DD6"> 81%</tspan></text>
+      <text x="396" y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="30" font-weight="800" fill="#FFFFFF">至少一臂有得分的任务</text>
+      <line x1="0" y1="116" x2="840" y2="116" stroke="#4A7DBF" stroke-opacity="0.18" stroke-width="1"/>
+      <text x="0" y="150" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="17" font-weight="700" fill="#c0d0e8">· 27 / 42 对中 · Baseline 或 OS 至少一边 reward 非 0</text>
+      <text x="0" y="180" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#a0b0c8">· 剔除 15 个 0-0 双零对 (持平但无信息量 · 统计上等价平局占位)</text>
+      <text x="0" y="208" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#a0b0c8">· 这 27 个有效对中 · 22 个 LongHorizonOS ≥ Baseline</text>
+    </g>
+  </g>
+  <!-- [3] ~2.4x y=716 H=240 → bottom 956. transY=28 → 可写 up to 212.
+       行: 数字 84 + 分隔 114 + 3行 148/178/204 → last y=204 ≤ 212 ✓ -->
+  <g transform="translate(70, 716)" filter="url(#s2)">
+    <rect width="940" height="240" rx="24" fill="#18102a" stroke="#8957e5" stroke-opacity="0.5" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="240" rx="5" fill="url(#purple)"/>
+    <g transform="translate(76, 28)">
+      <text y="84" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="84" font-weight="900" fill="#8957e5" letter-spacing="-3">~2.4×</text>
+      <text x="290" y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="32" font-weight="800" fill="#FFFFFF">input token 节省</text>
+      <line x1="0" y1="114" x2="840" y2="114" stroke="#8957e5" stroke-opacity="0.18" stroke-width="1"/>
+      <text x="0" y="148" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="17" font-weight="700" fill="#d0c0f0">· 语义切换只带三件套 · 100K 废话全文不带进上下文</text>
+      <text x="0" y="178" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#b0a0d0">· 目标 URI / 证据 URI / 产物 URI · 历史全文扔 versioned page-table</text>
+      <text x="0" y="204" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="15" fill="#b0a0d0">· 2.4× 是中位数节省比 · 来自 158 续跑案例真实 token 账单差</text>
+    </g>
+  </g>
+  <!-- [4] 0 harness y=978 H=206 → bottom 1184. transY=24 → 可写 up to 182.
+       行: 数字 80 + 分隔 110 + 2行 142/172 → last y=172 ≤ 182 ✓ -->
+  <g transform="translate(70, 978)" filter="url(#s2)">
+    <rect width="940" height="206" rx="24" fill="#1e1408" stroke="#FF5A1F" stroke-opacity="0.5" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="206" rx="5" fill="url(#orange)"/>
+    <g transform="translate(76, 24)">
+      <text y="80" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="80" font-weight="900" fill="#FF5A1F" letter-spacing="-2">0</text>
+      <text x="150" y="56" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="32" font-weight="800" fill="#FFFFFF">行 harness 代码改动</text>
+      <line x1="0" y1="110" x2="840" y2="110" stroke="#FF5A1F" stroke-opacity="0.18" stroke-width="1"/>
+      <text x="0" y="142" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="16" font-weight="700" fill="#e8d0b0">· 包住就能用 · Harness / Model / Task 三位一体全部保持不变</text>
       <text x="0" y="172" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="38" font-weight="700" fill="#FFFFFF">reward 持平或更优</text>
-      <text x="0" y="218" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#6e7a6e">46 总 − 3 无效结果 − 1 matpower 无效配对 = 42 有效分母</text>
+            font-size="14" fill="#c09878">· 外层是操作系统不是补丁 · 被管的 Agent / Runner / Verifier 一行不改</text>
     </g>
   </g>
-
-  <!-- KPI card 2: 22/27 (81%) -->
-  <g transform="translate(70, 500)" filter="url(#s)">
-    <rect width="940" height="210" rx="28" fill="#0d1525" stroke="#4A7DBF" stroke-opacity="0.3"/>
-    <rect x="0" y="0" width="10" height="210" rx="5" fill="url(#blue)"/>
-    <g transform="translate(50, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="108" font-weight="900" fill="#4A7DBF" letter-spacing="-3">22/27 <tspan font-size="54">81%</tspan></text>
-      <text x="0" y="146" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="36" font-weight="700" fill="#FFFFFF">至少一臂有得分的任务上</text>
-      <text x="0" y="190" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="22" fill="#687490">已剔除 15 个 0–0 双零对（统计算持平 · 但没有信息量）</text>
+  <!-- [5] CITATION y=1202 H=128 → bottom 1330. transY=20 → 可写 up to 108.
+       行: 标题 16 + 3行 40/68/94 → last y=94 ≤ 108 ✓ -->
+  <g transform="translate(70, 1202)" filter="url(#s2)">
+    <rect width="940" height="128" rx="20" fill="#101828" stroke="#587BE8" stroke-opacity="0.5" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="128" rx="5" fill="url(#cite)"/>
+    <g transform="translate(64, 20)">
+      <rect x="0" y="6" width="44" height="58" rx="10" fill="#3760D6" fill-opacity="0.15" stroke="#587BE8" stroke-width="2"/>
+      <path d="M 22 12 L 22 58" stroke="#587BE8" stroke-width="2"/>
+      <rect x="8"  y="22" width="4" height="28" rx="2" fill="#587BE8"/>
+      <rect x="15" y="16" width="4" height="34" rx="2" fill="#587BE8"/>
+      <rect x="22" y="22" width="4" height="28" rx="2" fill="#587BE8"/>
+      <rect x="29" y="16" width="4" height="34" rx="2" fill="#587BE8"/>
+      <g transform="translate(68, 0)">
+        <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="15" font-weight="800" fill="#587BE8" letter-spacing="1.0">BENCHMARK · CITATION · 引用说明 (致谢区原文)</text>
+        <text y="36" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="18" fill="#dce4ef">① 评测使用 <tspan font-weight="800" fill="#FFFFFF">LHTB = LongHorizonBenchmark</tspan> · 46 任务长时程 Agent 基准套件</text>
+        <text y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="18" fill="#dce4ef">② 执行层基于 <tspan font-weight="800" fill="#FFFFFF">DeepSeek Harness</tspan> · 桥接类 <tspan font-weight="900" fill="#FFA94D">LHTBDeepSeekHarnessAgent</tspan></text>
+        <text y="92" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="14" fill="#a0b0c8">③ 模型 API / 推理额度赞助: StepFun Builder Program · stepfun/step-3.7-flash</text>
+      </g>
     </g>
   </g>
-
-  <!-- KPI card 3: ~2.4× fewer tokens -->
-  <g transform="translate(70, 740)" filter="url(#s)">
-    <rect width="940" height="210" rx="28" fill="#140e25" stroke="#8957e5" stroke-opacity="0.3"/>
-    <rect x="0" y="0" width="10" height="210" rx="5" fill="url(#purple)"/>
-    <g transform="translate(50, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="118" font-weight="900" fill="#8957e5" letter-spacing="-3">~2.4×</text>
-      <text x="380" y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="48" font-weight="700" fill="#FFFFFF">input token 节省</text>
-      <text x="0" y="174" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#8176a0">重启只带目标、证据、产物 URI，不带 100K token 的全文废话</text>
-    </g>
-  </g>
-
-  <!-- KPI card 4: 0 harness changes -->
-  <g transform="translate(70, 980)" filter="url(#s)">
-    <rect width="940" height="180" rx="28" fill="#1a120a" stroke="#FF5A1F" stroke-opacity="0.3"/>
-    <rect x="0" y="0" width="10" height="180" rx="5" fill="url(#orange)"/>
-    <g transform="translate(50, 38)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="112" font-weight="900" fill="#FF5A1F" letter-spacing="-2">0</text>
-      <text x="200" y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="46" font-weight="700" fill="#FFFFFF">行 harness 代码改动</text>
-      <text x="200" y="132" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#a08174">包住就能用 · Harness / Model / Task 三位一体全部保持不变</text>
-    </g>
-  </g>
-
-  <!-- Honesty footer -->
-  <g transform="translate(70, 1210)">
-    <rect width="940" height="160" rx="20" fill="#14141a" stroke="#FFFFFF" stroke-opacity="0.06"/>
-    <g transform="translate(36, 30)">
-      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="26" font-weight="800" fill="#FF5A1F" letter-spacing="1.5">⚠️ 诚实说清楚坏消息</text>
-      <text y="54" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#d0d0d8">5 / 42 个有效任务 reward 更低：grammar-fuzz / alp / apex-openroad / apexmgmt / modflow6</text>
-      <text y="92" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#888895">根因查清：restart 敏感型任务 + 2 个长会话上下文膨胀限制</text>
-      <text y="128" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="24" fill="#6e6e78">策略 2.0 就是针对这些在做，没改善的话这段话会一直写在 README 里。</text>
+  <!-- [6] HONEST y=1344 H=96 → bottom 1440. transY=14 → 可写 up to 82.
+       行: 标题 17 + 3行 44/66/86 → last y=86. H=96 transY=14 → 86 ≤ 96-14=82? Oops 86>82.
+       调: transY=12, 行 y=16/40/62/82 → 82 ≤ 96-12=84 ✓ -->
+  <g transform="translate(70, 1344)" filter="url(#s2)">
+    <rect width="940" height="96" rx="20" fill="#1a0a0a" stroke="#FF5A1F" stroke-opacity="0.45" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="96" rx="5" fill="url(#warn)"/>
+    <g transform="translate(60, 12)">
+      <!-- 三角缩成 30×28: points 0,20 15,-8 30,20. trans x=60 绝对 70+60=130, 左彩条 70~80, 完全不被压 ✓ -->
+      <polygon points="0,20 15,-8 30,20" fill="#FF5A1F" stroke="#FF8A3D" stroke-width="1.4"/>
+      <rect x="12" y="0" width="6" height="12" rx="2" fill="#1a0a0a"/>
+      <rect x="12" y="13" width="6" height="6" rx="2" fill="#1a0a0a"/>
+      <g transform="translate(48, 0)">
+        <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="16" font-weight="800" fill="#FF8A3D" letter-spacing="0.6">HONEST · 诚实披露坏消息 · 这些我们打不赢</text>
+        <text y="30" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="14" fill="#ecc8c0">· 5 / 42 个有效任务 reward 更低: grammar-fuzz · alp · apex-openroad · apexmgmt · modflow6</text>
+        <text y="52" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="13" fill="#c48878">· 根因查清: restart 敏感型任务 × 3 + 长会话上下文膨胀 × 2 (session 过 10h)</text>
+        <text y="72" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="13" fill="#a88070">· 策略 v2 就针对这些在做 · 没改善的话这段话会一直保留在 README 诚实条款区</text>
+      </g>
     </g>
   </g>
 </svg>
