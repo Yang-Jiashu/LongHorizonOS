@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#11131a"/>
+    </linearGradient>
+    <filter id="cardS">
+      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1440" fill="url(#bg3)"/>
+
+  <!-- Title -->
+  <g transform="translate(70, 90)">
+    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+          font-size="62" font-weight="900" fill="#FFFFFF">
+      抄了操作系统 50 年的作业
+    </text>
+    <text y="72" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="32" font-weight="500" fill="#888895">
+      把 Agent Runtime 当进程管 · 6 个核心闸门
+    </text>
+  </g>
+
+  <!-- 6 Mechanism Cards -->
+  <!-- 1 Time slice -->
+  <g transform="translate(70, 220)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#111828" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#1a2a44" stroke="#3A7BD5" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">⏱️</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">时间片 · Time Quantum</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">有界执行切片 — 漂移的运行，最多再瞎跑一个切片就被抓</text>
+    </g>
+  </g>
+
+  <!-- 2 Context switch -->
+  <g transform="translate(70, 390)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#121c24" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#14301e" stroke="#1FAA59" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">🔄</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">语义切换 · Context Switch</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">重启只带目标/证据/产物 URI · 100K token 废话全文不带</text>
+    </g>
+  </g>
+
+  <!-- 3 Investment -->
+  <g transform="translate(70, 560)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#1c1710" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#34230e" stroke="#FFA94D" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">💡</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">投资而非警报 · Investment-gated</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">重启必须是"挣来的"：能带状态、且上一次重启确实回了本</text>
+    </g>
+  </g>
+
+  <!-- 4 OOM Killer -->
+  <g transform="translate(70, 730)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#1f1318" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#3b1218" stroke="#E03131" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">🧨</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">安全阀 · OOM Killer</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">限速的 severe valve · cache≥4× 软线强制重启 · 永远不会振荡</text>
+    </g>
+  </g>
+
+  <!-- 5 Watchdog -->
+  <g transform="translate(70, 900)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#151a20" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#1e2a1a" stroke="#51CF66" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">🐕</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">看门狗 · Watchdog</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">8M token 白烧+零写入+verifier 冻结 → 停机 · 任何生命迹象重置计时</text>
+    </g>
+  </g>
+
+  <!-- 6 Page Table -->
+  <g transform="translate(70, 1070)" filter="url(#cardS)">
+    <rect width="940" height="150" rx="22" fill="#1a1528" stroke="#FFFFFF" stroke-opacity="0.06"/>
+    <g transform="translate(42, 30)">
+      <rect width="90" height="90" rx="18" fill="#2a1c4a" stroke="#845EF7" stroke-opacity="0.5"/>
+      <text x="45" y="72" text-anchor="middle" font-size="48">📑</text>
+    </g>
+    <g transform="translate(160, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="34" font-weight="800" fill="#FFFFFF">版本化进度图 · Page Table</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="26" fill="#a0a8b8">中途改一个上游文件 · 只让受影响子图失效 · 已验证绝不重做</text>
+    </g>
+  </g>
+
+  <!-- Footer tag -->
+  <g transform="translate(70, 1270)">
+    <rect width="940" height="110" rx="18" fill="#FFFFFF" fill-opacity="0.03" stroke="#FFFFFF" stroke-opacity="0.05"/>
+    <g transform="translate(36, 34)">
+      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="28" font-weight="800" fill="#FFFFFF">⚠️ 所有闸门 fail-closed</text>
+      <text y="44" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="24" fill="#888895">观测有歧义 → 继续跑 · reward 红线是结构性的，不是口号</text>
+    </g>
+  </g>
+
+</svg>

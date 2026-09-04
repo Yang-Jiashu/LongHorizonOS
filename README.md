@@ -294,7 +294,9 @@ python -m mypy src/lhos
 
 ## Acknowledgments
 
-All experiments were enabled by the [StepFun Builder Program](https://platform.stepfun.com/builder-program), which provided the model API and inference quota (model `stepfun/step-3.7-flash`, credential via the `STEPFUN_API_KEY` environment variable).
+**Benchmark & Harness foundation.** The 46-task evaluation in this release uses **LHTB (LongHorizonBenchmark)**, the long-horizon agent benchmark suite. All 46 agent sessions were executed on top of **DeepSeek Harness** (see `LHTBDeepSeekHarnessAgent` in `scripts/lhtb_dsh_harbor_agent.py`); the paired-experiment bridge and per-slice telemetry gate assume DeepSeek Harness as the baseline harness. LongHorizonOS is evaluated *against* this harness and benchmark, not on top of any other runtime.
+
+**Model & inference.** All experiments were enabled by the [StepFun Builder Program](https://platform.stepfun.com/builder-program), which provided the model API and inference quota (model `stepfun/step-3.7-flash`, credential via the `STEPFUN_API_KEY` environment variable).
 
 ---
 

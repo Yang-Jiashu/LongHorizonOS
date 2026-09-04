@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0a19"/>
+      <stop offset="100%" stop-color="#130d1a"/>
+    </linearGradient>
+    <filter id="ctaS">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#FF5A1F" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1440" fill="url(#bg4)"/>
+
+  <!-- Top: roadmap section -->
+  <g transform="translate(70, 90)">
+    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+          font-size="58" font-weight="900" fill="#FFFFFF">
+      Roadmap · 接下来去哪
+    </text>
+  </g>
+
+  <!-- Roadmap 3-phase vertical -->
+  <g transform="translate(70, 210)">
+    <!-- Phase 1 -->
+    <g>
+      <rect width="940" height="150" rx="24" fill="#0f1a0f" stroke="#1FAA59" stroke-opacity="0.45"/>
+      <g transform="translate(36, 30)">
+        <rect width="88" height="48" rx="12" fill="#1FAA59"/>
+        <text x="44" y="34" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="24" font-weight="800" fill="#FFFFFF">DONE</text>
+        <text x="112" y="36" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="32" font-weight="800" fill="#FFFFFF">现在 · Now</text>
+        <text x="112" y="82" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#9ab3a0">研究 alpha · 单机 · DeepSeek Harness 集成</text>
+        <text x="112" y="116" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#1FAA59">46-task LHTB 配对评测</text>
+      </g>
+    </g>
+
+    <!-- Connector -->
+    <path d="M 88 150 L 88 190" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="3"/>
+
+    <!-- Phase 2 -->
+    <g transform="translate(0, 200)">
+      <rect width="940" height="150" rx="24" fill="#1a160c" stroke="#FFA94D" stroke-opacity="0.45"/>
+      <g transform="translate(36, 30)">
+        <rect width="88" height="48" rx="12" fill="#FFA94D"/>
+        <text x="44" y="34" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="24" font-weight="800" fill="#1a160c">NEXT</text>
+        <text x="112" y="36" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="32" font-weight="800" fill="#FFFFFF">下一步 · Next</text>
+        <text x="112" y="82" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#b8a990">Harness 无关的能力矩阵 · 会话内局部压缩</text>
+        <text x="112" y="116" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#FFA94D">更丰富的策略遥测（任何带观测/干预钩子的 agent loop）</text>
+      </g>
+    </g>
+
+    <!-- Connector -->
+    <path d="M 88 350 L 88 390" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="3"/>
+
+    <!-- Phase 3 -->
+    <g transform="translate(0, 400)">
+      <rect width="940" height="150" rx="24" fill="#130f28" stroke="#845EF7" stroke-opacity="0.45"/>
+      <g transform="translate(36, 30)">
+        <rect width="88" height="48" rx="12" fill="#845EF7"/>
+        <text x="44" y="34" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="24" font-weight="800" fill="#FFFFFF">GOAL</text>
+        <text x="112" y="36" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="32" font-weight="800" fill="#FFFFFF">真正的目标 · The Point</text>
+        <text x="112" y="82" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#b0a4d8">续跑决策全部可记录、可回放、可按策略寻址</text>
+        <text x="112" y="116" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="26" fill="#845EF7">调度策略 + 学习型模型 → 在 OS 内部训练评测</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- BIG CTA BLOCK: 求同行批评/意见/合作 -->
+  <g transform="translate(70, 970)" filter="url(#ctaS)">
+    <rect width="940" height="380" rx="30" fill="#1a100c" stroke="#FF5A1F" stroke-opacity="0.6"/>
+    <g transform="translate(48, 48)">
+      <rect width="150" height="48" rx="12" fill="#FF5A1F"/>
+      <text x="75" y="33" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="24" font-weight="800" fill="#FFFFFF">CALLING</text>
+
+      <text y="104" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="52" font-weight="900" fill="#FFFFFF">找 3 类同行聊聊</text>
+
+      <g transform="translate(0, 140)">
+        <g>
+          <circle cx="16" cy="20" r="14" fill="#FF5A1F"/>
+          <text x="16" y="27" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="22" font-weight="900" fill="#FFFFFF">1</text>
+          <text x="46" y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="28" font-weight="700" fill="#FFFFFF">做 Agent Runtime / Framework 的同行</text>
+        </g>
+        <g transform="translate(0, 66)">
+          <circle cx="16" cy="20" r="14" fill="#FF8A3D"/>
+          <text x="16" y="27" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="22" font-weight="900" fill="#FFFFFF">2</text>
+          <text x="46" y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="28" font-weight="700" fill="#FFFFFF">有真实长时程任务场景的业务同学</text>
+        </g>
+        <g transform="translate(0, 132)">
+          <circle cx="16" cy="20" r="14" fill="#FFB380"/>
+          <text x="16" y="27" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="22" font-weight="900" fill="#1a100c">3</text>
+          <text x="46" y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="28" font-weight="700" fill="#FFFFFF">做 Benchmark / 评测方向的研究者</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- GitHub line -->
+  <g transform="translate(70, 1386)">
+    <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="26" fill="#888895" letter-spacing="1">
+      GitHub: <tspan fill="#FFFFFF" font-weight="700">github.com/Yang-Jiashu/LongHorizonOS</tspan>
+       · Issue / DM 都看
+    </text>
+  </g>
+
+</svg>

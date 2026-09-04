@@ -294,7 +294,9 @@ python -m mypy src/lhos
 
 ## 致谢
 
-全部实验由 [StepFun 构建者计划](https://platform.stepfun.com/builder-program) 赞助，提供模型 API 与推理额度（模型 `stepfun/step-3.7-flash`，凭证走 `STEPFUN_API_KEY` 环境变量）。
+**基准套件与 Harness 层。** 本版本 46 任务评测使用 **LHTB = LongHorizonBenchmark**（长时程 Agent 基准测试套件）。全部 46 个 Agent 会话基于 **DeepSeek Harness** 执行（见 `scripts/lhtb_dsh_harbor_agent.py` 中的 `LHTBDeepSeekHarnessAgent`）；配对实验桥接与切片级遥测闸门均以 DeepSeek Harness 为基线。LongHorizonOS 是在此 harness 与 benchmark 之上*做对照评测*，而非跑在其他任何 runtime 之上。
+
+**模型与推理。** 全部实验由 [StepFun 构建者计划](https://platform.stepfun.com/builder-program) 赞助，提供模型 API 与推理额度（模型 `stepfun/step-3.7-flash`，凭证走 `STEPFUN_API_KEY` 环境变量）。
 
 ---
 
