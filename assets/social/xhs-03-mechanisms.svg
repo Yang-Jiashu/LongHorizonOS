@@ -8,168 +8,111 @@
     <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF8A3D"/><stop offset="100%" stop-color="#FF5A1F"/></linearGradient>
     <linearGradient id="g5" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1FAA59"/><stop offset="100%" stop-color="#3DD68F"/></linearGradient>
     <linearGradient id="g6" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7B5BF2"/><stop offset="100%" stop-color="#8957e5"/></linearGradient>
-    <filter id="s3"><feDropShadow dx="0" dy="3" stdDeviation="10" flood-color="#000" flood-opacity="0.55"/></filter>
+    <filter id="s3"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/></filter>
   </defs>
   <rect width="1080" height="1440" fill="url(#bg3)"/>
+
   <g transform="translate(70, 72)">
-    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-          font-size="54" font-weight="900" fill="#FFFFFF">抄了操作系统 50 年的作业</text>
-    <text y="62" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-          font-size="22" fill="#9898a5">把 Agent Runtime 当进程管 · 6 个核心闸门 · 全部 fail-closed</text>
+    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="56" font-weight="900" fill="#FFFFFF">抄了 OS 50 年的作业</text>
+    <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#a0a0b0">把 Agent Runtime 当进程管 · 6 个核心闸门</text>
   </g>
-  <!-- 通用宏: 每卡 940×160 gap 20.
-       内容: 左彩条 8px + 图标容器 76×76 @ x=48, y=42
-               → 内容文字 translate x=158, y=42
-       最后一行 baseline 到卡底 = 160 - (42 + last y)
-       每卡 H=160, y 递增 180 = 160 + 20 gap -->
-  <!-- 1 Time Quantum y=156 H=160 bottom=316 -->
-  <g transform="translate(70, 156)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#142130" stroke="#3A7BD5" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g1)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#0f1a28" stroke="#3A7BD5" stroke-opacity="0.5"/>
-      <circle cx="38" cy="38" r="26" fill="none" stroke="#3A7BD5" stroke-width="4" opacity="0.5"/>
-      <path d="M 38 38 L 38 14 A 22 22 0 0 1 58 44 L 38 38 Z" fill="#3A7BD5" opacity="0.7"/>
-      <line x1="38" y1="38" x2="38" y2="18" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
-      <line x1="38" y1="38" x2="52" y2="44" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+
+  <g transform="translate(70, 228)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#142130" stroke="#3A7BD5" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g1)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#0f1a28" stroke="#3A7BD5" stroke-opacity="0.5"/>
+      <circle cx="43" cy="43" r="30" fill="none" stroke="#3A7BD5" stroke-width="4" opacity="0.5"/>
+      <path d="M 43 43 L 43 16 A 26 26 0 0 1 65 50 L 43 43 Z" fill="#3A7BD5" opacity="0.75"/>
+      <line x1="43" y1="43" x2="43" y2="20" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+      <line x1="43" y1="43" x2="59" y2="50" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">时间片 · Time Quantum</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#a8c0d8">有界执行切片 · 漂移的运行, 最多再瞎跑一个切片就被抓</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#8098b0">8K token 单次续跑上限 · 漂移检测 = 上下文增量中位数 vs 上次续跑点 · 2 触发</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#8098b0">每个 slice 出结果前都过投资闸门 · 白烧的 slice 直接被 OOM 杀</text>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">时间片 · Time Quantum</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8c0d8">最多再瞎跑一个切片就被抓</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#8098b0">漂移检测 · 2σ 触发 · 过了投资闸门才放行</text>
     </g>
   </g>
-  <!-- 2 Context Switch y=336 H=160 bottom=496 -->
-  <g transform="translate(70, 336)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#142820" stroke="#2ea043" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g2)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#0f2018" stroke="#2ea043" stroke-opacity="0.5"/>
-      <path d="M 20 28 L 40 38 L 20 48" fill="none" stroke="#2ea043" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M 56 28 L 36 38 L 56 48" fill="none" stroke="#2ea043" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="38" cy="38" r="10" fill="none" stroke="#2ea043" stroke-width="3.5"/>
+
+  <g transform="translate(70, 422)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#142820" stroke="#2ea043" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g2)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#0f2018" stroke="#2ea043" stroke-opacity="0.5"/>
+      <path d="M 22 30 L 44 43 L 22 56" fill="none" stroke="#2ea043" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 64 30 L 42 43 L 64 56" fill="none" stroke="#2ea043" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="43" cy="43" r="11" fill="none" stroke="#2ea043" stroke-width="4"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">语义切换 · Context Switch</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#a8d8b8">重启只带三件套 · 目标 URI / 证据 URI / 产物 URI</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#80a088">100K token 全文废话不带进上下文 · 历史全文扔 versioned page-table</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#80a088">上下文平均长度砍到 1/3 · reward 没变 · 这就是 ~2.4× token 节省来源</text>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">语义切换 · Context Switch</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d8b8">重启只带三件套 · 目标 / 证据 / 产物</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a088">100K 废话不带 · 这就是 2.4x token 节省来源</text>
     </g>
   </g>
-  <!-- 3 Investment y=516 H=160 bottom=676 -->
-  <g transform="translate(70, 516)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#241810" stroke="#FF8A3D" stroke-opacity="0.75" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g3)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#1e140c" stroke="#FF8A3D" stroke-opacity="0.5"/>
-      <ellipse cx="38" cy="54" rx="24" ry="9" fill="#FF8A3D" opacity="0.4"/>
-      <circle cx="38" cy="52" r="14" fill="none" stroke="#FF8A3D" stroke-width="4"/>
-      <path d="M 38 42 L 38 12" stroke="#FF8A3D" stroke-width="5" stroke-linecap="round"/>
-      <path d="M 38 12 Q 54 8 58 22 Q 46 20 38 28 Z" fill="#FF8A3D"/>
-      <path d="M 38 12 Q 22 8 18 22 Q 30 20 38 28 Z" fill="#FFB36B"/>
+
+  <g transform="translate(70, 616)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#241810" stroke="#FF8A3D" stroke-opacity="0.75" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g3)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#1e140c" stroke="#FF8A3D" stroke-opacity="0.5"/>
+      <ellipse cx="43" cy="62" rx="28" ry="10" fill="#FF8A3D" opacity="0.4"/>
+      <circle cx="43" cy="60" r="16" fill="none" stroke="#FF8A3D" stroke-width="4.5"/>
+      <path d="M 43 48 L 43 14" stroke="#FF8A3D" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 43 14 Q 62 10 66 26 Q 52 24 43 32 Z" fill="#FF8A3D"/>
+      <path d="M 43 14 Q 24 10 20 26 Q 34 24 43 32 Z" fill="#FFB36B"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">投资而非警报 · Investment-gated</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#e8c8a0">重启必须&quot;挣来的&quot; · 能带状态 + 上次重启确实回了本</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#b09060">restart ROI 跟踪 · 连续 N 次 0 回报的策略直接退役 · 不给机会白烧</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#b09060">5 个 dropoff 里 3 个是 restart 敏感型 · v2 专门给他们调 ROI 阈值</text>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">投资 · Investment-gated</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8c8a0">续跑必须挣回上次的成本</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#b09060">连续 0 回报策略直接退役 · 不给白烧机会</text>
     </g>
   </g>
-  <!-- 4 OOM Killer y=696 H=160 bottom=856 -->
-  <g transform="translate(70, 696)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#281010" stroke="#FF5A1F" stroke-opacity="0.75" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g3)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#200a0a" stroke="#FF5A1F" stroke-opacity="0.5"/>
-      <polygon points="38,14 62,38 38,62 14,38" fill="#FF5A1F" stroke="#FF8A3D" stroke-width="2"/>
-      <line x1="22" y1="22" x2="54" y2="54" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
-      <line x1="54" y1="22" x2="22" y2="54" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+
+  <g transform="translate(70, 810)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#281010" stroke="#FF5A1F" stroke-opacity="0.75" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g3)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#200a0a" stroke="#FF5A1F" stroke-opacity="0.5"/>
+      <polygon points="43,14 72,43 43,72 14,43" fill="#FF5A1F" stroke="#FF8A3D" stroke-width="2.5"/>
+      <line x1="26" y1="26" x2="60" y2="60" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
+      <line x1="60" y1="26" x2="26" y2="60" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">安全阀 · OOM Killer</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#e8b8b0">限速的 severe valve · cache ≥ 4× 软线强制语义重启</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#c07870">fail-closed · 观测有歧义也执行 kill · 不会振铃震荡 · 杀死后必带回滚</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#c07870">与 watchdog 双保险 · watchdog 管长时间白烧 · OOM 管瞬时上下文爆炸</text>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">安全阀 · OOM Killer</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8b8b0">上下文爆炸 → 4× 软线直接杀</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#c07870">fail-closed · 观测有歧义也执行 · 杀死后必带回滚</text>
     </g>
   </g>
-  <!-- 5 Watchdog y=876 H=160 bottom=1036 -->
-  <g transform="translate(70, 876)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#142230" stroke="#1FAA59" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g5)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#0f1d20" stroke="#1FAA59" stroke-opacity="0.5"/>
-      <circle cx="38" cy="38" r="26" fill="none" stroke="#1FAA59" stroke-width="3" opacity="0.4"/>
-      <circle cx="38" cy="38" r="18" fill="none" stroke="#1FAA59" stroke-width="3" opacity="0.4"/>
-      <polyline points="12,38 22,38 26,18 32,58 38,18 44,58 50,18 54,38 64,38" fill="none" stroke="#1FAA59" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g transform="translate(70, 1004)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#142230" stroke="#1FAA59" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g5)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#0f1d20" stroke="#1FAA59" stroke-opacity="0.5"/>
+      <circle cx="43" cy="43" r="30" fill="none" stroke="#1FAA59" stroke-width="3.5" opacity="0.4"/>
+      <circle cx="43" cy="43" r="20" fill="none" stroke="#1FAA59" stroke-width="3.5" opacity="0.4"/>
+      <polyline points="14,43 24,43 28,22 35,64 43,22 51,64 58,22 62,43 72,43" fill="none" stroke="#1FAA59" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">看门狗 · Watchdog</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#a8d0c0">8M token 白烧 + 零写入 + verifier 冻结 → 停机</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#80a090">任何生命迹象重置计时 · 三类信号 0/1/2 离散阈值 (写入/reward 变动/verifier 回答)</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#80a090">158 续跑案例就是 watchdog 本该在 32 次续跑就拍死的对象</text>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">看门狗 · Watchdog</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d0c0">长时间白烧 + 零写入 → 拍死</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a090">任何生命迹象重置计时 · 本来就不该跑了 158 次续跑案例</text>
     </g>
   </g>
-  <!-- 6 Page Table y=1056 H=160 bottom=1216 -->
-  <g transform="translate(70, 1056)" filter="url(#s3)">
-    <rect width="940" height="160" rx="18" fill="#1e1428" stroke="#8957e5" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="8" height="160" rx="4" fill="url(#g6)"/>
-    <g transform="translate(48, 42)">
-      <rect width="76" height="76" rx="16" fill="#181024" stroke="#8957e5" stroke-opacity="0.5"/>
-      <rect x="14" y="12" width="48" height="12" rx="3" fill="none" stroke="#8957e5" stroke-width="3"/>
-      <rect x="14" y="30" width="48" height="12" rx="3" fill="none" stroke="#8957e5" stroke-width="3"/>
-      <rect x="14" y="48" width="48" height="12" rx="3" fill="#8957e5" fill-opacity="0.35" stroke="#8957e5" stroke-width="3"/>
-      <rect x="14" y="64" width="48" height="6" rx="3" fill="#8957e5" fill-opacity="0.7"/>
+
+  <g transform="translate(70, 1198)" filter="url(#s3)">
+    <rect width="940" height="170" rx="20" fill="#1e1428" stroke="#8957e5" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g6)"/>
+    <g transform="translate(58, 42)">
+      <rect width="86" height="86" rx="18" fill="#181024" stroke="#8957e5" stroke-opacity="0.5"/>
+      <rect x="16" y="14" width="54" height="14" rx="4" fill="none" stroke="#8957e5" stroke-width="3.5"/>
+      <rect x="16" y="34" width="54" height="14" rx="4" fill="none" stroke="#8957e5" stroke-width="3.5"/>
+      <rect x="16" y="54" width="54" height="14" rx="4" fill="#8957e5" fill-opacity="0.35" stroke="#8957e5" stroke-width="3.5"/>
     </g>
-    <g transform="translate(158, 42)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="26" font-weight="900" fill="#FFFFFF">版本化进度图 · Page Table</text>
-      <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="700" fill="#c8b8e8">中途改一个上游文件 · 只让受影响子图失效</text>
-      <text y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#9880c0">已验证绝不重做 · 依赖图 topo-sort · 节点 hash 校验 · 带 SHA 重放</text>
-      <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#9880c0">46 任务 5772 个节点 · topo 排序 0 冲突 · 重放 100% 一致</text>
-    </g>
-  </g>
-  <!-- footer fail-closed y=1236 H=176 bottom=1412 canvas 1440 → 28 safety -->
-  <g transform="translate(70, 1236)">
-    <rect width="940" height="176" rx="20" fill="#141826" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="1.5"/>
-    <g transform="translate(48, 28)">
-      <path d="M 44 2 L 82 14 L 82 52 Q 82 74 44 86 Q 6 74 6 52 L 6 14 Z" fill="#FF5A1F" fill-opacity="0.2" stroke="#FF8A3D" stroke-width="3"/>
-      <path d="M 28 44 L 40 56 L 62 30" fill="none" stroke="#FF8A3D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <g transform="translate(112, 0)">
-        <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="22" font-weight="900" fill="#FFFFFF" letter-spacing="0.6">所有闸门 fail-closed · 6 个闸门全部互锁</text>
-        <text y="34" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="17" fill="#d0d4e0">观测有歧义 → 继续跑 · reward 红线是结构性的 · 不是口号</text>
-        <text y="60" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#8a8ea0">任何 single-point-of-fail 都不让 Agent 失控 · 6 闸门独立判决 · 任一触发即进入安全流程</text>
-        <text y="84" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#8a8ea0">这和你见过的 &quot;加个 watch flag 就完了&quot; 完全不是一回事 · 整个外层就是把 Agent 当进程管</text>
-        <text y="110" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="17" font-weight="800" fill="#FFB36B">→ 这就是为什么 0 行 harness 改动下, 37/42 reward 还能持平或更优</text>
-      </g>
+    <g transform="translate(184, 46)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">版本化进度 · Page Table</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#c8b8e8">中途改一个文件 → 只失效受影响子图</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#9880c0">已验证绝不重做 · 带 SHA 重放 100% 一致</text>
     </g>
   </g>
 </svg>
