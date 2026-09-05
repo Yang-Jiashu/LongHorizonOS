@@ -1,155 +1,158 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440">
   <defs>
     <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a0e1a"/><stop offset="100%" stop-color="#0b0d14"/>
+      <stop offset="0%" stop-color="#0d0a19"/>
+      <stop offset="100%" stop-color="#130d1a"/>
     </linearGradient>
-    <linearGradient id="doneG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1FAA59"/><stop offset="100%" stop-color="#2ea043"/></linearGradient>
-    <linearGradient id="nextG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF8A3D"/><stop offset="100%" stop-color="#FF5A1F"/></linearGradient>
-    <linearGradient id="goalG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7B5BF2"/><stop offset="100%" stop-color="#8957e5"/></linearGradient>
-    <linearGradient id="callG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF5A1F"/><stop offset="100%" stop-color="#FF8A3D"/></linearGradient>
-    <filter id="s4"><feDropShadow dx="0" dy="3" stdDeviation="10" flood-color="#000" flood-opacity="0.55"/></filter>
+    <linearGradient id="green1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4AD29A"/><stop offset="100%" stop-color="#1FAA59"/>
+    </linearGradient>
+    <linearGradient id="amber1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFC870"/><stop offset="100%" stop-color="#FFA94D"/>
+    </linearGradient>
+    <linearGradient id="purple1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B08DFF"/><stop offset="100%" stop-color="#845EF7"/>
+    </linearGradient>
+    <linearGradient id="orange1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB36B"/><stop offset="100%" stop-color="#FF5A1F"/>
+    </linearGradient>
+    <filter id="ctaS">
+      <feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#FF5A1F" flood-opacity="0.3"/>
+    </filter>
   </defs>
+
   <rect width="1080" height="1440" fill="url(#bg4)"/>
+
+  <!-- Title absolute: y=72, H=110, bottom 182 -->
   <g transform="translate(70, 72)">
     <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-          font-size="56" font-weight="900" fill="#FFFFFF">Roadmap · 接下来去哪</text>
-    <text y="62" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-          font-size="20" fill="#9898a5">v0.1.0 research alpha → 策略 v2 → 真正的「Agent 调度 OS」</text>
+          font-size="52" font-weight="900" fill="#FFFFFF">
+      Roadmap · 接下来去哪
+    </text>
+    <text y="60" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="24" fill="#9090a0">
+      v0.1.0 Research Alpha · 已开源
+    </text>
   </g>
-  <!-- Spine x=90 (相对整图 = 70+90=160) 从 y=170+90 到 y=566+90 -->
-  <line x1="160" y1="260" x2="160" y2="656" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="3"/>
-  <!-- DONE y=170 H=180 bottom=350, card x=30 (相对 translate=30, 940宽=70→1010, 所以 30=70+30=100, card 100~1040 ok) -->
-  <g transform="translate(70, 170)" filter="url(#s4)">
-    <rect x="30" y="0" width="910" height="180" rx="18" fill="#102018" stroke="#1FAA59" stroke-opacity="0.7" stroke-width="1.5"/>
-    <!-- node circle cx=90 相对卡=30+60=90 (spine x=160 整图 = 70+30+60=160 ✓) -->
-    <circle cx="90" cy="90" r="16" fill="#1FAA59" stroke="#0a0e1a" stroke-width="5"/>
-    <g transform="translate(140, 28)">
-      <rect width="90" height="36" rx="8" fill="url(#doneG)"/>
-      <text x="45" y="24" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="17" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.4">DONE</text>
-      <g transform="translate(110, 0)">
-        <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="28" font-weight="900" fill="#FFFFFF">现在 · v0.1.0 Research Alpha</text>
-        <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="18" font-weight="600" fill="#a8d0b8">· 单机 · <tspan font-weight="800" fill="#FFFFFF">DeepSeek Harness</tspan> 集成 · 46-task <tspan font-weight="800" fill="#3DD68F">LHTB = LongHorizonBenchmark</tspan> 配对评测</text>
-        <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#a0bca8">· 6 个核心闸门首次实现并验证 · 全部 fail-closed · 0 行 harness 代码改动</text>
-        <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#a0bca8">· 37/42 reward 持平或更优 · 22/27 (81%) 至少一臂得分 · ~2.4× input token 节省中位数</text>
-        <text y="114" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="14" fill="#90a898">· 全部文件在 repo assets/social · 致谢区已列 LHTB / DeepSeek Harness / StepFun 出处</text>
+
+  <!-- Roadmap 3 phase H=118, transY=106/250/394. y abs: 252/396/540. H=118  bottom 658 -->
+  <g transform="translate(70, 252)">
+    <line x1="66" y1="59" x2="66" y2="453" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="3"/>
+
+    <!-- P1 DONE -->
+    <g transform="translate(0, 0)">
+      <rect width="940" height="118" rx="22" fill="#0f1a0f" stroke="#1FAA59" stroke-opacity="0.45"/>
+      <circle cx="66" cy="59" r="13" fill="url(#green1)"/>
+      <path d="M 59.5 59 L 64.5 65 L 74 52" fill="none" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <g transform="translate(120, 24)">
+        <rect width="86" height="38" rx="10" fill="#1FAA59"/>
+        <text x="43" y="26" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="20" font-weight="900" fill="#FFFFFF" letter-spacing="1.2">DONE</text>
+        <text x="108" y="28" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="29" font-weight="900" fill="#FFFFFF">现在 · Now</text>
+        <text x="108" y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="22" fill="#a0bca8"><tspan fill="#FFA94D" font-weight="700">DeepSeek Harness</tspan> 集成 · LHTB 46 任务配对评测</text>
+      </g>
+    </g>
+
+    <!-- P2 NEXT transY=144 -->
+    <g transform="translate(0, 144)">
+      <rect width="940" height="118" rx="22" fill="#1a160c" stroke="#FFA94D" stroke-opacity="0.5"/>
+      <circle cx="66" cy="59" r="13" fill="url(#amber1)"/>
+      <text x="66" y="65" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="15" font-weight="900" fill="#2a1a08">N</text>
+      <g transform="translate(120, 24)">
+        <rect width="86" height="38" rx="10" fill="#FFA94D"/>
+        <text x="43" y="26" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="20" font-weight="900" fill="#2a1a08" letter-spacing="1.2">NEXT</text>
+        <text x="108" y="28" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="29" font-weight="900" fill="#FFFFFF">下一步 · Next</text>
+        <text x="108" y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="22" fill="#b8a078">Harness 无关能力矩阵 · 会话局部压缩 · 策略遥测</text>
+      </g>
+    </g>
+
+    <!-- P3 GOAL transY=288 -->
+    <g transform="translate(0, 288)">
+      <rect width="940" height="118" rx="22" fill="#130f28" stroke="#845EF7" stroke-opacity="0.5"/>
+      <circle cx="66" cy="59" r="13" fill="url(#purple1)"/>
+      <path d="M 59.5 65 L 66 53 L 72.5 65 Z" fill="#FFFFFF"/>
+      <g transform="translate(120, 24)">
+        <rect width="86" height="38" rx="10" fill="#845EF7"/>
+        <text x="43" y="26" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="20" font-weight="900" fill="#FFFFFF" letter-spacing="1.2">GOAL</text>
+        <text x="108" y="28" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+              font-size="29" font-weight="900" fill="#FFFFFF">真正的目标 · The Point</text>
+        <text x="108" y="68" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+              font-size="22" fill="#a898d0">续跑可回放可寻址 · OS 内训练 + 评测调度策略</text>
       </g>
     </g>
   </g>
-  <!-- NEXT y=370 H=176 bottom=546, 节点 cy=88 整图 y=370+88=458 -->
-  <g transform="translate(70, 370)" filter="url(#s4)">
-    <rect x="30" y="0" width="910" height="176" rx="18" fill="#201808" stroke="#FF8A3D" stroke-opacity="0.75" stroke-width="1.5"/>
-    <circle cx="90" cy="88" r="16" fill="#FF8A3D" stroke="#0a0e1a" stroke-width="5"/>
-    <g transform="translate(140, 26)">
-      <rect width="90" height="36" rx="8" fill="url(#nextG)"/>
-      <text x="45" y="24" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="17" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.4">NEXT</text>
-      <g transform="translate(110, 0)">
-        <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="28" font-weight="900" fill="#FFFFFF">下一步 · 策略 v2</text>
-        <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="18" font-weight="600" fill="#e8c890">· 策略 v2: restart 敏感 + 长会话膨胀专门化</text>
-        <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#b8a078">· 目标: 5/42 dropoff 任务至少救回 3 个 · restart ROI 分层阈值 · 会话内局部压缩</text>
-        <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#b8a078">· Harness 无关的能力矩阵 · 任何带观测/干预钩子的 agent loop 都能接进 LongHorizonOS</text>
-        <text y="114" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="14" fill="#a88860">· 诚实披露: v2 数据还没出 · 改完再跑完整 46-task · 救不回来的话这段话会一直留在 README</text>
-      </g>
-    </g>
-  </g>
-  <!-- GOAL y=566 H=180 bottom=746, 节点 cy=90 整图 y=566+90=656 (spine end 656 ✓) -->
-  <g transform="translate(70, 566)" filter="url(#s4)">
-    <rect x="30" y="0" width="910" height="180" rx="18" fill="#181028" stroke="#8957e5" stroke-opacity="0.75" stroke-width="1.5"/>
-    <circle cx="90" cy="90" r="16" fill="#8957e5" stroke="#0a0e1a" stroke-width="5"/>
-    <g transform="translate(140, 28)">
-      <rect width="90" height="36" rx="8" fill="url(#goalG)"/>
-      <text x="45" y="24" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="17" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.4">GOAL</text>
-      <g transform="translate(110, 0)">
-        <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="28" font-weight="900" fill="#FFFFFF">真正的目标 · Agent 调度 OS</text>
-        <text y="38" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="18" font-weight="600" fill="#c8b8e8">· 续跑决策全部可记录 · 可回放 · 可按策略寻址调度</text>
-        <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#a898d0">· 调度策略 + 学习型模型在 OS 内部训练评测 · 不跟业务 agent 混</text>
-        <text y="90" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="15" fill="#a898d0">· 多 agent 多会话并行的调度原语 · 任务队列 + 资源配额 + 优先级抢占</text>
-        <text y="114" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-              font-size="14" fill="#9888c0">· 让长时程 agent 像进程一样被工程化管理 · 而不只是被提示词糊弄</text>
-      </g>
-    </g>
-  </g>
-  <!-- CALLING CARD y=778 H=544 bottom=1322
-       Badge H=38, Badge bottom=38, Title baseline y=96 (translate 50+30=80+96=176>38 无重叠)
-       3 peers: y=160/288/416 each H=96 → last baseline 416+52=468. 卡高 544 →  margin 544-468-30(trans 50..)=544-498=46 bottom margin ✓ -->
-  <g transform="translate(70, 778)" filter="url(#s4)">
-    <rect width="940" height="544" rx="22" fill="#1e0a05" stroke="#FF5A1F" stroke-opacity="0.7" stroke-width="2"/>
-    <g transform="translate(50, 30)">
-      <rect width="128" height="38" rx="9" fill="url(#callG)"/>
-      <text x="64" y="26" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="18" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.6">CALLING</text>
+  <!-- Roadmap bottom: 252 + 288 + 118 = 658 ✅ -->
+
+  <!-- CALLING CARD y=718 H=494 → bottom 1212. gap with footer 1262→1212=50px -->
+  <g transform="translate(70, 718)" filter="url(#ctaS)">
+    <rect width="940" height="494" rx="30" fill="#1a100c" stroke="#FF5A1F" stroke-opacity="0.65"/>
+    <g transform="translate(44, 36)">
+      <rect width="160" height="44" rx="12" fill="url(#orange1)"/>
+      <text x="80" y="30" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+            font-size="22" font-weight="900" fill="#FFFFFF" letter-spacing="2">CALLING</text>
+
       <text y="96" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="40" font-weight="900" fill="#FFFFFF">找 3 类同行聊聊</text>
-      <text y="128" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="18" font-weight="500" fill="#e0b8a0">做底层基建的 · 最怕闭门造车 — 真的需要各路神仙的反馈 / 批评 / 合作</text>
-      <!-- PEER 1 y=168 (baseline 168, circle cy=28  168+28+24=220 end) -->
-      <g transform="translate(0, 168)">
-        <circle cx="24" cy="28" r="24" fill="#FF5A1F" stroke="#FF8A3D" stroke-width="2"/>
-        <text x="24" y="37" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="26" font-weight="900" fill="#FFFFFF" text-anchor="middle">1</text>
-        <g transform="translate(76, 0)">
-          <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="20" font-weight="800" fill="#FFFFFF">做 Agent Runtime / Framework 的同行</text>
-          <text y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· 思路傻逼直接骂 · 越具体越好 · 任何维度都欢迎</text>
-          <text y="52" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· Issue / 邮件 / 咖啡 · 你选方式 · 我这边 24h 内必回</text>
+            font-size="50" font-weight="900" fill="#FFFFFF">找 3 类同行聊聊</text>
+      <text y="132" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+            font-size="20" fill="#c08068">骂 / 合作 / 数据集都行，直接 GitHub Issue 或 DM</text>
+
+      <!-- 3 rows each H=100, gap 12, transY=152/264/376. r=26 (smaller) -->
+      <g transform="translate(0, 152)">
+        <g transform="translate(0, 0)">
+          <circle cx="26" cy="38" r="26" fill="#FF5A1F"/>
+          <text x="26" y="46" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="23" font-weight="900" fill="#FFFFFF">1</text>
+          <text x="74" y="34" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="29" font-weight="900" fill="#FFFFFF">Agent Runtime / Framework</text>
+          <text x="74" y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="18" fill="#c8a898">做 OS 层、调度、上下文管理的同行</text>
         </g>
-      </g>
-      <!-- PEER 2 y=296 (gap 296-(168+96)=32) -->
-      <g transform="translate(0, 296)">
-        <circle cx="24" cy="28" r="24" fill="#FF8A3D" stroke="#FFB36B" stroke-width="2"/>
-        <text x="24" y="37" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="26" font-weight="900" fill="#1e0a05" text-anchor="middle">2</text>
-        <g transform="translate(76, 0)">
-          <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="20" font-weight="800" fill="#FFFFFF">有真实长时程任务场景的业务同学</text>
-          <text y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· 接你们 Harness 跑 · 数据你们说了算 · 评测协议你们定</text>
-          <text y="52" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· 不接受 &quot;套壳 + 发软文&quot; · 要真场景真问题真数据 · 假数据直接拉黑</text>
+        <g transform="translate(0, 112)">
+          <circle cx="26" cy="38" r="26" fill="#FF8A3D"/>
+          <text x="26" y="46" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="23" font-weight="900" fill="#2a1008">2</text>
+          <text x="74" y="34" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="29" font-weight="900" fill="#FFFFFF">真实长时程业务场景</text>
+          <text x="74" y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="18" fill="#c8a898">SRE / DevOps / 数据工程 · 烧 token 痛过的 PM &amp; Infra</text>
         </g>
-      </g>
-      <!-- PEER 3 y=424 (gap 424-(296+96)=32) -->
-      <g transform="translate(0, 424)">
-        <circle cx="24" cy="28" r="24" fill="#FFB36B" stroke="#FFD79A" stroke-width="2"/>
-        <text x="24" y="37" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-              font-size="26" font-weight="900" fill="#1e0a05" text-anchor="middle">3</text>
-        <g transform="translate(76, 0)">
-          <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="20" font-weight="800" fill="#FFFFFF">做 Benchmark / 评测方向的研究者</text>
-          <text y="28" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· LHTB 之外有新评测集 / 想搞联合实验的 · 随时聊</text>
-          <text y="52" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-                font-size="16" fill="#d0a080">· 特别欢迎: 反例构造 · hard negative · 能揭穿我们牛皮的任务设计</text>
+        <g transform="translate(0, 224)">
+          <circle cx="26" cy="38" r="26" fill="#FFB380"/>
+          <text x="26" y="46" text-anchor="middle" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="23" font-weight="900" fill="#2a1008">3</text>
+          <text x="74" y="34" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+                font-size="29" font-weight="900" fill="#FFFFFF">Benchmark / 评测研究者</text>
+          <text x="74" y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+                font-size="18" fill="#c8a898">LHTB 之外还想补什么数据集，直接列</text>
         </g>
       </g>
     </g>
   </g>
-  <!-- FOOTER GitHub y=1342 H=76 bottom=1418 canvas 1440 → 22 safety -->
-  <g transform="translate(70, 1342)">
-    <rect width="940" height="76" rx="18" fill="#141826" stroke="#FFFFFF" stroke-opacity="0.1"/>
-    <g transform="translate(40, 20)">
-      <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="22" font-weight="700" fill="#FFFFFF">GitHub · <tspan font-weight="900">github.com/Yang-Jiashu/LongHorizonOS</tspan></text>
-      <text y="32" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-            font-size="15" fill="#8a8ea0">LHTB 基准 / DeepSeek Harness / StepFun 推理 · 三层出处全部在 README 致谢区列名 · 不占任何人便宜</text>
+  <!-- CALLING absolute bottom 718 + 494 = 1212 ✅ -->
+
+  <!-- GitHub footer y=1262 H=110 → bottom 1372. canvas bottom margin 1440-1372=68px ✅ -->
+  <g transform="translate(70, 1262)">
+    <rect width="940" height="110" rx="22" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <!-- github cat icon pure geometry (no emoji) -->
+    <g transform="translate(36, 28)">
+      <circle cx="20" cy="22" r="20" fill="#FFFFFF" fill-opacity="0.08"/>
+      <circle cx="14" cy="19" r="2.4" fill="#FFFFFF"/>
+      <circle cx="26" cy="19" r="2.4" fill="#FFFFFF"/>
+      <path d="M 8 29 Q 14 38 20 38 Q 26 38 32 29" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M 6 24 L 2 19 L 10 15" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 34 24 L 38 19 L 30 15" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
+    <text x="94" y="48" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+          font-size="24" font-weight="900" fill="#FFFFFF" letter-spacing="0.2">github.com/Yang-Jiashu/LongHorizonOS</text>
+    <text x="94" y="84" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="20" fill="#a0a0b0">Issue / PR / DM · 全看，意见直接进 Roadmap</text>
   </g>
+  <!-- footer absolute bottom 1262 + 110 = 1372. margin 68 ✅ -->
 </svg>
