@@ -17,18 +17,16 @@
     <filter id="d1"><feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#FF5A1F" flood-opacity="0.35"/></filter>
   </defs>
   <rect width="1080" height="1440" fill="url(#bg1)"/>
-  <!-- 顶部品牌条 y=84, 高 60 -->
-  <g transform="translate(70, 90)">
-    <circle cx="34" cy="34" r="30" fill="none" stroke="#FFFFFF" stroke-width="4.5" opacity="0.9"/>
-    <path d="M 16 36 L 30 48 L 56 20" fill="none" stroke="#FF5A1F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="84" y="30" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-          font-size="28" font-weight="900" fill="#FFFFFF">LongHorizonOS</text>
-    <text x="84" y="54" font-family="Helvetica Neue, Inter, Arial, sans-serif"
-          font-size="12" font-weight="600" fill="#a8a8b0" letter-spacing="2.0">LONG-HORIZON AGENT · OS LAYER · v0.1.0</text>
+  <g transform="translate(70, 80)">
+    <circle cx="90" cy="90" r="84" fill="none" stroke="#FFFFFF" stroke-width="12" opacity="0.92"/>
+    <path d="M 40 96 L 79 129 L 152 50" fill="none" stroke="#FF5A1F" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="210" y="78" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
+          font-size="72" font-weight="900" fill="#FFFFFF">LongHorizonOS</text>
+    <text x="210" y="120" font-family="Helvetica Neue, Inter, Arial, sans-serif"
+          font-size="30" font-weight="600" fill="#a8a8b0" letter-spacing="2.0">LONG-HORIZON AGENT · OS LAYER · v0.1.0</text>
   </g>
-  <line x1="70" y1="178" x2="1010" y2="178" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1"/>
-  <!-- Hook 1: y=236 ~ 428 -->
-  <g transform="translate(70, 236)">
+  <line x1="70" y1="270" x2="1010" y2="270" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1"/>
+  <g transform="translate(70, 320)">
     <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
           font-size="32" font-weight="600" fill="#e8e2d8">做 Agent 的 · 都见过这种噩梦吧</text>
     <text y="190" filter="url(#d1)" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
@@ -38,14 +36,13 @@
     <text y="294" font-family="Helvetica Neue, Inter, Arial, sans-serif"
           font-size="22" font-weight="500" fill="#a0a0ae">超级马里奥 · 连第一关都没过 · reward = 0</text>
   </g>
-  <!-- 3 关键数据卡: y=568  H=200  width=(940-2*24)/3 = 297.33  gap 24 -->
-  <g transform="translate(70, 568)">
+  <g transform="translate(70, 660)">
     <rect x="0"    y="0" width="297" height="200" rx="18" fill="#1a130a" stroke="#FF8A3D" stroke-opacity="0.55" stroke-width="1.5"/>
     <rect x="321"  y="0" width="297" height="200" rx="18" fill="#1a130a" stroke="#4A6BBD" stroke-opacity="0.65" stroke-width="1.5"/>
     <rect x="642"  y="0" width="298" height="200" rx="18" fill="#1a130a" stroke="#9B7BF0" stroke-opacity="0.55" stroke-width="1.5"/>
     <g transform="translate(28, 32)">
       <text y="54" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
-            font-size="54" font-weight="900" fill="url(#orange1)">~2.4×</text>
+            font-size="54" font-weight="900" fill="url(#orange1)">~2.4x</text>
       <text y="94"  font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">input token 节省</text>
       <text y="124" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#b09088">重启只带三件套</text>
       <text y="146" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#b09088">目标 / 证据 / 产物 URI</text>
@@ -57,7 +54,7 @@
       <text y="94"  font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">单次调用账单</text>
       <text y="124" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#a0b0cc">3.5 小时 / 158 次续跑</text>
       <text y="146" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#a0b0cc">每次续跑都重读全文</text>
-      <text y="168" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#a0b0cc">上下文从 4K → 183K</text>
+      <text y="168" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#a0b0cc">上下文从 4K -&gt; 183K</text>
     </g>
     <g transform="translate(670, 32)">
       <text y="54" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
@@ -68,26 +65,22 @@
       <text y="168" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="14" fill="#b0a8d0">90 分钟 / 什么都没干</text>
     </g>
   </g>
-  <!-- 金句条 y=810 H=60  -->
-  <g transform="translate(70, 808)">
+  <g transform="translate(70, 900)">
     <rect width="940" height="60" rx="14" fill="#1a0a05" stroke="#FF5A1F" stroke-opacity="0.5" stroke-width="1.5"/>
     <text x="36" y="39" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
           font-size="20" font-weight="800" fill="#FFB36B" letter-spacing="0.6">● IT WASN&apos;T CRASHING · IT WAS &quot;WORKING&quot;.</text>
   </g>
-  <!-- 两句标语 y=908 → 1000 -->
-  <g transform="translate(70, 908)">
+  <g transform="translate(70, 1000)">
     <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
           font-size="46" font-weight="900" fill="#FFFFFF">Harness 让 Agent 一直跑</text>
     <text y="68" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
           font-size="52" font-weight="900" fill="url(#orange1)">LongHorizonOS · 让它别白跑</text>
   </g>
-  <!-- 4 teaser KPI 卡 y=1058 H=196  width=(940 - 3*22)/4 = 218.5  gap 22 -->
-  <g transform="translate(70, 1058)">
+  <g transform="translate(70, 1150)">
     <rect x="0"   y="0" width="218" height="196" rx="18" fill="#0d1b14" stroke="#1FAA59" stroke-opacity="0.6" stroke-width="1.5"/>
     <rect x="240" y="0" width="218" height="196" rx="18" fill="#0d1525" stroke="#4A6BBD" stroke-opacity="0.6" stroke-width="1.5"/>
     <rect x="480" y="0" width="218" height="196" rx="18" fill="#140e25" stroke="#8957e5" stroke-opacity="0.6" stroke-width="1.5"/>
     <rect x="720" y="0" width="220" height="196" rx="18" fill="#0d1526" stroke="#587BE8" stroke-opacity="0.6" stroke-width="1.5"/>
-    <!-- KPI 1 -->
     <g transform="translate(24, 30)">
       <text y="62" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
             font-size="58" font-weight="900" fill="#1FAA59" letter-spacing="-3">37/42</text>
@@ -98,7 +91,6 @@
       <text y="148" font-family="Helvetica Neue, Inter, Arial, sans-serif"
             font-size="12" fill="#90a890">42 有效分母</text>
     </g>
-    <!-- KPI 2 -->
     <g transform="translate(264, 30)">
       <text y="62" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
             font-size="52" font-weight="900" fill="#6B8DD6" letter-spacing="-2">22/27</text>
@@ -111,7 +103,6 @@
       <text y="148" font-family="Helvetica Neue, Inter, Arial, sans-serif"
             font-size="12" fill="#90a0b8">双零平局无信息量对</text>
     </g>
-    <!-- KPI 3 -->
     <g transform="translate(504, 30)">
       <text y="62" font-family="Helvetica Neue, Inter, Arial Black, sans-serif"
             font-size="58" font-weight="900" fill="#8957e5" letter-spacing="-2">0</text>
@@ -124,7 +115,6 @@
       <text y="148" font-family="Helvetica Neue, Inter, Arial, sans-serif"
             font-size="12" fill="#a090c0">三位一体不变</text>
     </g>
-    <!-- KPI 4 CITATION -->
     <g transform="translate(744, 28)">
       <text font-family="Helvetica Neue, Inter, Arial, sans-serif"
             font-size="13" font-weight="800" fill="#587BE8" letter-spacing="1.0">BENCHMARK</text>
