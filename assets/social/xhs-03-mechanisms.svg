@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440">
   <defs>
-    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#09101f"/><stop offset="100%" stop-color="#0b0e16"/>
-    </linearGradient>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#09101f"/><stop offset="100%" stop-color="#0b0e16"/></linearGradient>
     <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3A7BD5"/><stop offset="100%" stop-color="#587BE8"/></linearGradient>
     <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2ea043"/><stop offset="100%" stop-color="#1FAA59"/></linearGradient>
     <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF8A3D"/><stop offset="100%" stop-color="#FF5A1F"/></linearGradient>
@@ -11,10 +9,9 @@
     <filter id="s3"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/></filter>
   </defs>
   <rect width="1080" height="1440" fill="url(#bg3)"/>
-
   <g transform="translate(70, 72)">
-    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="56" font-weight="900" fill="#FFFFFF">抄了 OS 50 年的作业</text>
-    <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#a0a0b0">把 Agent Runtime 当进程管 · 6 个核心闸门</text>
+    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="56" font-weight="900" fill="#FFFFFF">6 个核心闸门</text>
+    <text y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#a0a0b0">把 Agent Runtime 当操作系统进程管 · 6 道 fail-closed 机制</text>
   </g>
 
   <g transform="translate(70, 228)" filter="url(#s3)">
@@ -28,9 +25,9 @@
       <line x1="43" y1="43" x2="59" y2="50" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">时间片 · Time Quantum</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8c0d8">最多再瞎跑一个切片就被抓</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#8098b0">漂移检测 · 2σ 触发 · 过了投资闸门才放行</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">时间片切分 · Time Quantum</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8c0d8">续跑切片预算化 · 上下文漂移检测触发</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#8098b0">每片必须过投资闸门 · 白烧的 slice 直接淘汰</text>
     </g>
   </g>
 
@@ -44,9 +41,9 @@
       <circle cx="43" cy="43" r="11" fill="none" stroke="#2ea043" stroke-width="4"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">语义切换 · Context Switch</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d8b8">重启只带三件套 · 目标 / 证据 / 产物</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a088">100K 废话不带 · 这就是 2.4x token 节省来源</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">上下文切换 · Context Switch</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d8b8">重启只保留三件套 · 目标 / 证据 / 产物 URI</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a088">这就是 ~2.4× input token 中位数节省的来源</text>
     </g>
   </g>
 
@@ -62,9 +59,9 @@
       <path d="M 43 14 Q 24 10 20 26 Q 34 24 43 32 Z" fill="#FFB36B"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">投资 · Investment-gated</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8c8a0">续跑必须挣回上次的成本</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#b09060">连续 0 回报策略直接退役 · 不给白烧机会</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">投资门控 · Investment Gate</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8c8a0">续跑必须覆盖上次切片成本 · ROI 跟踪</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#b09060">连续零回报策略直接退役 · 不给白烧预算</text>
     </g>
   </g>
 
@@ -78,9 +75,9 @@
       <line x1="60" y1="26" x2="26" y2="60" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">安全阀 · OOM Killer</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8b8b0">上下文爆炸 → 4× 软线直接杀</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#c07870">fail-closed · 观测有歧义也执行 · 杀死后必带回滚</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">内存安全阀 · OOM Killer</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8b8b0">上下文账单 × 4 软线强制回收</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#c07870">观测有歧义也 fail-closed · 杀死后必带回滚</text>
     </g>
   </g>
 
@@ -94,9 +91,9 @@
       <polyline points="14,43 24,43 28,22 35,64 43,22 51,64 58,22 62,43 72,43" fill="none" stroke="#1FAA59" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">看门狗 · Watchdog</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d0c0">长时间白烧 + 零写入 → 拍死</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a090">任何生命迹象重置计时 · 本来就不该跑了 158 次续跑案例</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">守护进程 · Watchdog</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d0c0">长时间无写入 + 零 reward 变动直接拍死</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a090">任何生命迹象重置计时 · 杜绝 158 次续跑案例</text>
     </g>
   </g>
 
@@ -110,9 +107,9 @@
       <rect x="16" y="54" width="54" height="14" rx="4" fill="#8957e5" fill-opacity="0.35" stroke="#8957e5" stroke-width="3.5"/>
     </g>
     <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">版本化进度 · Page Table</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#c8b8e8">中途改一个文件 → 只失效受影响子图</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#9880c0">已验证绝不重做 · 带 SHA 重放 100% 一致</text>
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">页表进度 · Page Table</text>
+      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#c8b8e8">改一个文件只失效对应子图 · 其余绝不重做</text>
+      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#9880c0">带 SHA 可重放 · 46 任务 5772 节点 topo 零冲突</text>
     </g>
   </g>
 </svg>
