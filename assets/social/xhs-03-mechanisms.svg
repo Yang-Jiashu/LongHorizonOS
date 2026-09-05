@@ -9,48 +9,52 @@
     <filter id="s3"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/></filter>
   </defs>
   <rect width="1080" height="1440" fill="url(#bg3)"/>
-  <g transform="translate(70, 72)">
-    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="56" font-weight="900" fill="#FFFFFF">6 个核心闸门</text>
-    <text y="64" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#a0a0b0">把 Agent Runtime 当操作系统进程管 · 6 道 fail-closed 机制</text>
+  <!-- Title H=110: y=60 bottom=170 -->
+  <g transform="translate(70, 60)">
+    <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="58" font-weight="900" fill="#FFFFFF">6 个核心闸门</text>
+    <text y="66" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" fill="#a0a0b0">把 Agent Runtime 当操作系统进程管 · 6 道 fail-closed 机制</text>
   </g>
 
-  <g transform="translate(70, 228)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#142130" stroke="#3A7BD5" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g1)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 1 H=190 y=196 gap title-bottom=26; card bottom=386 -->
+  <g transform="translate(70, 196)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#142130" stroke="#3A7BD5" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g1)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#0f1a28" stroke="#3A7BD5" stroke-opacity="0.5"/>
       <circle cx="43" cy="43" r="30" fill="none" stroke="#3A7BD5" stroke-width="4" opacity="0.5"/>
       <path d="M 43 43 L 43 16 A 26 26 0 0 1 65 50 L 43 43 Z" fill="#3A7BD5" opacity="0.75"/>
       <line x1="43" y1="43" x2="43" y2="20" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
       <line x1="43" y1="43" x2="59" y2="50" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">时间片切分 · Time Quantum</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8c0d8">续跑切片预算化 · 上下文漂移检测触发</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#8098b0">每片必须过投资闸门 · 白烧的 slice 直接淘汰</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">时间片切分 · Time Quantum</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#a8c0d8">续跑切片预算化 · 上下文漂移检测触发</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#90a8c0">每片必须过投资闸门 · 无进展 slice 直接淘汰</text>
     </g>
   </g>
 
-  <g transform="translate(70, 422)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#142820" stroke="#2ea043" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g2)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 2 y=404 H=190 bottom=594, gap card1 bottom=386 → 18 -->
+  <g transform="translate(70, 404)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#142820" stroke="#2ea043" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g2)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#0f2018" stroke="#2ea043" stroke-opacity="0.5"/>
       <path d="M 22 30 L 44 43 L 22 56" fill="none" stroke="#2ea043" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M 64 30 L 42 43 L 64 56" fill="none" stroke="#2ea043" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
       <circle cx="43" cy="43" r="11" fill="none" stroke="#2ea043" stroke-width="4"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">上下文切换 · Context Switch</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d8b8">重启只保留三件套 · 目标 / 证据 / 产物 URI</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a088">这就是 ~2.4× input token 中位数节省的来源</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">上下文切换 · Context Switch</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#a8d8b8">重启只保留三件套 · 目标 / 证据 / 产物 URI</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#90b098">~2.4× input token 中位数节省来源</text>
     </g>
   </g>
 
-  <g transform="translate(70, 616)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#241810" stroke="#FF8A3D" stroke-opacity="0.75" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g3)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 3 y=612 H=190 bottom=802 -->
+  <g transform="translate(70, 612)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#241810" stroke="#FF8A3D" stroke-opacity="0.75" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g3)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#1e140c" stroke="#FF8A3D" stroke-opacity="0.5"/>
       <ellipse cx="43" cy="62" rx="28" ry="10" fill="#FF8A3D" opacity="0.4"/>
       <circle cx="43" cy="60" r="16" fill="none" stroke="#FF8A3D" stroke-width="4.5"/>
@@ -58,58 +62,61 @@
       <path d="M 43 14 Q 62 10 66 26 Q 52 24 43 32 Z" fill="#FF8A3D"/>
       <path d="M 43 14 Q 24 10 20 26 Q 34 24 43 32 Z" fill="#FFB36B"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">投资门控 · Investment Gate</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8c8a0">续跑必须覆盖上次切片成本 · ROI 跟踪</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#b09060">连续零回报策略直接退役 · 不给白烧预算</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">投资门控 · Investment Gate</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#e8c8a0">续跑必须覆盖切片成本 · ROI 跟踪</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#b89868">连续零回报策略直接退役 · 无白烧预算</text>
     </g>
   </g>
 
-  <g transform="translate(70, 810)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#281010" stroke="#FF5A1F" stroke-opacity="0.75" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g3)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 4 y=820 H=190 bottom=1010 -->
+  <g transform="translate(70, 820)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#281010" stroke="#FF5A1F" stroke-opacity="0.75" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g3)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#200a0a" stroke="#FF5A1F" stroke-opacity="0.5"/>
       <polygon points="43,14 72,43 43,72 14,43" fill="#FF5A1F" stroke="#FF8A3D" stroke-width="2.5"/>
       <line x1="26" y1="26" x2="60" y2="60" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
       <line x1="60" y1="26" x2="26" y2="60" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">内存安全阀 · OOM Killer</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8b8b0">上下文账单 × 4 软线强制回收</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#c07870">观测有歧义也 fail-closed · 杀死后必带回滚</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">内存安全阀 · OOM Killer</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#e8b8b0">上下文账单 ×4 软线强制回收</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#c88880">观测有歧义也 fail-closed · 杀死后必带回滚</text>
     </g>
   </g>
 
-  <g transform="translate(70, 1004)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#142230" stroke="#1FAA59" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g5)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 5 y=1028 H=190 bottom=1218 -->
+  <g transform="translate(70, 1028)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#142230" stroke="#1FAA59" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g5)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#0f1d20" stroke="#1FAA59" stroke-opacity="0.5"/>
       <circle cx="43" cy="43" r="30" fill="none" stroke="#1FAA59" stroke-width="3.5" opacity="0.4"/>
       <circle cx="43" cy="43" r="20" fill="none" stroke="#1FAA59" stroke-width="3.5" opacity="0.4"/>
       <polyline points="14,43 24,43 28,22 35,64 43,22 51,64 58,22 62,43 72,43" fill="none" stroke="#1FAA59" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">守护进程 · Watchdog</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#a8d0c0">长时间无写入 + 零 reward 变动直接拍死</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#80a090">任何生命迹象重置计时 · 杜绝 158 次续跑案例</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">守护进程 · Watchdog</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#a8d0c0">长时间无写入 + 零 reward 变动触发</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#88a898">任何生命迹象重置计时 · 杜绝 158 续跑案例</text>
     </g>
   </g>
 
-  <g transform="translate(70, 1198)" filter="url(#s3)">
-    <rect width="940" height="170" rx="20" fill="#1e1428" stroke="#8957e5" stroke-opacity="0.7" stroke-width="1.5"/>
-    <rect x="0" y="0" width="10" height="170" rx="5" fill="url(#g6)"/>
-    <g transform="translate(58, 42)">
+  <!-- Card 6 y=1236 H=190 bottom=1426 canvas 1440 margin 14 OK -->
+  <g transform="translate(70, 1236)" filter="url(#s3)">
+    <rect width="940" height="190" rx="22" fill="#1e1428" stroke="#8957e5" stroke-opacity="0.7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="10" height="190" rx="5" fill="url(#g6)"/>
+    <g transform="translate(54, 52)">
       <rect width="86" height="86" rx="18" fill="#181024" stroke="#8957e5" stroke-opacity="0.5"/>
       <rect x="16" y="14" width="54" height="14" rx="4" fill="none" stroke="#8957e5" stroke-width="3.5"/>
       <rect x="16" y="34" width="54" height="14" rx="4" fill="none" stroke="#8957e5" stroke-width="3.5"/>
       <rect x="16" y="54" width="54" height="14" rx="4" fill="#8957e5" fill-opacity="0.35" stroke="#8957e5" stroke-width="3.5"/>
     </g>
-    <g transform="translate(184, 46)">
-      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="32" font-weight="900" fill="#FFFFFF">页表进度 · Page Table</text>
-      <text y="48" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#c8b8e8">改一个文件只失效对应子图 · 其余绝不重做</text>
-      <text y="86" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="22" fill="#9880c0">带 SHA 可重放 · 46 任务 5772 节点 topo 零冲突</text>
+    <g transform="translate(172, 40)">
+      <text font-family="Helvetica Neue, Inter, Arial Black, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF">页表进度 · Page Table</text>
+      <text y="58" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="26" font-weight="700" fill="#c8b8e8">改一个文件只失效子图 · 其余绝不重做</text>
+      <text y="104" font-family="Helvetica Neue, Inter, Arial, sans-serif" font-size="24" fill="#a088c8">带 SHA 可重放 · 46 任务 5772 节点 topo 零冲突</text>
     </g>
   </g>
 </svg>
